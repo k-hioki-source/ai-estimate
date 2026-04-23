@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { analyzeImage } from '../../../lib/openai';
-import { calculatePrice } from '../../../lib/pricing';
+import { calculateEstimate } from '../../../lib/pricing';
 import { sendNotificationEmail } from '../../../lib/email';
 
 function getString(value: FormDataEntryValue | null): string {
