@@ -1,55 +1,88 @@
 import OpenAI from 'openai';
-import type { VisionScore } from './pricing';
 
-const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const client = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
 
-export async function analyzeImage(base64DataUrl: string, style: string): Promise<VisionScore> {
+export type AnalyzeImageInput = {
+  imageDataUrl: string;
+  usage?: string;
+  style?: string;
+  size?: string;
+  notes?: string;
+};
+
+export type AnalyzeImageResult = {
+  complexityScore: number;
+  partDensity: number;
+  occlusion: number;
+  lineDifficulty: number;
+  realismRequirement: number;
+  structureComplexity: number;
+  confidence: number;
+  summary: string;
+};
+
+export async function analyzeImage(
+  input: AnalyzeImageInput
+): Promise<AnalyzeImageResult> {
   const prompt = `
-あなたは機械・工業イラストの概算見積り補助AIです。
-画像を見て、イラスト化の見積りに効く複雑さを0〜100で評価してください。
-背景ではなく対象物を優先して評価してください。
-以下のJSONのみを返してください。
-{
-  "subjectType": "string",
-  "complexityScore": 0,
-  "partDensity": 0,
-  "occlusion": 0,
-  "lineDifficulty": 0,
-  "realismRequirement": 0,
-  "structureComplexity": 0,
-  "confidence": 0,
-  "reason": "string"
-}
-補足:
-- style は ${style}
-- confidence は 0〜1
-- complexityScore は見積り観点の総合スコア
-- reason は日本語1文で簡潔に
-`.trim();
+あなたは機械・工業イラスト案件の見積り補助AIです。
+入力画像を見て、見積り用の複雑さを0〜100で評価してください。
 
-  const response = await client.chat.completions.create({
+評価軸:
+- complexityScore
+- partDensity
+- occlusion
+- lineDifficulty
+- realismRequirement
+- structureComplexity
+- confidence
+
+追加情報:
+- 用途: ${input.usage ?? ''}
+- 表現: ${input.style ?? ''}
+- サイズ: ${input.size ?? ''}
+- 備考: ${input.notes ?? ''}
+
+JSONのみで返してください。
+`;
+
+  const response = await client.responses.create({
     model: 'gpt-4.1-mini',
-    response_format: { type: 'json_object' },
-    messages: [
-      {
-        role: 'system',
-        content: 'あなたは機械イラスト案件の見積り支援AIです。必ずJSONのみ返してください。'
-      },
+    input: [
       {
         role: 'user',
         content: [
-          { type: 'text', text: prompt },
-          { type: 'image_url', image_url: { url: base64DataUrl } }
-        ]
-      }
-    ]
+          { type: 'input_text', text: prompt },
+          {
+            type: 'input_image',
+            image_url: input.imageDataUrl,
+          },
+        ],
+      },
+    ],
   });
 
-  const content = response.choices[0]?.message?.content;
-  if (!content) {
-    throw new Error('AIの解析結果を取得できませんでした。');
+  const text =
+    response.output_text ||
+    '{"complexityScore":50,"partDensity":50,"occlusion":50,"lineDifficulty":50,"realismRequirement":50,"structureComplexity":50,"confidence":0.7,"summary":"標準的な難易度"}';
+
+  let parsed: Partial<AnalyzeImageResult> = {};
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    parsed = {};
   }
 
-  const parsed = JSON.parse(content) as VisionScore;
-  return parsed;
+  return {
+    complexityScore: Number(parsed.complexityScore ?? 50),
+    partDensity: Number(parsed.partDensity ?? 50),
+    occlusion: Number(parsed.occlusion ?? 50),
+    lineDifficulty: Number(parsed.lineDifficulty ?? 50),
+    realismRequirement: Number(parsed.realismRequirement ?? 50),
+    structureComplexity: Number(parsed.structureComplexity ?? 50),
+    confidence: Number(parsed.confidence ?? 0.7),
+    summary: String(parsed.summary ?? '標準的な難易度'),
+  };
 }
