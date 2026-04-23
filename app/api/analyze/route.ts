@@ -10,10 +10,10 @@ function getString(value: FormDataEntryValue | null): string {
 export async function POST(req: NextRequest) {
   try {
     const form = await req.formData();
-    const file = form.get('image');
 
+    const file = form.get('image');
     if (!(file instanceof File)) {
-      return NextResponse.json({ error: '画像ファイルがありません。' }, { status: 400 });
+      return NextResponse.json({ error: '画像ファイルが見つかりません。' }, { status: 400 });
     }
 
     const bytes = Buffer.from(await file.arrayBuffer());
@@ -24,21 +24,46 @@ export async function POST(req: NextRequest) {
       customerName: getString(form.get('customerName')),
       companyName: getString(form.get('companyName')),
       email: getString(form.get('email')),
-      usage: getString(form.get('usage')) as EstimateRequest['usage'],
-      size: getString(form.get('size')) as EstimateRequest['size'],
-      style: getString(form.get('style')) as EstimateRequest['style'],
+      usage: getString(form.get('usage')),
+      size: getString(form.get('size')),
+      style: getString(form.get('style')),
       quantity: Number(getString(form.get('quantity')) || '1'),
-      rush: getString(form.get('rush')) as EstimateRequest['rush'],
-      requestFormalQuote: getString(form.get('requestFormalQuote')) === 'yes',
-      notes: getString(form.get('notes'))
+      notes: getString(form.get('notes')),
+      requestFormalQuote: getString(form.get('requestFormalQuote')) === 'true',
+      imageDataUrl: base64DataUrl,
     };
 
-    const vision = await analyzeImage(base64DataUrl, input.style);
-    const estimate = calculateEstimate(input, vision);
+    const analysis = await analyzeImage({
+      imageDataUrl: input.imageDataUrl,
+      usage: input.usage,
+      style: input.style,
+      size: input.size,
+      notes: input.notes,
+    });
 
-    await sendEstimateNotification({ input, vision, estimate });
+    const estimate = calculateEstimate({
+      complexityScore: analysis.complexityScore ?? 50,
+      style: input.style,
+      quantity: input.quantity,
+    });
 
-    return NextResponse.json({ input, vision, estimate });
+    await sendNotificationEmail({
+      company: input.companyName,
+      name: input.customerName,
+      email: input.email,
+      usage: input.usage,
+      style: input.style,
+      quantity: input.quantity,
+      notes: input.notes,
+      complexityScore: analysis.complexityScore ?? 50,
+      totalPrice: estimate.totalPrice ?? estimate.total ?? 0,
+    });
+
+    return NextResponse.json({
+      ok: true,
+      analysis,
+      estimate,
+    });
   } catch (error) {
     console.error(error);
     return NextResponse.json(
