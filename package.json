@@ -1,5 +1,5 @@
 {
-  "name": "ai-estimate-demo",
+  "name": "ai-estimate",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -9,16 +9,15 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "next": "15.5.7"
-    "react": "18.3.1",
-    "react-dom": "18.3.1",
-    "openai": "^4.70.0",
-    "resend": "^4.0.0"
+    "next": "15.5.7",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "openai": "^4.104.0"
   },
   "devDependencies": {
-    "typescript": "^5.6.3",
-    "@types/node": "^22.8.1",
-    "@types/react": "^18.3.3",
-    "@types/react-dom": "^18.3.0"
+    "@types/node": "^22.10.1",
+    "@types/react": "^19.0.2",
+    "@types/react-dom": "^19.0.2",
+    "typescript": "^5.7.2"
   }
 }
