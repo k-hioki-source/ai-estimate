@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
       quantity: input.quantity,
       notes: input.notes,
       complexityScore: analysis.complexityScore ?? 50,
-      totalPrice: estimate.totalPrice ?? estimate.total ?? 0,
+      totalPrice: estimate.totalPrice ?? 0,
     });
 
     return NextResponse.json({
