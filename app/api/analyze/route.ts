@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
     const mime = file.type || 'image/jpeg';
     const base64DataUrl = `data:${mime};base64,${bytes.toString('base64')}`;
 
-    const input: EstimateRequest = {
+    const input = {
       customerName: getString(form.get('customerName')),
       companyName: getString(form.get('companyName')),
       email: getString(form.get('email')),
