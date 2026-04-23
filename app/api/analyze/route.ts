@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { analyzeImage } from '@/lib/openai';
-import { calculateEstimate, EstimateRequest } from '@/lib/pricing';
-import { sendEstimateNotification } from '@/lib/email';
+import { analyzeImage } from '../../../lib/openai';
+import { calculatePrice } from '../../../lib/pricing';
+import { sendNotificationEmail } from '../../../lib/email';
 
 function getString(value: FormDataEntryValue | null): string {
   return typeof value === 'string' ? value : '';
