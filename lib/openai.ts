@@ -57,7 +57,8 @@ JSONのみで返してください。
           { type: 'input_text', text: prompt },
           {
             type: 'input_image',
-            image_url: input.imageDataUrl,
+  image_url: input.imageDataUrl,
+  detail: 'auto',
           },
         ],
       },
