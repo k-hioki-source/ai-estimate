@@ -49,14 +49,15 @@ export async function POST(req: NextRequest) {
 
     await sendNotificationEmail({
       company: input.companyName,
-      name: input.customerName,
-      email: input.email,
-      usage: input.usage,
-      style: input.style,
-      quantity: input.quantity,
-      notes: input.notes,
-      complexityScore: analysis.complexityScore ?? 50,
-      totalPrice: estimate.totalPrice ?? 0,
+  name: input.customerName,
+  email: input.email,
+  usage: input.usage,
+  style: input.style,
+  quantity: input.quantity,
+  notes: input.notes,
+  complexityScore: analysis.complexityScore,
+  totalPrice: estimate.totalPrice,
+  requestFormalQuote: input.requestFormalQuote,
     });
 
     return NextResponse.json({
