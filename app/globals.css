@@ -246,6 +246,7 @@ button:disabled { opacity: 0.65; cursor: not-allowed; }
   font-size: 24px;
   margin: 8px 0;
 }
+
 .ctaActions { display: grid; gap: 12px; }
 .ctaButtonLike {
   display: flex;
