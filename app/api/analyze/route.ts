@@ -108,19 +108,33 @@ JSONで出力：
 
     // ===== フロント返却（今朝仕様に合わせる） =====
     return NextResponse.json({
-      input: {
-        requestFormalQuote: input.requestFormalQuote,
-      },
-      vision: {
-        complexityScore: analysis.complexityScore,
-        reason: analysis.summary,
-      },
-      estimate: {
-        total: estimate.totalPrice,
-        subtotal: estimate.unitPrice,
-        quantity: input.quantity,
-      },
-    });
+  input: {
+    requestFormalQuote: input.requestFormalQuote,
+  },
+  vision: {
+    subjectType: '機械・製品イラスト',
+    complexityScore: analysis.complexityScore ?? 50,
+    partDensity: analysis.partDensity ?? 50,
+    occlusion: analysis.occlusion ?? 50,
+    lineDifficulty: analysis.lineDifficulty ?? 50,
+    realismRequirement: analysis.realismRequirement ?? 50,
+    structureComplexity: analysis.structureComplexity ?? 50,
+    confidence: analysis.confidence ?? 0.7,
+    reason: analysis.summary ?? '画像と入力条件をもとに概算判定しました。',
+  },
+  estimate: {
+    total: estimate.totalPrice ?? 0,
+    subtotal: estimate.totalPrice ?? 0,
+    deliveryDays: '3〜5営業日',
+    complexityBand: '標準',
+    basePrice: estimate.unitPrice ?? 0,
+    usageMultiplier: 1,
+    styleMultiplier: 1,
+    sizeMultiplier: 1,
+    rushMultiplier: 1,
+    quantity: input.quantity,
+  },
+});
   } catch (e) {
     console.error(e);
     return NextResponse.json(
