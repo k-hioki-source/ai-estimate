@@ -99,7 +99,7 @@ export default function EstimateForm() {
 
           <div className="heroImageWrap">
             <img
-              src="public/hydraulic.png"
+              src="https://www.create-support.co.jp/public/hydraulic.png"
               alt="油圧シリンダーのテクニカルイラスト"
               className="heroImage"
             />
