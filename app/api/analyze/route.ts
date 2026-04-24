@@ -60,10 +60,33 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json({
-      ok: true,
-      analysis,
-      estimate,
-    });
+  input: {
+    requestFormalQuote: input.requestFormalQuote,
+  },
+  vision: {
+    subjectType: '機械系',
+    complexityScore: analysis.complexityScore,
+    partDensity: analysis.partDensity,
+    occlusion: analysis.occlusion,
+    lineDifficulty: analysis.lineDifficulty,
+    realismRequirement: analysis.realismRequirement,
+    structureComplexity: analysis.structureComplexity,
+    confidence: analysis.confidence,
+    reason: analysis.summary,
+  },
+  estimate: {
+    total: estimate.totalPrice,
+    subtotal: estimate.unitPrice,
+    deliveryDays: '3〜5営業日',
+    complexityBand: '',
+    basePrice: estimate.unitPrice,
+    usageMultiplier: 1,
+    styleMultiplier: 1,
+    sizeMultiplier: 1,
+    rushMultiplier: 1,
+    quantity: input.quantity,
+  },
+});
   } catch (error) {
     console.error(error);
     return NextResponse.json(
