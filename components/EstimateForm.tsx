@@ -39,7 +39,7 @@ function starText(score: number) {
 
 function difficultyLabel(score: number) {
   if (score <= 35) return 'やさしめ';
-  if (score <= 65) return '標準〜やや複雑';
+  if (score <= 65) return '標準からやや複雑';
   return '高難度';
 }
 
@@ -62,7 +62,7 @@ export default function EstimateForm() {
     try {
       const res = await fetch('/api/analyze', {
         method: 'POST',
-        body: formData
+        body: formData,
       });
 
       const json = (await res.json()) as ApiResponse;
@@ -80,16 +80,30 @@ export default function EstimateForm() {
   return (
     <div className="stackLarge">
       <section className="hero card">
-        <div className="eyebrow">AI概算見積り</div>
-        <h1 className="heroTitle">イラスト制作の概算見積りをその場で確認できます</h1>
-        <p className="heroLead">
-          参考画像と条件を入力するだけで、AIが案件の複雑さを判定し、概算金額を表示します。
-          取扱説明書・パーツカタログ・機械イラストに対応しています。
-        </p>
-        <div className="heroPoints">
-          <div className="miniPoint">その場で金額の目安がわかる</div>
-          <div className="miniPoint">画像を見て複雑さを数値化</div>
-          <div className="miniPoint">正式見積りにもつなげやすい</div>
+        <div className="heroContent">
+          <div className="heroText">
+            <div className="eyebrow">AI概算見積り</div>
+            <h1 className="heroTitle">
+              イラスト制作の概算見積りをその場で確認できます
+            </h1>
+            <p className="heroLead">
+              参考画像と条件を入力するだけで、AIが案件の複雑さを判定し、概算金額を表示します。
+              取扱説明書・パーツカタログ・機械イラストに対応しています。
+            </p>
+            <div className="heroPoints">
+              <div className="miniPoint">その場で金額の目安がわかる</div>
+              <div className="miniPoint">画像を見て複雑さを数値化</div>
+              <div className="miniPoint">正式見積りにもつなげやすい</div>
+            </div>
+          </div>
+
+          <div className="heroImageWrap">
+            <img
+              src="/hydraulic.png"
+              alt="油圧シリンダーのテクニカルイラスト"
+              className="heroImage"
+            />
+          </div>
         </div>
       </section>
 
@@ -285,7 +299,7 @@ export default function EstimateForm() {
                   : '概算確認のみで送信されています'}
               </div>
               <p className="footerNote">
-                正式見積り希望にチェックを入れて送信した場合は、そのまま商談導線として利用できます。
+                正式見積り希望にチェックを入れて送信した場合は、参考画像も管理者宛に送信されます。
               </p>
             </div>
           </div>
