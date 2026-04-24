@@ -11,6 +11,12 @@ export type NotificationPayload = {
   complexityScore?: number;
   totalPrice?: number;
   requestFormalQuote?: boolean;
+
+  // 追加：画像添付用
+  imageAttachment?: {
+    filename: string;
+    content: string; // base64
+  };
 };
 
 export async function sendNotificationEmail(payload: NotificationPayload) {
@@ -55,6 +61,16 @@ ${payload.notes || ''}
 
 ※このメールはAI概算見積りフォームから自動送信されています。
 `,
+    // ▼ここがポイント（チェック時のみ添付）
+    attachments:
+      payload.requestFormalQuote && payload.imageAttachment
+        ? [
+            {
+              filename: payload.imageAttachment.filename,
+              content: payload.imageAttachment.content,
+            },
+          ]
+        : undefined,
   });
 
   // =========================
