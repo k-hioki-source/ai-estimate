@@ -63,6 +63,33 @@ button:disabled { opacity: 0.65; cursor: not-allowed; }
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.logoLink {
+  font-weight: 700;
+  font-size: 16px;
+  text-decoration: none;
+  color: #0f172a;
+}
+
+.logoLink:hover {
+  opacity: 0.7;
+}
+
+.backLink {
+  font-size: 13px;
+  color: #64748b;
+  text-decoration: none;
+}
+
+.backLink:hover {
+  text-decoration: underline;
+}
 .hero {
   background: radial-gradient(circle at top left, #eef4ff 0%, #ffffff 55%);
 }
