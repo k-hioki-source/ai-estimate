@@ -35,7 +35,9 @@ export async function POST(req: NextRequest) {
       style: getString(form.get('style')),
       quantity: Number(getString(form.get('quantity')) || '1'),
       notes: getString(form.get('notes')),
-      requestFormalQuote: getString(form.get('requestFormalQuote')) === 'true',
+      requestFormalQuote: ['true', 'yes', 'on'].includes(
+  getString(form.get('requestFormalQuote'))
+),
     };
 
     // ===== AI解析 =====
