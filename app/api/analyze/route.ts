@@ -69,7 +69,7 @@ JSONで出力：
 
     let analysis: any = {};
     try {
-      const text = response.output[0]?.content?.[0]?.text || '{}';
+      const text = response.output_text || '{}';
       analysis = JSON.parse(text);
     } catch {
       analysis = { complexityScore: 50, summary: '解析失敗のため中央値' };
