@@ -78,8 +78,24 @@ export default function EstimateForm() {
   }
 
   return (
-    <div className="stackLarge">
-      <section className="hero card">
+  <div className="stackLarge">
+
+    {/* ヘッダー（ロゴ） */}
+    <div className="header">
+      <a href="https://www.create-support.co.jp/" className="logoLink">
+        クリエイトサポート
+      </a>
+
+      <a
+        href="https://www.create-support.co.jp/"
+        className="backLink"
+      >
+        会社サイトへ戻る →
+      </a>
+    </div>
+
+    {/* ヒーロー */}
+    <section className="hero card">
         <div className="heroContent">
           <div className="heroText">
             <div className="eyebrow">AI概算見積り</div>
