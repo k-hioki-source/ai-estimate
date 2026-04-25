@@ -1,53 +1,76 @@
 import OpenAI from 'openai';
 
 const client = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+  apiKey: process.env.OPENAI_API_KEY!,
 });
 
-export type AnalyzeImageInput = {
-  imageDataUrl: string;
-  usage?: string;
-  style?: string;
-  size?: string;
-  notes?: string;
-};
-
-export type AnalyzeImageResult = {
-  complexityScore: number;
-  partDensity: number;
-  occlusion: number;
-  lineDifficulty: number;
-  realismRequirement: number;
-  structureComplexity: number;
-  confidence: number;
-  summary: string;
-};
-
-export async function analyzeImage(
-  input: AnalyzeImageInput
-): Promise<AnalyzeImageResult> {
+export async function analyzeImage({
+  imageBase64,
+  style,
+  usage,
+}: {
+  imageBase64: string;
+  style: 'line' | 'color' | 'real';
+  usage: 'manual' | 'parts' | 'sales';
+}) {
+  // -----------------------------
+  // AIプロンプト（ここが重要）
+  // -----------------------------
   const prompt = `
-あなたは機械・工業イラスト案件の見積り補助AIです。
-入力画像を見て、見積り用の複雑さを0〜100で評価してください。
+あなたはテクニカルイラスト制作会社の見積担当です。
+画像を見て「制作難易度」と「作業内容」を判断してください。
 
-評価軸:
-- complexityScore
-- partDensity
-- occlusion
-- lineDifficulty
-- realismRequirement
-- structureComplexity
-- confidence
+以下の2つを必ず出力してください：
 
-追加情報:
-- 用途: ${input.usage ?? ''}
-- 表現: ${input.style ?? ''}
-- サイズ: ${input.size ?? ''}
-- 備考: ${input.notes ?? ''}
+① 複雑さスコア（0〜100）
+② 作業タイプ（以下から1つ選択）
 
-JSONのみで返してください。
+- trace（写真トレース・単純な線画）
+- normal（通常の作図）
+- realistic（リアルイラスト・質感表現）
+- concept（概念図・レイアウト・構成設計が必要）
+
+---
+
+判断基準：
+
+■ trace
+・シンプル形状
+・部品少ない
+・トレース中心
+
+■ normal
+・一般的な取説・機械図
+・適度な部品数
+
+■ realistic
+・グラデーション
+・質感表現
+・陰影あり
+
+■ concept
+・全体構成が重要
+・複数要素（地形・設備・流れなど）
+・説明図・インフォグラフィック
+
+---
+
+以下のJSONで出力してください：
+
+{
+  "complexityScore": number,
+  "workType": "trace" | "normal" | "realistic" | "concept",
+  "partDensity": number,
+  "occlusion": number,
+  "lineDifficulty": number,
+  "structureComplexity": number,
+  "summary": string
+}
 `;
 
+  // -----------------------------
+  // OpenAI API呼び出し
+  // -----------------------------
   const response = await client.responses.create({
     model: 'gpt-4.1-mini',
     input: [
@@ -57,59 +80,102 @@ JSONのみで返してください。
           { type: 'input_text', text: prompt },
           {
             type: 'input_image',
-  image_url: input.imageDataUrl,
-  detail: 'auto',
+            image_base64: imageBase64,
           },
         ],
       },
     ],
   });
 
-  const text =
-    response.output_text ||
-    '{"complexityScore":50,"partDensity":50,"occlusion":50,"lineDifficulty":50,"realismRequirement":50,"structureComplexity":50,"confidence":0.7,"summary":"標準的な難易度"}';
+  // -----------------------------
+  // テキスト抽出（新形式対応）
+  // -----------------------------
+  let text = '';
 
-  let parsed: Partial<AnalyzeImageResult> = {};
+  for (const item of response.output || []) {
+    if (item.type === 'message') {
+      for (const c of item.content || []) {
+        if (c.type === 'output_text') {
+          text += c.text;
+        }
+      }
+    }
+  }
+
+  // -----------------------------
+  // JSONパース
+  // -----------------------------
+  let parsed: any = {};
   try {
     parsed = JSON.parse(text);
-  } catch {
+  } catch (e) {
+    console.error('JSON parse error:', text);
     parsed = {};
   }
-// 追加する考え方
-let adjustedScore = complexityScore;
 
-// ① 線画でシンプル → 下げる
-if (style === 'line' && complexityScore < 40) {
-  adjustedScore *= 0.6;
-}
+  // -----------------------------
+  // 値取得
+  // -----------------------------
+  const rawScore = Number(parsed.complexityScore ?? 50);
+  const workType = parsed.workType ?? 'normal';
+  const partDensity = Number(parsed.partDensity ?? 50);
+  const occlusion = Number(parsed.occlusion ?? 50);
+  const lineDifficulty = Number(parsed.lineDifficulty ?? 50);
+  const structureComplexity = Number(parsed.structureComplexity ?? 50);
 
-// ② リアルテイスト → 上げる
-if (style === 'real') {
-  adjustedScore *= 1.3;
-}
+  // -----------------------------
+  // ★ 補正ロジック（ここがコア）
+  // -----------------------------
+  let adjustedScore = rawScore;
 
-// ③ プレゼン用途（概念図）→ 強く上げる
-if (usage === 'sales') {
-  adjustedScore *= 1.4;
-}
+  // 作業タイプ補正（最重要）
+  if (workType === 'trace') adjustedScore *= 0.6;
+  if (workType === 'normal') adjustedScore *= 1.0;
+  if (workType === 'realistic') adjustedScore *= 1.3;
+  if (workType === 'concept') adjustedScore *= 1.6;
 
-// ④ 部品密度が高い → 上げる
-if (partDensity > 70) {
-  adjustedScore *= 1.2;
-}
+  // スタイル補正
+  if (style === 'line' && rawScore <= 40 && partDensity <= 45) {
+    adjustedScore *= 0.7;
+  }
 
-// ⑤ 構造難度が高い → 上げる
-if (structureComplexity > 70) {
-  adjustedScore *= 1.3;
-}
+  if (style === 'color') {
+    adjustedScore *= 1.05;
+  }
+
+  if (style === 'real') {
+    adjustedScore *= 1.2;
+  }
+
+  // 用途補正
+  if (usage === 'sales') {
+    adjustedScore *= 1.15;
+  }
+
+  // 構造難易度
+  if (structureComplexity >= 70) {
+    adjustedScore *= 1.2;
+  }
+
+  // 部品密度
+  if (partDensity >= 70) {
+    adjustedScore *= 1.1;
+  }
+
+  // 最終整形
+  adjustedScore = Math.max(10, Math.min(100, Math.round(adjustedScore)));
+
+  // -----------------------------
+  // return
+  // -----------------------------
   return {
-    complexityScore: Number(parsed.complexityScore ?? 50),
-    partDensity: Number(parsed.partDensity ?? 50),
-    occlusion: Number(parsed.occlusion ?? 50),
-    lineDifficulty: Number(parsed.lineDifficulty ?? 50),
-    realismRequirement: Number(parsed.realismRequirement ?? 50),
-    structureComplexity: Number(parsed.structureComplexity ?? 50),
+    complexityScore: adjustedScore,
+    workType,
+    partDensity,
+    occlusion,
+    lineDifficulty,
+    structureComplexity,
     confidence: Number(parsed.confidence ?? 0.7),
-    summary: String(parsed.summary ?? '標準的な難易度'),
+    summary: parsed.summary ?? '',
   };
 }
