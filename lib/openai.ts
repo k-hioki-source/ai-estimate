@@ -108,7 +108,25 @@ JSONのみで出力してください。
   if (structureComplexity >= 70) adjustedScore *= 1.08;
 
   // 100張り付き防止
-  adjustedScore = Math.max(10, Math.min(85, Math.round(adjustedScore)));
+  // 作業タイプごとの最低スコア保証
+if (workType === 'trace') {
+  adjustedScore = Math.min(adjustedScore, 35);
+}
+
+if (workType === 'normal') {
+  adjustedScore = Math.max(adjustedScore, 30);
+}
+
+if (workType === 'realistic') {
+  adjustedScore = Math.max(adjustedScore, 55);
+}
+
+if (workType === 'concept') {
+  adjustedScore = Math.max(adjustedScore, 80);
+}
+
+// 100張り付き防止
+adjustedScore = Math.max(10, Math.min(90, Math.round(adjustedScore)));
 
   return {
     complexityScore: adjustedScore,
