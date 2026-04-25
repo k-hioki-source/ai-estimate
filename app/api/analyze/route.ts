@@ -3,9 +3,6 @@ import { analyzeImage } from '../../../lib/openai';
 import { calculateEstimate } from '../../../lib/pricing';
 import { sendNotificationEmail } from '../../../lib/email';
 
-// -----------------------------
-// 型補正（ここが今回のエラー対策）
-// -----------------------------
 function getString(v: FormDataEntryValue | null): string {
   return typeof v === 'string' ? v : '';
 }
@@ -33,9 +30,6 @@ function getRush(value: string): 'normal' | 'rush' {
   return 'normal';
 }
 
-// -----------------------------
-// メイン処理
-// -----------------------------
 export async function POST(req: NextRequest) {
   try {
     const form = await req.formData();
@@ -46,16 +40,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: '画像がありません' }, { status: 400 });
     }
 
-    // -----------------------------
-    // 画像 → base64
-    // -----------------------------
     const bytes = Buffer.from(await file.arrayBuffer());
-    const mime = file.type || 'image/jpeg';
     const base64 = bytes.toString('base64');
 
-    // -----------------------------
-    // 入力取得
-    // -----------------------------
     const input = {
       customerName: getString(form.get('customerName')),
       companyName: getString(form.get('companyName')),
@@ -71,53 +58,42 @@ export async function POST(req: NextRequest) {
       ),
     };
 
-    // -----------------------------
-    // AI解析
-    // -----------------------------
     const analysis = await analyzeImage({
       imageBase64: base64,
       style: input.style,
       usage: input.usage,
     });
 
-    // -----------------------------
-    // 見積計算
-    // -----------------------------
+    let finalScore =
+      (analysis.rawComplexityScore ?? analysis.complexityScore ?? 50) * 0.35 +
+      (analysis.partDensity ?? 50) * 0.2 +
+      (analysis.structureComplexity ?? 50) * 0.3 +
+      (analysis.lineDifficulty ?? 50) * 0.15;
+
+    if (analysis.workType === 'trace') finalScore *= 0.55;
+    if (analysis.workType === 'normal') finalScore *= 1.0;
+    if (analysis.workType === 'realistic') finalScore *= 1.25;
+    if (analysis.workType === 'concept') finalScore *= 1.8;
+
+    if (input.style === 'line') finalScore *= 0.9;
+    if (input.style === 'color') finalScore *= 1.05;
+    if (input.style === 'real') finalScore *= 1.1;
+
+    if (input.usage === 'manual') finalScore *= 0.9;
+    if (input.usage === 'sales') finalScore *= 1.2;
+
+    if (analysis.workType === 'trace') {
+      finalScore = Math.min(finalScore, 35);
+    }
+
+    if (analysis.workType === 'concept') {
+      finalScore = Math.max(finalScore, 75);
+    }
+
+    finalScore = Math.max(10, Math.min(90, Math.round(finalScore)));
+
     const estimate = calculateEstimate({
-      // ------------------------
-// finalScore計算（ここ追加）
-// ------------------------
-let finalScore =
-  analysis.rawComplexityScore * 0.35 +
-  analysis.partDensity * 0.2 +
-  analysis.structureComplexity * 0.3 +
-  analysis.lineDifficulty * 0.15;
-
-// 作業タイプ補正
-if (analysis.workType === 'trace') finalScore *= 0.55;
-if (analysis.workType === 'normal') finalScore *= 1.0;
-if (analysis.workType === 'realistic') finalScore *= 1.25;
-if (analysis.workType === 'concept') finalScore *= 1.8;
-
-// スタイル補正
-if (input.style === 'line') finalScore *= 0.9;
-if (input.style === 'color') finalScore *= 1.05;
-if (input.style === 'real') finalScore *= 1.1;
-
-// 用途補正
-if (input.usage === 'manual') finalScore *= 0.9;
-if (input.usage === 'sales') finalScore *= 1.2;
-
-// 制御（重要）
-if (analysis.workType === 'trace') {
-  finalScore = Math.min(finalScore, 35);
-}
-
-if (analysis.workType === 'concept') {
-  finalScore = Math.max(finalScore, 75);
-}
-
-finalScore = Math.max(10, Math.min(90, Math.round(finalScore)));
+      complexityScore: finalScore,
       style: input.style,
       usage: input.usage,
       quantity: input.quantity,
@@ -125,9 +101,6 @@ finalScore = Math.max(10, Math.min(90, Math.round(finalScore)));
       rush: input.rush,
     });
 
-    // -----------------------------
-    // メール送信（画像添付あり）
-    // -----------------------------
     await sendNotificationEmail({
       company: input.companyName,
       name: input.customerName,
@@ -136,7 +109,7 @@ finalScore = Math.max(10, Math.min(90, Math.round(finalScore)));
       style: input.style,
       quantity: input.quantity,
       notes: input.notes,
-      complexityScore: analysis.complexityScore,
+      complexityScore: finalScore,
       totalPrice: estimate.totalPrice,
       requestFormalQuote: input.requestFormalQuote,
       imageAttachment: input.requestFormalQuote
@@ -147,33 +120,30 @@ finalScore = Math.max(10, Math.min(90, Math.round(finalScore)));
         : undefined,
     });
 
-    // -----------------------------
-    // フロント返却
-    // -----------------------------
     return NextResponse.json({
       input: {
         requestFormalQuote: input.requestFormalQuote,
       },
       vision: {
         subjectType: analysis.workType || '機械イラスト',
-        complexityScore: analysis.complexityScore,
-        partDensity: analysis.partDensity,
-        occlusion: analysis.occlusion,
-        lineDifficulty: analysis.lineDifficulty,
-        structureComplexity: analysis.structureComplexity,
-        confidence: analysis.confidence,
-        reason: analysis.summary,
+        complexityScore: finalScore,
+        partDensity: analysis.partDensity ?? 50,
+        occlusion: analysis.occlusion ?? 50,
+        lineDifficulty: analysis.lineDifficulty ?? 50,
+        structureComplexity: analysis.structureComplexity ?? 50,
+        confidence: analysis.confidence ?? 0.7,
+        reason: analysis.summary || '画像と入力条件をもとに概算判定しました。',
       },
       estimate: {
         total: estimate.totalPrice,
-        subtotal: estimate.unitPrice,
+        subtotal: estimate.totalPrice,
         deliveryDays: '3〜5営業日',
         complexityBand: '標準',
-        basePrice: estimate.unitPrice,
-        usageMultiplier: 1,
-        styleMultiplier: 1,
-        sizeMultiplier: 1,
-        rushMultiplier: input.rush === 'rush' ? 1.3 : 1,
+        basePrice: estimate.basePrice ?? estimate.unitPrice,
+        usageMultiplier: estimate.usageMultiplier ?? 1,
+        styleMultiplier: estimate.styleMultiplier ?? 1,
+        sizeMultiplier: estimate.sizeMultiplier ?? 1,
+        rushMultiplier: estimate.rushMultiplier ?? 1,
         quantity: input.quantity,
       },
     });
