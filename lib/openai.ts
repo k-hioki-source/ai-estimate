@@ -28,7 +28,7 @@ export async function analyzeImage({
 - realistic（リアルイラスト・質感表現）
 - concept（概念図・レイアウト・構成設計が必要）
 
-JSONのみで出力してください。
+以下のJSONで出力してください：
 
 {
   "complexityScore": number,
@@ -40,6 +40,9 @@ JSONのみで出力してください。
   "confidence": number,
   "summary": string
 }
+
+出力は必ず日本語で記述してください。
+summaryも日本語で簡潔に説明してください。
 `;
 
   const response = await client.responses.create({
