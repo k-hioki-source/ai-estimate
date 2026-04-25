@@ -95,9 +95,12 @@ export async function POST(req: NextRequest) {
       finalScore = Math.min(finalScore, 35);
     }
 
-    if (analysis.workType === 'normal') {
-      finalScore = Math.max(finalScore, 40);
-    }
+    if (
+  analysis.workType === 'normal' &&
+  !(input.style === 'line' && input.usage === 'manual')
+) {
+  finalScore = Math.max(finalScore, 40);
+}
 
     if (analysis.workType === 'concept') {
       finalScore = Math.max(finalScore, 80);
