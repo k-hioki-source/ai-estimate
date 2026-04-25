@@ -321,6 +321,34 @@ export default function EstimateForm() {
           </div>
         </section>
       ) : null}
+    <footer className="footer">
+  <div className="footerInner">
+
+    <div className="footerBrand">
+      <a href="https://www.create-support.co.jp/" className="footerLogo">
+        クリエイトサポート
+      </a>
+      <p className="footerDesc">
+        テクニカルイラスト・取扱説明書・パーツカタログ制作
+      </p>
+    </div>
+
+    <ul className="footerLinks">
+      <li><a href="https://www.create-support.co.jp/">ホーム</a></li>
+      <li><a href="https://www.create-support.co.jp/technicalillustration/">テクニカルイラストについて</a></li>
+      <li><a href="https://www.create-support.co.jp/sample-page/">制作事例</a></li>
+      <li><a href="https://www.create-support.co.jp/topics/">ブログ</a></li>
+      <li><a href="https://www.create-support.co.jp/company/">会社概要</a></li>
+      <li><a href="https://www.create-support.co.jp/contact/">お問い合わせ</a></li>
+      <li><a href="https://www.create-support.co.jp/techlineworks-technical-illustration-download/">イラスト素材販売</a></li>
+    </ul>
+
+    <div className="footerCopy">
+      © Create Support Co., Ltd.
+    </div>
+
+  </div>
+</footer>
     </div>
   );
 }
