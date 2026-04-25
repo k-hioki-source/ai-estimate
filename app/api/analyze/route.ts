@@ -84,7 +84,40 @@ export async function POST(req: NextRequest) {
     // 見積計算
     // -----------------------------
     const estimate = calculateEstimate({
-      complexityScore: analysis.complexityScore ?? 50,
+      // ------------------------
+// finalScore計算（ここ追加）
+// ------------------------
+let finalScore =
+  analysis.rawComplexityScore * 0.35 +
+  analysis.partDensity * 0.2 +
+  analysis.structureComplexity * 0.3 +
+  analysis.lineDifficulty * 0.15;
+
+// 作業タイプ補正
+if (analysis.workType === 'trace') finalScore *= 0.55;
+if (analysis.workType === 'normal') finalScore *= 1.0;
+if (analysis.workType === 'realistic') finalScore *= 1.25;
+if (analysis.workType === 'concept') finalScore *= 1.8;
+
+// スタイル補正
+if (input.style === 'line') finalScore *= 0.9;
+if (input.style === 'color') finalScore *= 1.05;
+if (input.style === 'real') finalScore *= 1.1;
+
+// 用途補正
+if (input.usage === 'manual') finalScore *= 0.9;
+if (input.usage === 'sales') finalScore *= 1.2;
+
+// 制御（重要）
+if (analysis.workType === 'trace') {
+  finalScore = Math.min(finalScore, 35);
+}
+
+if (analysis.workType === 'concept') {
+  finalScore = Math.max(finalScore, 75);
+}
+
+finalScore = Math.max(10, Math.min(90, Math.round(finalScore)));
       style: input.style,
       usage: input.usage,
       quantity: input.quantity,
