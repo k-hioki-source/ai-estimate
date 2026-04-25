@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
       email: getString(form.get('email')),
       usage: getString(form.get('usage')),
       size: getString(form.get('size')),
-      style: getString(form.get('style')),
+      style: getStyle(getString(form.get('style'))),
       quantity: Number(getString(form.get('quantity')) || '1'),
       notes: getString(form.get('notes')),
       requestFormalQuote: ['true', 'yes', 'on'].includes(
@@ -51,7 +51,11 @@ JSONで出力：
   "summary": "理由"
 }
 `;
-
+function getStyle(value: string): 'line' | 'color' | 'real' {
+  if (value === 'color') return 'color';
+  if (value === 'real') return 'real';
+  return 'line';
+}
     const response = await client.responses.create({
       model: 'gpt-4.1-mini',
       input: [
