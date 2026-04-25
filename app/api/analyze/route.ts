@@ -65,10 +65,10 @@ export async function POST(req: NextRequest) {
     });
 
     let finalScore =
-      (analysis.rawComplexityScore ?? analysis.complexityScore ?? 50) * 0.35 +
-      (analysis.partDensity ?? 50) * 0.2 +
-      (analysis.structureComplexity ?? 50) * 0.3 +
-      (analysis.lineDifficulty ?? 50) * 0.15;
+  (analysis.rawComplexityScore ?? 50) * 0.35 +
+  (analysis.partDensity ?? 50) * 0.2 +
+  (analysis.structureComplexity ?? 50) * 0.3 +
+  (analysis.lineDifficulty ?? 50) * 0.15;
 
     if (analysis.workType === 'trace') finalScore *= 0.55;
     if (analysis.workType === 'normal') finalScore *= 1.0;
