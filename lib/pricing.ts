@@ -23,26 +23,28 @@ export function calculateEstimate({
 
   let styleMultiplier = 1;
 
-  if (style === 'line') styleMultiplier = 1;
+  if (style === 'line') {
+    styleMultiplier = 1;
+  }
 
   if (style === 'color') {
     if (complexityScore <= 50) styleMultiplier = 1.5;
-    else if (complexityScore <= 70) styleMultiplier = 1.7;
-    else styleMultiplier = 2.0;
+    else if (complexityScore <= 70) styleMultiplier = 1.4;
+    else styleMultiplier = 1.7;
   }
 
   if (style === 'real') {
     if (complexityScore <= 50) styleMultiplier = 2.5;
-    else if (complexityScore <= 70) styleMultiplier = 3.5;
-    else if (complexityScore <= 85) styleMultiplier = 4.5;
-    else styleMultiplier = 6.0;
+    else if (complexityScore <= 70) styleMultiplier = 3.0;
+    else if (complexityScore <= 85) styleMultiplier = 3.5;
+    else styleMultiplier = 5.0;
   }
 
   let usageMultiplier = 1;
 
   if (usage === 'manual') usageMultiplier = 0.9;
   if (usage === 'parts') usageMultiplier = 1.1;
-  if (usage === 'sales') usageMultiplier = 1.2;
+  if (usage === 'sales') usageMultiplier = 1.0;
 
   let sizeMultiplier = 1;
 
@@ -54,8 +56,8 @@ export function calculateEstimate({
 
   let quantityMultiplier = quantity;
 
-  if (quantity >= 5) quantityMultiplier = quantity * 0.9;
   if (quantity >= 10) quantityMultiplier = quantity * 0.8;
+  else if (quantity >= 5) quantityMultiplier = quantity * 0.9;
 
   const unitPrice =
     basePrice *
