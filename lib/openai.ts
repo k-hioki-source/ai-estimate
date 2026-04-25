@@ -75,7 +75,33 @@ JSONのみで返してください。
   } catch {
     parsed = {};
   }
+// 追加する考え方
+let adjustedScore = complexityScore;
 
+// ① 線画でシンプル → 下げる
+if (style === 'line' && complexityScore < 40) {
+  adjustedScore *= 0.6;
+}
+
+// ② リアルテイスト → 上げる
+if (style === 'real') {
+  adjustedScore *= 1.3;
+}
+
+// ③ プレゼン用途（概念図）→ 強く上げる
+if (usage === 'sales') {
+  adjustedScore *= 1.4;
+}
+
+// ④ 部品密度が高い → 上げる
+if (partDensity > 70) {
+  adjustedScore *= 1.2;
+}
+
+// ⑤ 構造難度が高い → 上げる
+if (structureComplexity > 70) {
+  adjustedScore *= 1.3;
+}
   return {
     complexityScore: Number(parsed.complexityScore ?? 50),
     partDensity: Number(parsed.partDensity ?? 50),
