@@ -129,13 +129,13 @@ if (workType === 'concept') {
 adjustedScore = Math.max(10, Math.min(90, Math.round(adjustedScore)));
 
   return {
-    complexityScore: adjustedScore,
-    workType,
-    partDensity,
-    occlusion,
-    lineDifficulty,
-    structureComplexity,
-    confidence,
-    summary: parsed.summary ?? '画像と入力条件をもとに概算判定しました。',
-  };
+  rawComplexityScore: rawScore,
+  workType,
+  partDensity,
+  occlusion,
+  lineDifficulty,
+  structureComplexity,
+  confidence,
+  summary: parsed.summary ?? '',
+};
 }
