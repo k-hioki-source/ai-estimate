@@ -108,7 +108,7 @@ if (
 
       // ▼ AI判定
       vision: {
-        subjectType: analysis.workType,
+        subjectType: workType,
         complexityScore: analysis.difficultyScore,
         partDensity: analysis.partDensity,
         lineDifficulty: analysis.lineDifficulty,
