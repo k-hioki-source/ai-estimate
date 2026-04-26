@@ -41,6 +41,11 @@ export async function POST(req: NextRequest) {
       style: getStyle(getString(form.get('style'))),
       quantity: Number(getString(form.get('quantity')) || '1'),
       notes: getString(form.get('notes')),
+
+      // ★ フロントエラー防止用
+      requestFormalQuote: ['true', 'yes', 'on'].includes(
+        getString(form.get('requestFormalQuote'))
+      ),
     };
 
     // -----------------------------
@@ -66,6 +71,12 @@ export async function POST(req: NextRequest) {
     // レスポンス
     // -----------------------------
     return NextResponse.json({
+      // ★ フロント互換（これが無いと落ちる）
+      input: {
+        requestFormalQuote: input.requestFormalQuote,
+      },
+
+      // ▼ AI判定
       vision: {
         subjectType: analysis.workType,
         complexityScore: analysis.difficultyScore,
@@ -76,6 +87,7 @@ export async function POST(req: NextRequest) {
         reason: analysis.summary,
       },
 
+      // ▼ 見積
       estimate: {
         total: estimate.totalPrice,
         subtotal: estimate.unitPrice,
@@ -83,7 +95,7 @@ export async function POST(req: NextRequest) {
         basePrice: estimate.unitPrice,
         hourlyRate: estimate.hourlyRate,
 
-        // 👇 フロント用
+        // ★ フロント表示用
         estimatedHours: estimate.hours,
         adjustedHours: estimate.hours,
 
