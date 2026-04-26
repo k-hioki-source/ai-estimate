@@ -13,11 +13,13 @@ export type WorkType =
 
 export async function analyzeImage({
   imageBase64,
+  mimeType, // ←追加
   style,
   usage,
   notes,
 }: {
   imageBase64: string;
+  mimeType?: string; // ←ここに書く
   style: 'line' | 'color' | 'real';
   usage: 'manual' | 'parts' | 'sales';
   notes?: string;
@@ -79,7 +81,7 @@ summaryは日本語で簡潔に
           { type: 'input_text', text: prompt },
           {
   type: 'input_image',
-  image_url: `data:image/jpeg;base64,${imageBase64}`,
+  image_url: `data:${mimeType || 'image/jpeg'};base64,${imageBase64}`,
   detail: 'auto',
 }
         ],
