@@ -24,15 +24,15 @@ export async function POST(req: NextRequest) {
     const form = await req.formData();
 
     const file = form.get('image') as File | null;
-    if (!file) {
-      return NextResponse.json({ error: '画像がありません' }, { status: 400 });
-    }
+if (!file) {
+  return NextResponse.json({ error: '画像がありません' }, { status: 400 });
+}
 
-    // -----------------------------
-    // 画像 → base64
-    // -----------------------------
-    const bytes = Buffer.from(await file.arrayBuffer());
-    const base64 = bytes.toString('base64');
+// ★ここ追加（mime取得）
+const mimeType = file.type || 'image/jpeg';
+
+const bytes = Buffer.from(await file.arrayBuffer());
+const base64 = bytes.toString('base64');
 
     // -----------------------------
     // 入力
@@ -53,11 +53,12 @@ export async function POST(req: NextRequest) {
     // AI解析（分類＋難易度）
     // -----------------------------
     const analysis = await analyzeImage({
-      imageBase64: base64,
-      style: input.style,
-      usage: input.usage,
-      notes: input.notes,
-    });
+  imageBase64: base64,
+  mimeType, // ←追加
+  style: input.style,
+  usage: input.usage,
+  notes: input.notes,
+});
 
     // ★ここ追加
 let workType = analysis.workType;
