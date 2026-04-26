@@ -192,7 +192,7 @@ export default function EstimateForm() {
                 id="image"
                 name="image"
                 type="file"
-                accept="image/*"
+                accept="image/jpeg,image/png,image/webp"
                 required
                 onChange={(e) => {
                   const file = e.target.files?.[0];
