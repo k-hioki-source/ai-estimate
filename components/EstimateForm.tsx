@@ -18,17 +18,15 @@ type ApiResponse = {
     reason: string;
   };
   estimate: {
-    total: number;
-    subtotal: number;
-    deliveryDays: string;
-    complexityBand: string;
-    basePrice: number;
-    usageMultiplier: number;
-    styleMultiplier: number;
-    sizeMultiplier: number;
-    rushMultiplier: number;
-    quantity: number;
-  };
+  total: number;
+  subtotal: number;
+  deliveryDays: string;
+  basePrice: number;
+  hourlyRate: number;
+  estimatedHours: number;
+  adjustedHours: number;
+  quantity: number;
+};
   error?: string;
 };
 
