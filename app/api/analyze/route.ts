@@ -70,20 +70,17 @@ export async function POST(req: NextRequest) {
   imageBase64: base64,
   style: input.style,
   usage: input.usage,
-  notes: input.notes, // ←追加
+  notes: input.notes,
 });
 
     // -----------------------------
     // 見積計算（時間 × 3000円）
     // -----------------------------
     const estimate = calculateEstimate({
-      estimatedHours: analysis.estimatedHours,
-      style: input.style,
-      usage: input.usage,
-      quantity: input.quantity,
-      size: input.size,
-      rush: input.rush,
-    });
+  workType: analysis.workType,
+  difficultyScore: analysis.difficultyScore,
+  quantity: input.quantity,
+});
 
     // -----------------------------
     // メール送信
