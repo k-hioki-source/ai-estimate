@@ -1,66 +1,43 @@
 export function calculateEstimate({
-  estimatedHours,
-  style,
-  usage,
+  workType,
+  difficultyScore,
   quantity,
-  size,
-  rush,
 }: {
-  estimatedHours: number;
-  style: 'line' | 'color' | 'real';
-  usage: 'manual' | 'parts' | 'sales';
+  workType: string;
+  difficultyScore: number;
   quantity: number;
-  size: 'small' | 'medium' | 'large';
-  rush: 'normal' | 'rush';
 }) {
+  // ■基準時間
+  const baseHoursMap: Record<string, number> = {
+    simple_trace: 1,
+    standard_trace: 1.5,
+    technical_drawing: 3,
+    realistic_illustration: 10,
+    concept_diagram: 30,
+  };
+
+  let baseHours = baseHoursMap[workType] || 1.5;
+
+  // ■難易度補正
+  const factor = 0.8 + (difficultyScore / 100) * 0.6;
+  let hours = baseHours * factor;
+
+  // ■微調整（オプション）
+  hours += (difficultyScore - 50) / 50;
+
+  // ■丸め
+  hours = Math.max(0.8, Math.round(hours * 2) / 2);
+
   const hourlyRate = 3000;
 
-  let adjustedHours = estimatedHours;
+  const unitPrice = Math.round((hours * hourlyRate) / 100) * 100;
 
-  // サイズ補正
-  let sizeMultiplier = 1;
-  if (size === 'small') sizeMultiplier = 0.9;
-  if (size === 'medium') sizeMultiplier = 1;
-  if (size === 'large') sizeMultiplier = 1.2;
-
-  // 特急補正
-  const rushMultiplier = rush === 'rush' ? 1.3 : 1;
-
-  adjustedHours *= sizeMultiplier;
-  adjustedHours *= rushMultiplier;
-
-  // 0.5h単位に丸める
-  adjustedHours = Math.max(0.8, Math.round(adjustedHours * 2) / 2);
-
-  // 単価
-  let unitPrice = adjustedHours * hourlyRate;
-
-  // 最低料金
-  unitPrice = Math.max(3000, unitPrice);
-
-  // 100円単位に丸める
-  unitPrice = Math.round(unitPrice / 100) * 100;
-
-  // 点数補正
-  let quantityMultiplier = quantity;
-
-  if (quantity >= 10) {
-    quantityMultiplier = quantity * 0.8;
-  } else if (quantity >= 5) {
-    quantityMultiplier = quantity * 0.9;
-  }
-
-  const totalPrice = Math.round((unitPrice * quantityMultiplier) / 100) * 100;
+  const totalPrice = Math.round((unitPrice * quantity) / 100) * 100;
 
   return {
-    hourlyRate,
-    estimatedHours,
-    adjustedHours,
+    hours,
     unitPrice,
     totalPrice,
-    priceText: `${totalPrice.toLocaleString()}円`,
-    quantity,
-    sizeMultiplier,
-    rushMultiplier,
+    hourlyRate,
   };
 }
