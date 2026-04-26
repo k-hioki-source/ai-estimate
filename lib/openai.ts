@@ -143,7 +143,7 @@ summaryは日本語50文字以内で簡潔に説明
   // -------------------------
   // 補正（軽め）
   // -------------------------
-  if (style === 'color') estimatedHours *= 1.1;
+  if (style === 'color') estimatedHours *= 1.05;
   if (style === 'real') estimatedHours *= 1.25;
   if (usage === 'sales') estimatedHours *= 1.15;
 
@@ -202,7 +202,7 @@ function normalizeDifficulty(value: string) {
 function getHourRange(workType: WorkType) {
   if (workType === 'simple_trace') return { min: 0.8, max: 1.5 };
   if (workType === 'standard_trace') return { min: 1.5, max: 3 };
-  if (workType === 'technical_drawing') return { min: 3, max: 8 };
+  if (workType === 'technical_drawing') return { min: 2.5, max: 6 };
   if (workType === 'realistic_illustration') return { min: 6, max: 18 };
   if (workType === 'concept_diagram') return { min: 20, max: 40 };
   return { min: 1.5, max: 3 };
