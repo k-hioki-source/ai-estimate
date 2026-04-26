@@ -205,5 +205,5 @@ function getHourRange(workType: WorkType) {
   if (workType === 'technical_drawing') return { min: 2.5, max: 6 };
   if (workType === 'realistic_illustration') return { min: 6, max: 18 };
   if (workType === 'concept_diagram') return { min: 20, max: 40 };
-  return { min: 1.5, max: 3 };
+  return { min: 1, max: 3 };
 }
