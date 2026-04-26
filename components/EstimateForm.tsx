@@ -58,22 +58,32 @@ export default function EstimateForm() {
     setResult(null);
 
     try {
-      const res = await fetch('/api/analyze', {
-        method: 'POST',
-        body: formData,
-      });
+  const res = await fetch('/api/analyze', {
+    method: 'POST',
+    body: formData,
+  });
 
-      const json = (await res.json()) as ApiResponse;
-      if (!res.ok) {
-        throw new Error(json.error || '送信に失敗しました。');
-      }
-      setResult(json);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : '不明なエラーです。');
-    } finally {
-      setLoading(false);
-    }
+  const text = await res.text();
+
+  let json: ApiResponse;
+  try {
+    json = JSON.parse(text) as ApiResponse;
+  } catch {
+    throw new Error(
+      text || 'サーバーから不正な応答が返されました。画像サイズや形式をご確認ください。'
+    );
   }
+
+  if (!res.ok) {
+    throw new Error(json.error || '送信に失敗しました。');
+  }
+
+  setResult(json);
+} catch (e) {
+  setError(e instanceof Error ? e.message : '不明なエラーです。');
+} finally {
+  setLoading(false);
+}
 
   return (
   <div className="stackLarge">
@@ -187,23 +197,33 @@ export default function EstimateForm() {
               </select>
             </div>
             <div className="gridSpan2">
-              <label htmlFor="image">参考画像</label>
-              <input
-                id="image"
-                name="image"
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                required
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (!file) {
-                    setPreview(null);
-                    return;
-                  }
-                  setPreview(URL.createObjectURL(file));
-                }}
-              />
-            </div>
+  <label htmlFor="image">参考画像</label>
+  <input
+    id="image"
+    name="image"
+    type="file"
+    accept="image/jpeg,image/png,image/webp"
+    required
+    onChange={(e) => {
+      const file = e.target.files?.[0];
+
+      if (!file) {
+        setPreview(null);
+        return;
+      }
+
+      // ★追加：4MB制限（ここが重要）
+      if (file.size > 4 * 1024 * 1024) {
+        alert('画像サイズが大きすぎます（4MB以下にしてください）');
+        e.target.value = '';
+        setPreview(null);
+        return;
+      }
+
+      setPreview(URL.createObjectURL(file));
+    }}
+  />
+</div>
           </div>
 
           <div>
