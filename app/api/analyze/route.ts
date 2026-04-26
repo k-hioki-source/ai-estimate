@@ -67,10 +67,11 @@ export async function POST(req: NextRequest) {
     // AI解析（工数）
     // -----------------------------
     const analysis = await analyzeImage({
-      imageBase64: base64,
-      style: input.style,
-      usage: input.usage,
-    });
+  imageBase64: base64,
+  style: input.style,
+  usage: input.usage,
+  notes: input.notes, // ←追加
+});
 
     // -----------------------------
     // 見積計算（時間 × 3000円）
