@@ -119,7 +119,7 @@ export async function POST(req: NextRequest) {
   partDensity: analysis.partDensity,
   lineDifficulty: analysis.lineDifficulty,
   structureComplexity: analysis.structureComplexity,
-  confidence: analysis.confidence,
+  confidence: 0.7,
   reason: analysis.summary,
 },
 
