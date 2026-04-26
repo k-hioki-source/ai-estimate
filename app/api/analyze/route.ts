@@ -117,15 +117,15 @@ export async function POST(req: NextRequest) {
 
       // ▼ 判定情報
       vision: {
-        subjectType: analysis.workType,
-        complexityScore: Math.round(analysis.estimatedHours * 10), // UI互換用
-        estimatedHours: analysis.estimatedHours,
-        partDensity: analysis.partDensity,
-        lineDifficulty: analysis.lineDifficulty,
-        structureComplexity: analysis.structureComplexity,
-        confidence: analysis.confidence,
-        reason: analysis.summary,
-      },
+  subjectType: analysis.workType,
+  complexityScore: Math.round(analysis.estimatedHours * 10),
+  estimatedHours: analysis.estimatedHours, // ←ここ追加
+  partDensity: analysis.partDensity,
+  lineDifficulty: analysis.lineDifficulty,
+  structureComplexity: analysis.structureComplexity,
+  confidence: analysis.confidence,
+  reason: analysis.summary,
+},
 
       // ▼ 見積
       estimate: {
