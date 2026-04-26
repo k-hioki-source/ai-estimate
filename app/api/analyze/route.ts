@@ -39,9 +39,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: '画像がありません' }, { status: 400 });
     }
 
+    // -----------------------------
+    // 画像 → base64
+    // -----------------------------
     const bytes = Buffer.from(await file.arrayBuffer());
     const base64 = bytes.toString('base64');
 
+    // -----------------------------
+    // 入力
+    // -----------------------------
     const input = {
       customerName: getString(form.get('customerName')),
       companyName: getString(form.get('companyName')),
@@ -58,7 +64,7 @@ export async function POST(req: NextRequest) {
     };
 
     // -----------------------------
-    // AI解析
+    // AI解析（工数）
     // -----------------------------
     const analysis = await analyzeImage({
       imageBase64: base64,
@@ -67,79 +73,10 @@ export async function POST(req: NextRequest) {
     });
 
     // -----------------------------
-    // ★ finalScore（最重要ロジック）
-    // -----------------------------
-    let finalScore =
-      (analysis.rawComplexityScore ?? 50) * 0.25 +
-      (analysis.partDensity ?? 50) * 0.25 +
-      (analysis.structureComplexity ?? 50) * 0.35 +
-      (analysis.lineDifficulty ?? 50) * 0.15;
-
-    // 作業タイプ補正
-    if (analysis.workType === 'trace') {
-  const traceDifficulty =
-    (analysis.partDensity ?? 50) * 0.35 +
-    (analysis.lineDifficulty ?? 50) * 0.35 +
-    (analysis.structureComplexity ?? 50) * 0.3;
-
-  if (traceDifficulty <= 30) {
-    finalScore *= 0.55; // 本当に簡単なトレース
-  } else if (traceDifficulty <= 50) {
-    finalScore *= 0.8; // 標準的な写真トレース
-  } else if (traceDifficulty <= 70) {
-    finalScore *= 1.05; // 少し手間のかかるトレース
-  } else {
-    finalScore *= 1.25; // 複雑な写真トレース
-  }
-}
-    if (analysis.workType === 'normal') finalScore *= 1.0;
-    if (analysis.workType === 'realistic') finalScore *= 1.25;
-    if (analysis.workType === 'concept') finalScore *= 2.2;
-
-    // スタイル補正
-    if (input.style === 'line') finalScore *= 0.9;
-    if (input.style === 'color') finalScore *= 1.05;
-    if (input.style === 'real') finalScore *= 1.1;
-
-    // 用途補正
-    if (input.usage === 'manual') finalScore *= 0.9;
-    if (input.usage === 'sales') finalScore *= 1.2;
-
-    // 最低ライン制御（超重要）
-    if (analysis.workType === 'trace') {
-  const traceDifficulty =
-    (analysis.partDensity ?? 50) * 0.35 +
-    (analysis.lineDifficulty ?? 50) * 0.35 +
-    (analysis.structureComplexity ?? 50) * 0.3;
-
-  if (traceDifficulty <= 30) {
-    finalScore = Math.min(finalScore, 35);
-  } else if (traceDifficulty <= 50) {
-    finalScore = Math.min(finalScore, 55);
-  } else {
-    finalScore = Math.min(finalScore, 75);
-  }
-}
-
-    if (
-  analysis.workType === 'normal' &&
-  !(input.style === 'line' && input.usage === 'manual')
-) {
-  finalScore = Math.max(finalScore, 40);
-}
-
-    if (analysis.workType === 'concept') {
-      finalScore = Math.max(finalScore, 80);
-    }
-
-    // clamp
-    finalScore = Math.max(10, Math.min(90, Math.round(finalScore)));
-
-    // -----------------------------
-    // 見積計算
+    // 見積計算（時間 × 3000円）
     // -----------------------------
     const estimate = calculateEstimate({
-      complexityScore: finalScore,
+      estimatedHours: analysis.estimatedHours,
       style: input.style,
       usage: input.usage,
       quantity: input.quantity,
@@ -158,7 +95,7 @@ export async function POST(req: NextRequest) {
       style: input.style,
       quantity: input.quantity,
       notes: input.notes,
-      complexityScore: finalScore,
+      complexityScore: Math.round(analysis.estimatedHours * 10), // 表示用
       totalPrice: estimate.totalPrice,
       requestFormalQuote: input.requestFormalQuote,
       imageAttachment: input.requestFormalQuote
@@ -176,26 +113,28 @@ export async function POST(req: NextRequest) {
       input: {
         requestFormalQuote: input.requestFormalQuote,
       },
+
+      // ▼ 判定情報
       vision: {
-        subjectType: analysis.workType || '機械イラスト',
-        complexityScore: finalScore,
-        partDensity: analysis.partDensity ?? 50,
-        occlusion: analysis.occlusion ?? 50,
-        lineDifficulty: analysis.lineDifficulty ?? 50,
-        structureComplexity: analysis.structureComplexity ?? 50,
-        confidence: analysis.confidence ?? 0.7,
-        reason: analysis.summary || '画像と条件から総合判定しました。',
+        subjectType: analysis.workType,
+        complexityScore: Math.round(analysis.estimatedHours * 10), // UI互換用
+        estimatedHours: analysis.estimatedHours,
+        partDensity: analysis.partDensity,
+        lineDifficulty: analysis.lineDifficulty,
+        structureComplexity: analysis.structureComplexity,
+        confidence: analysis.confidence,
+        reason: analysis.summary,
       },
+
+      // ▼ 見積
       estimate: {
         total: estimate.totalPrice,
-        subtotal: estimate.totalPrice,
+        subtotal: estimate.unitPrice,
         deliveryDays: '3〜5営業日',
-        complexityBand: '標準',
-        basePrice: estimate.basePrice ?? estimate.unitPrice,
-        usageMultiplier: estimate.usageMultiplier ?? 1,
-        styleMultiplier: estimate.styleMultiplier ?? 1,
-        sizeMultiplier: estimate.sizeMultiplier ?? 1,
-        rushMultiplier: estimate.rushMultiplier ?? 1,
+        basePrice: estimate.unitPrice,
+        hourlyRate: estimate.hourlyRate,
+        estimatedHours: estimate.estimatedHours,
+        adjustedHours: estimate.adjustedHours,
         quantity: input.quantity,
       },
     });
