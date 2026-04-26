@@ -292,9 +292,9 @@ export default function EstimateForm() {
             <div className="resultBox">
               <div className="badge">計算内訳</div>
               <ul className="list cleanList">
-                <li>
+               <li>
   <span>想定制作時間</span>
-  <strong>{result.estimate.hours}時間</strong>
+  <strong>{result.estimate.estimatedHours}時間</strong>
 </li>
 <li>
   <span>作業内容</span>
