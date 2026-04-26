@@ -42,6 +42,16 @@ simple_trace / standard_trace / technical_drawing / realistic_illustration / con
 ・構造理解の必要性
 ・レイアウト設計の有無
 
+【重要な除外ルール】
+
+以下の場合は technical_drawing に分類してはいけません：
+
+・単体の工具、部品、パーツ
+・写真をもとに形状をなぞるだけで成立するもの
+・断面図や内部構造がないもの
+
+これらは standard_trace とすること
+
 【最重要ルール】
 
 以下に該当する場合は必ず concept_diagram に分類すること：
