@@ -116,7 +116,6 @@ export async function POST(req: NextRequest) {
       vision: {
   subjectType: analysis.workType,
   complexityScore: analysis.difficultyScore,
-  estimatedHours: analysis.estimatedHours, // ←ここ追加
   partDensity: analysis.partDensity,
   lineDifficulty: analysis.lineDifficulty,
   structureComplexity: analysis.structureComplexity,
