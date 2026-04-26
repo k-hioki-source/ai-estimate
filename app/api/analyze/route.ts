@@ -93,7 +93,7 @@ export async function POST(req: NextRequest) {
       style: input.style,
       quantity: input.quantity,
       notes: input.notes,
-      complexityScore: Math.round(analysis.estimatedHours * 10), // 表示用
+      complexityScore: analysis.difficultyScore, // 表示用
       totalPrice: estimate.totalPrice,
       requestFormalQuote: input.requestFormalQuote,
       imageAttachment: input.requestFormalQuote
