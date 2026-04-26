@@ -40,7 +40,21 @@ simple_trace / standard_trace / technical_drawing / realistic_illustration / con
 ・構造理解の必要性
 ・レイアウト設計の有無
 
+【最重要ルール】
+
+以下に該当する場合は必ず concept_diagram に分類すること：
+
+・複数の要素（地形、設備、配管、矢印、流れ）を組み合わせて説明している
+・全体の仕組みや流れを示す図
+・プレゼン資料、概念図、システム説明図
+・レイアウト設計が必要な構成
+
+※見た目がシンプルでも、説明図であれば concept_diagram とする
+
 備考: ${notes || 'なし'}
+
+※備考に以下のワードが含まれる場合は必ず concept_diagram にする：
+「概念図」「フロー」「全体図」「システム」「構成図」「説明図」
 
 JSONのみで出力：
 
