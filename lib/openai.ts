@@ -64,9 +64,10 @@ summaryは日本語で簡潔に
         content: [
           { type: 'input_text', text: prompt },
           {
-            type: 'input_image',
-            image_url: `data:image/jpeg;base64,${imageBase64}`,
-          },
+  type: 'input_image',
+  image_url: `data:image/jpeg;base64,${imageBase64}`,
+  detail: 'auto',
+}
         ],
       },
     ],
