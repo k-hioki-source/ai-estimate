@@ -76,7 +76,22 @@ export async function POST(req: NextRequest) {
       (analysis.lineDifficulty ?? 50) * 0.15;
 
     // 作業タイプ補正
-    if (analysis.workType === 'trace') finalScore *= 0.55;
+    if (analysis.workType === 'trace') {
+  const traceDifficulty =
+    (analysis.partDensity ?? 50) * 0.35 +
+    (analysis.lineDifficulty ?? 50) * 0.35 +
+    (analysis.structureComplexity ?? 50) * 0.3;
+
+  if (traceDifficulty <= 30) {
+    finalScore *= 0.55; // 本当に簡単なトレース
+  } else if (traceDifficulty <= 50) {
+    finalScore *= 0.8; // 標準的な写真トレース
+  } else if (traceDifficulty <= 70) {
+    finalScore *= 1.05; // 少し手間のかかるトレース
+  } else {
+    finalScore *= 1.25; // 複雑な写真トレース
+  }
+}
     if (analysis.workType === 'normal') finalScore *= 1.0;
     if (analysis.workType === 'realistic') finalScore *= 1.25;
     if (analysis.workType === 'concept') finalScore *= 2.2;
@@ -92,8 +107,19 @@ export async function POST(req: NextRequest) {
 
     // 最低ライン制御（超重要）
     if (analysis.workType === 'trace') {
-      finalScore = Math.min(finalScore, 35);
-    }
+  const traceDifficulty =
+    (analysis.partDensity ?? 50) * 0.35 +
+    (analysis.lineDifficulty ?? 50) * 0.35 +
+    (analysis.structureComplexity ?? 50) * 0.3;
+
+  if (traceDifficulty <= 30) {
+    finalScore = Math.min(finalScore, 35);
+  } else if (traceDifficulty <= 50) {
+    finalScore = Math.min(finalScore, 55);
+  } else {
+    finalScore = Math.min(finalScore, 75);
+  }
+}
 
     if (
   analysis.workType === 'normal' &&
