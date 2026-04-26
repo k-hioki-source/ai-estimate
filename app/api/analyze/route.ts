@@ -130,7 +130,6 @@ export async function POST(req: NextRequest) {
         deliveryDays: '3〜5営業日',
         basePrice: estimate.unitPrice,
         hourlyRate: estimate.hourlyRate,
-        estimatedHours: estimate.estimatedHours,
         adjustedHours: estimate.adjustedHours,
         quantity: input.quantity,
       },
