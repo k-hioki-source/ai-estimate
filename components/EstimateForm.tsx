@@ -241,19 +241,23 @@ export default function EstimateForm() {
 
       {error ? <div className="errorBox">エラー: {error}</div> : null}
 
-      {result ? (
+            {result ? (
         <section className="stackLarge">
           <div className="resultHero card">
             <div className="badgeRow">
               <div className="badge">概算見積り結果</div>
               <div className="scorePill">難易度 {difficultyStars}</div>
             </div>
+
             <div className="resultTopGrid">
               <div>
                 <p className="resultAmountLabel">概算金額</p>
-                <h2 className="resultAmount">{result.estimate.total.toLocaleString()}円</h2>
+                <h2 className="resultAmount">
+                  {result.estimate.total.toLocaleString()}円
+                </h2>
                 <p className="muted">納期目安: {result.estimate.deliveryDays}</p>
               </div>
+
               <div className="summaryCard">
                 <div className="summaryItem">
                   <span>対象</span>
@@ -269,6 +273,7 @@ export default function EstimateForm() {
                 </div>
               </div>
             </div>
+
             <p className="noticeText">
               ※この金額は参考画像と入力条件から算出した概算です。正式なお見積りは、内容確認後にご案内いたします。
             </p>
@@ -279,7 +284,6 @@ export default function EstimateForm() {
               <div className="badge">AI判定</div>
               <ul className="list cleanList">
                 <li><span>部品密度</span><strong>{result.vision.partDensity}</strong></li>
-                <li><span>重なり</span><strong>{result.vision.occlusion}</strong></li>
                 <li><span>線の難しさ</span><strong>{result.vision.lineDifficulty}</strong></li>
                 <li><span>構造難度</span><strong>{result.vision.structureComplexity}</strong></li>
                 <li><span>信頼度</span><strong>{result.vision.confidence}</strong></li>
@@ -288,30 +292,31 @@ export default function EstimateForm() {
             </div>
 
             <div className="resultBox">
-  <div className="badge">計算内訳</div>
-  <ul className="list cleanList">
-    <li>
-      <span>想定制作時間</span>
-      <strong>{result.estimate.estimatedHours}時間</strong>
-    </li>
-    <li>
-      <span>補正後時間</span>
-      <strong>{result.estimate.adjustedHours}時間</strong>
-    </li>
-    <li>
-      <span>制作単価</span>
-      <strong>{result.estimate.hourlyRate.toLocaleString()}円 / 時間</strong>
-    </li>
-    <li>
-      <span>1点あたり</span>
-      <strong>{result.estimate.subtotal.toLocaleString()}円</strong>
-    </li>
-    <li>
-      <span>点数</span>
-      <strong>{result.estimate.quantity}</strong>
-    </li>
-  </ul>
-</div>
+              <div className="badge">計算内訳</div>
+              <ul className="list cleanList">
+                <li>
+                  <span>想定制作時間</span>
+                  <strong>{result.estimate.estimatedHours}時間</strong>
+                </li>
+                <li>
+                  <span>補正後時間</span>
+                  <strong>{result.estimate.adjustedHours}時間</strong>
+                </li>
+                <li>
+                  <span>制作単価</span>
+                  <strong>{result.estimate.hourlyRate.toLocaleString()}円 / 時間</strong>
+                </li>
+                <li>
+                  <span>1点あたり</span>
+                  <strong>{result.estimate.subtotal.toLocaleString()}円</strong>
+                </li>
+                <li>
+                  <span>点数</span>
+                  <strong>{result.estimate.quantity}</strong>
+                </li>
+              </ul>
+            </div>
+          </div>
 
           <div className="ctaCard card">
             <div>
@@ -321,6 +326,7 @@ export default function EstimateForm() {
                 入力内容はすでに送信されています。内容確認後、通常1営業日以内を目安にご案内できます。
               </p>
             </div>
+
             <div className="ctaActions">
               <div className="ctaButtonLike">
                 {result.input.requestFormalQuote
@@ -334,8 +340,8 @@ export default function EstimateForm() {
           </div>
         </section>
       ) : null}
-          
-     <footer className="footer">
+
+      <footer className="footer">
         <div className="footerInner">
           <div className="footerBrand">
             <a href="https://www.create-support.co.jp/" className="footerLogo">
