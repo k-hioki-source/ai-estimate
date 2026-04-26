@@ -84,6 +84,7 @@ export default function EstimateForm() {
 } finally {
   setLoading(false);
 }
+    }
 
   return (
   <div className="stackLarge">
