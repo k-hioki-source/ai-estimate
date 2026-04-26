@@ -262,9 +262,9 @@ export default function EstimateForm() {
                   <strong>{result.vision.subjectType}</strong>
                 </div>
                 <div className="summaryItem">
-                  <span>複雑さスコア</span>
-                  <strong>{result.vision.complexityScore}</strong>
-                </div>
+  <span>難易度スコア</span>
+  <strong>{result.vision.complexityScore}</strong>
+</div>
                 <div className="summaryItem">
                   <span>難易度</span>
                   <strong>{difficultyLabel(result.vision.complexityScore)}</strong>
