@@ -293,13 +293,13 @@ export default function EstimateForm() {
               <div className="badge">計算内訳</div>
               <ul className="list cleanList">
                 <li>
-                  <span>想定制作時間</span>
-                  <strong>{result.estimate.estimatedHours}時間</strong>
-                </li>
-                <li>
-                  <span>補正後時間</span>
-                  <strong>{result.estimate.adjustedHours}時間</strong>
-                </li>
+  <span>想定制作時間</span>
+  <strong>{result.estimate.hours}時間</strong>
+</li>
+<li>
+  <span>作業内容</span>
+  <strong>{result.vision.subjectType}</strong>
+</li>
                 <li>
                   <span>制作単価</span>
                   <strong>{result.estimate.hourlyRate.toLocaleString()}円 / 時間</strong>
