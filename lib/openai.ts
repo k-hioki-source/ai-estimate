@@ -4,6 +4,29 @@ const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY!,
 });
 
+export type WorkType =
+  | 'simple_trace'
+  | 'standard_trace'
+  | 'technical_drawing'
+  | 'realistic_illustration'
+  | 'concept_diagram';
+
+export type AnalyzeImageResult = {
+  estimatedHours: number;
+  workType: WorkType;
+  difficulty: 'easy' | 'standard' | 'medium' | 'hard' | 'very_hard';
+  baseDrawingHours: number;
+  detailHours: number;
+  structureUnderstandingHours: number;
+  colorOrRealisticHours: number;
+  layoutHours: number;
+  partDensity: number;
+  lineDifficulty: number;
+  structureComplexity: number;
+  confidence: number;
+  summary: string;
+};
+
 export async function analyzeImage({
   imageBase64,
   style,
@@ -12,37 +35,53 @@ export async function analyzeImage({
   imageBase64: string;
   style: 'line' | 'color' | 'real';
   usage: 'manual' | 'parts' | 'sales';
-}) {
+}): Promise<AnalyzeImageResult> {
   const prompt = `
 あなたはテクニカルイラスト制作会社の見積担当です。
-画像を見て「制作難易度」と「作業内容」を判断してください。
+画像と条件をもとに、制作に必要な「想定制作時間」を見積もってください。
 
 重要：
-見た目の派手さではなく、実際の制作工数で判定してください。
-単純なトレースは低く、概念図・構成設計が必要なものは高くしてください。
+金額ではなく、プロのイラストレーターが実際に作業する場合の制作時間を推定してください。
+制作時間は、ラフ確認・作図・線整理・塗り・質感表現・レイアウト調整を含みます。
+ただし、営業対応・打ち合わせ・大幅修正は含めません。
 
-作業タイプは以下から1つ選択してください。
+条件：
+- 用途: ${usage}
+- 表現: ${style}
 
-- trace（写真トレース・単純な線画）
-- normal（通常の作図）
-- realistic（リアルイラスト・質感表現）
-- concept（概念図・レイアウト・構成設計が必要）
+作業タイプは以下から1つ選んでください。
 
-以下のJSONで出力してください：
+- simple_trace：単純な写真トレース、部品が少ない、形状が簡単
+- standard_trace：写真トレースだが、線整理や細部の判断が必要
+- technical_drawing：構造理解が必要な機械・部品・断面図
+- realistic_illustration：質感、陰影、グラデーション、リアル表現が必要
+- concept_diagram：概念図、全体構成、レイアウト設計、複数要素の説明図
+
+時間感覚の目安：
+- simple_trace：0.8〜1.5時間
+- standard_trace：1.5〜3時間
+- technical_drawing：3〜8時間
+- realistic_illustration：6〜18時間
+- concept_diagram：15〜40時間
+
+必ずJSONのみで返してください。
+summaryは日本語50文字以内。
 
 {
-  "complexityScore": number,
-  "workType": "trace" | "normal" | "realistic" | "concept",
+  "estimatedHours": number,
+  "workType": "simple_trace" | "standard_trace" | "technical_drawing" | "realistic_illustration" | "concept_diagram",
+  "difficulty": "easy" | "standard" | "medium" | "hard" | "very_hard",
+  "baseDrawingHours": number,
+  "detailHours": number,
+  "structureUnderstandingHours": number,
+  "colorOrRealisticHours": number,
+  "layoutHours": number,
   "partDensity": number,
-  "occlusion": number,
   "lineDifficulty": number,
   "structureComplexity": number,
   "confidence": number,
   "summary": string
 }
-
-出力は必ず日本語で記述してください。
-summaryも日本語で簡潔に説明してください。
 `;
 
   const response = await client.responses.create({
@@ -62,83 +101,86 @@ summaryも日本語で簡潔に説明してください。
     ],
   });
 
-  let text = response.output_text || '';
-
   let parsed: any = {};
   try {
-    parsed = JSON.parse(text);
+    parsed = JSON.parse(response.output_text || '{}');
   } catch {
-    console.error('JSON parse error:', text);
     parsed = {};
   }
 
-  const rawScore = Number(parsed.complexityScore ?? 50);
-  const workType = parsed.workType ?? 'normal';
-  const partDensity = Number(parsed.partDensity ?? 50);
-  const occlusion = Number(parsed.occlusion ?? 50);
-  const lineDifficulty = Number(parsed.lineDifficulty ?? 50);
-  const structureComplexity = Number(parsed.structureComplexity ?? 50);
-  const confidence = Number(parsed.confidence ?? 0.7);
+  const workType = normalizeWorkType(parsed.workType);
+  const rawHours = Number(parsed.estimatedHours ?? 2);
 
-  let adjustedScore = rawScore;
+  let estimatedHours = rawHours;
 
-  // 作業タイプ補正：強すぎると価格が暴れるので弱め
-  if (workType === 'trace') adjustedScore *= 0.6;
-  if (workType === 'normal') adjustedScore *= 1.0;
-  if (workType === 'realistic') adjustedScore *= 1.15;
-  if (workType === 'concept') adjustedScore *= 1.25;
+  // 作業タイプごとの下限・上限でAIの暴れを抑える
+  const range = getHourRange(workType);
+  estimatedHours = Math.max(range.min, Math.min(range.max, estimatedHours));
 
-  // スタイル補正
-  if (style === 'line' && rawScore <= 40 && partDensity <= 45) {
-    adjustedScore *= 0.7;
-  }
-
+  // 表現補正
   if (style === 'color') {
-    adjustedScore *= 1.03;
+    estimatedHours *= 1.15;
   }
 
   if (style === 'real') {
-    adjustedScore *= 1.08;
+    estimatedHours *= 1.35;
   }
 
   // 用途補正
   if (usage === 'sales') {
-    adjustedScore *= 1.05;
+    estimatedHours *= 1.15;
   }
 
-  // 密度・構造補正
-  if (partDensity >= 70) adjustedScore *= 1.05;
-  if (structureComplexity >= 70) adjustedScore *= 1.08;
-
-  // 100張り付き防止
-  // 作業タイプごとの最低スコア保証
-if (workType === 'trace') {
-  adjustedScore = Math.min(adjustedScore, 35);
-}
-
-if (workType === 'normal') {
-  adjustedScore = Math.max(adjustedScore, 30);
-}
-
-if (workType === 'realistic') {
-  adjustedScore = Math.max(adjustedScore, 55);
-}
-
-if (workType === 'concept') {
-  adjustedScore = Math.max(adjustedScore, 80);
-}
-
-// 100張り付き防止
-adjustedScore = Math.max(10, Math.min(90, Math.round(adjustedScore)));
+  // 小数0.5時間単位に丸める
+  estimatedHours = Math.max(0.8, Math.round(estimatedHours * 2) / 2);
 
   return {
-  rawComplexityScore: rawScore,
-  workType,
-  partDensity,
-  occlusion,
-  lineDifficulty,
-  structureComplexity,
-  confidence,
-  summary: parsed.summary ?? '',
-};
+    estimatedHours,
+    workType,
+    difficulty: normalizeDifficulty(parsed.difficulty),
+    baseDrawingHours: Number(parsed.baseDrawingHours ?? estimatedHours * 0.5),
+    detailHours: Number(parsed.detailHours ?? estimatedHours * 0.2),
+    structureUnderstandingHours: Number(
+      parsed.structureUnderstandingHours ?? estimatedHours * 0.15
+    ),
+    colorOrRealisticHours: Number(
+      parsed.colorOrRealisticHours ?? (style === 'real' ? estimatedHours * 0.25 : 0)
+    ),
+    layoutHours: Number(parsed.layoutHours ?? 0),
+    partDensity: Number(parsed.partDensity ?? 50),
+    lineDifficulty: Number(parsed.lineDifficulty ?? 50),
+    structureComplexity: Number(parsed.structureComplexity ?? 50),
+    confidence: Number(parsed.confidence ?? 0.7),
+    summary:
+      typeof parsed.summary === 'string'
+        ? parsed.summary
+        : '画像と条件から制作工数を推定しました。',
+  };
+}
+
+function normalizeWorkType(value: string): WorkType {
+  if (value === 'simple_trace') return 'simple_trace';
+  if (value === 'standard_trace') return 'standard_trace';
+  if (value === 'technical_drawing') return 'technical_drawing';
+  if (value === 'realistic_illustration') return 'realistic_illustration';
+  if (value === 'concept_diagram') return 'concept_diagram';
+  return 'standard_trace';
+}
+
+function normalizeDifficulty(value: string): AnalyzeImageResult['difficulty'] {
+  if (value === 'easy') return 'easy';
+  if (value === 'standard') return 'standard';
+  if (value === 'medium') return 'medium';
+  if (value === 'hard') return 'hard';
+  if (value === 'very_hard') return 'very_hard';
+  return 'standard';
+}
+
+function getHourRange(workType: WorkType) {
+  if (workType === 'simple_trace') return { min: 0.8, max: 1.5 };
+  if (workType === 'standard_trace') return { min: 1.5, max: 3 };
+  if (workType === 'technical_drawing') return { min: 3, max: 8 };
+  if (workType === 'realistic_illustration') return { min: 6, max: 18 };
+  if (workType === 'concept_diagram') return { min: 15, max: 40 };
+  return { min: 1.5, max: 3 };
 }
