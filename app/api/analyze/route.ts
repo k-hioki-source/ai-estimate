@@ -71,6 +71,17 @@ if (
   workType = 'concept_diagram';
 }
 
+    // ------------------------
+// technical補正（ここ追加）
+// ------------------------
+if (analysis.workType === 'technical_drawing') {
+  if (analysis.structureComplexity < 45) {
+    workType = 'standard_trace';
+  } else {
+    workType = 'technical_drawing';
+  }
+}
+
     // -----------------------------
     // 見積計算（固定ロジック）
     // -----------------------------
