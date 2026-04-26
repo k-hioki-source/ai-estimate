@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { analyzeImage } from '../../../lib/openai';
 import { calculateEstimate } from '../../../lib/pricing';
-import { sendNotificationEmail } from '../../../lib/email';
 
 function getString(v: FormDataEntryValue | null): string {
   return typeof v === 'string' ? v : '';
@@ -17,17 +16,6 @@ function getUsage(value: string): 'manual' | 'parts' | 'sales' {
   if (value === 'parts') return 'parts';
   if (value === 'sales') return 'sales';
   return 'manual';
-}
-
-function getSize(value: string): 'small' | 'medium' | 'large' {
-  if (value === 'small') return 'small';
-  if (value === 'large') return 'large';
-  return 'medium';
-}
-
-function getRush(value: string): 'normal' | 'rush' {
-  if (value === 'rush') return 'rush';
-  return 'normal';
 }
 
 export async function POST(req: NextRequest) {
@@ -49,88 +37,56 @@ export async function POST(req: NextRequest) {
     // 入力
     // -----------------------------
     const input = {
-      customerName: getString(form.get('customerName')),
-      companyName: getString(form.get('companyName')),
-      email: getString(form.get('email')),
       usage: getUsage(getString(form.get('usage'))),
-      size: getSize(getString(form.get('size'))),
       style: getStyle(getString(form.get('style'))),
-      rush: getRush(getString(form.get('rush'))),
       quantity: Number(getString(form.get('quantity')) || '1'),
       notes: getString(form.get('notes')),
-      requestFormalQuote: ['true', 'yes', 'on'].includes(
-        getString(form.get('requestFormalQuote'))
-      ),
     };
 
     // -----------------------------
-    // AI解析（工数）
+    // AI解析（分類＋難易度）
     // -----------------------------
     const analysis = await analyzeImage({
-  imageBase64: base64,
-  style: input.style,
-  usage: input.usage,
-  notes: input.notes,
-});
+      imageBase64: base64,
+      style: input.style,
+      usage: input.usage,
+      notes: input.notes,
+    });
 
     // -----------------------------
-    // 見積計算（時間 × 3000円）
+    // 見積計算（固定ロジック）
     // -----------------------------
     const estimate = calculateEstimate({
-  workType: analysis.workType,
-  difficultyScore: analysis.difficultyScore,
-  quantity: input.quantity,
-});
-
-    // -----------------------------
-    // メール送信
-    // -----------------------------
-    await sendNotificationEmail({
-      company: input.companyName,
-      name: input.customerName,
-      email: input.email,
-      usage: input.usage,
-      style: input.style,
+      workType: analysis.workType,
+      difficultyScore: analysis.difficultyScore,
       quantity: input.quantity,
-      notes: input.notes,
-      complexityScore: analysis.difficultyScore, // 表示用
-      totalPrice: estimate.totalPrice,
-      requestFormalQuote: input.requestFormalQuote,
-      imageAttachment: input.requestFormalQuote
-        ? {
-            filename: file.name || 'image.jpg',
-            content: base64,
-          }
-        : undefined,
     });
 
     // -----------------------------
     // レスポンス
     // -----------------------------
     return NextResponse.json({
-      input: {
-        requestFormalQuote: input.requestFormalQuote,
+      vision: {
+        subjectType: analysis.workType,
+        complexityScore: analysis.difficultyScore,
+        partDensity: analysis.partDensity,
+        lineDifficulty: analysis.lineDifficulty,
+        structureComplexity: analysis.structureComplexity,
+        confidence: 0.7,
+        reason: analysis.summary,
       },
 
-      // ▼ 判定情報
-      vision: {
-  subjectType: analysis.workType,
-  complexityScore: analysis.difficultyScore,
-  partDensity: analysis.partDensity,
-  lineDifficulty: analysis.lineDifficulty,
-  structureComplexity: analysis.structureComplexity,
-  confidence: 0.7,
-  reason: analysis.summary,
-},
-
-      // ▼ 見積
       estimate: {
         total: estimate.totalPrice,
         subtotal: estimate.unitPrice,
         deliveryDays: '3〜5営業日',
         basePrice: estimate.unitPrice,
         hourlyRate: estimate.hourlyRate,
-        
+
+        // 👇 フロント用
+        estimatedHours: estimate.hours,
+        adjustedHours: estimate.hours,
+
         quantity: input.quantity,
       },
     });
