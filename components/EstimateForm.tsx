@@ -288,17 +288,30 @@ export default function EstimateForm() {
             </div>
 
             <div className="resultBox">
-              <div className="badge">計算内訳</div>
-              <ul className="list cleanList">
-                <li><span>基本料金</span><strong>{result.estimate.basePrice.toLocaleString()}円</strong></li>
-                <li><span>用途補正</span><strong>×{result.estimate.usageMultiplier}</strong></li>
-                <li><span>表現補正</span><strong>×{result.estimate.styleMultiplier}</strong></li>
-                <li><span>サイズ補正</span><strong>×{result.estimate.sizeMultiplier}</strong></li>
-                <li><span>特急補正</span><strong>×{result.estimate.rushMultiplier}</strong></li>
-                <li><span>点数</span><strong>{result.estimate.quantity}</strong></li>
-              </ul>
-            </div>
-          </div>
+  <div className="badge">計算内訳</div>
+  <ul className="list cleanList">
+    <li>
+      <span>想定制作時間</span>
+      <strong>{result.estimate.estimatedHours}時間</strong>
+    </li>
+    <li>
+      <span>補正後時間</span>
+      <strong>{result.estimate.adjustedHours}時間</strong>
+    </li>
+    <li>
+      <span>制作単価</span>
+      <strong>{result.estimate.hourlyRate.toLocaleString()}円 / 時間</strong>
+    </li>
+    <li>
+      <span>1点あたり</span>
+      <strong>{result.estimate.subtotal.toLocaleString()}円</strong>
+    </li>
+    <li>
+      <span>点数</span>
+      <strong>{result.estimate.quantity}</strong>
+    </li>
+  </ul>
+</div>
 
           <div className="ctaCard card">
             <div>
