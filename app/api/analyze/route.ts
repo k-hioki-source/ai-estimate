@@ -118,7 +118,7 @@ export async function POST(req: NextRequest) {
       // ▼ 判定情報
       vision: {
   subjectType: analysis.workType,
-  complexityScore: Math.round(analysis.estimatedHours * 10),
+  complexityScore: Math.round(analysis.estimatedHours * 5),
   estimatedHours: analysis.estimatedHours, // ←ここ追加
   partDensity: analysis.partDensity,
   lineDifficulty: analysis.lineDifficulty,
