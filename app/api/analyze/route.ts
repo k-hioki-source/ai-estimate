@@ -59,6 +59,17 @@ export async function POST(req: NextRequest) {
       notes: input.notes,
     });
 
+    // ★ここ追加
+let workType = analysis.workType;
+
+if (
+  input.notes.includes('概念') ||
+  input.notes.includes('フロー') ||
+  input.notes.includes('全体')
+) {
+  workType = 'concept_diagram';
+}
+
     // -----------------------------
     // 見積計算（固定ロジック）
     // -----------------------------
