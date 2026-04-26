@@ -1,3 +1,4 @@
+import { sendNotificationEmail } from '../../../lib/email';
 import { NextRequest, NextResponse } from 'next/server';
 import { analyzeImage } from '../../../lib/openai';
 import { calculateEstimate } from '../../../lib/pricing';
@@ -70,6 +71,24 @@ export async function POST(req: NextRequest) {
     // -----------------------------
     // レスポンス
     // -----------------------------
+    await sendNotificationEmail({
+  company: getString(form.get('companyName')),
+  name: getString(form.get('customerName')),
+  email: getString(form.get('email')),
+  usage: input.usage,
+  style: input.style,
+  quantity: input.quantity,
+  notes: input.notes,
+  complexityScore: analysis.difficultyScore,
+  totalPrice: estimate.totalPrice,
+  requestFormalQuote: input.requestFormalQuote,
+  imageAttachment: input.requestFormalQuote
+    ? {
+        filename: file.name || 'image.jpg',
+        content: base64,
+      }
+    : undefined,
+});
     return NextResponse.json({
       // ★ フロント互換（これが無いと落ちる）
       input: {
