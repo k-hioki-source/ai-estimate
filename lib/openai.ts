@@ -52,6 +52,22 @@ simple_trace / standard_trace / technical_drawing / realistic_illustration / con
 
 これらは standard_trace とすること
 
+以下を強く考慮してください：
+
+・分解図
+・断面図
+・内部構造
+・パーツ点数
+・構造理解の必要性
+・同軸部品
+・機械設計知識が必要か
+
+これらがある場合、
+単純な見た目でも工数は大幅に増加します。
+
+「見た目の単純さ」ではなく、
+「制作工程の複雑さ」で判断してください。
+
 【最重要ルール】
 
 以下に該当する場合は必ず concept_diagram に分類すること：
