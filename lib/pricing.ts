@@ -124,7 +124,15 @@ structureComplexity: number;
   hours += 1;
 }
 
+if (sourceType === 'photo_trace' && lineDifficulty >= 50) {
+  hours += 0.5;
+}
+
 if (sourceType === 'photo_trace' && lineDifficulty >= 70) {
+  hours += 1;
+}
+
+if (sourceType === 'photo_trace' && structureComplexity >= 50) {
   hours += 1;
 }
 
