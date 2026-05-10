@@ -6,13 +6,21 @@ export function calculateEstimate({
   sourceType,
   usage,
   style,
+
   difficultyScore,
+  partDensity,
+  lineDifficulty,
+  structureComplexity,
+
   quantity,
 }: {
   sourceType: SourceType;
   usage: Usage;
   style: Style;
   difficultyScore: number;
+  partDensity: number;
+lineDifficulty: number;
+structureComplexity: number;
   quantity: number;
 }) {
   const hourlyRate = 3000;
