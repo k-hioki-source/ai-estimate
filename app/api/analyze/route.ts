@@ -116,10 +116,10 @@ if (analysis.workType === 'technical_drawing') {
     // 見積計算（固定ロジック）
     // -----------------------------
     const estimate = calculateEstimate({
-      workType: analysis.workType,
-      difficultyScore: analysis.difficultyScore,
-      quantity: input.quantity,
-    });
+  workType: workType,
+  difficultyScore: analysis.difficultyScore,
+  quantity: input.quantity,
+});
 
     // -----------------------------
     // レスポンス
