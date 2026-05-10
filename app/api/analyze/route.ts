@@ -45,7 +45,7 @@ const base64 = bytes.toString('base64');
     // -----------------------------
     // 入力
     // -----------------------------
-    const input = {
+    
       const input = {
       sourceType: getSourceType(getString(form.get('sourceType'))),
       usage: getUsage(getString(form.get('usage'))),
