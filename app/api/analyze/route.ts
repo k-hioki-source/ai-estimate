@@ -52,13 +52,17 @@ const base64 = bytes.toString('base64');
     // -----------------------------
     // AI解析（分類＋難易度）
     // -----------------------------
-    const analysis = await analyzeImage({
+    const rawAnalysis = await analyzeImage({
   imageBase64: base64,
-  mimeType, // ←追加
+  mimeType,
   style: input.style,
   usage: input.usage,
   notes: input.notes,
 });
+
+const analysis = {
+  ...rawAnalysis,
+};
 
 // ------------------------
 // 備考による補正（ここ追加）
