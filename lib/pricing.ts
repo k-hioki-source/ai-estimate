@@ -33,12 +33,9 @@ structureComplexity: number;
   let baseHours = 1;
 
     // 写真・画像トレースは難易度で段階化
-  if (sourceType === 'photo_trace') {
-  if (score <= 30) baseHours = 1;
-  else if (score <= 45) baseHours = 1.5;
-  else if (score <= 60) baseHours = 2.5;
-  else if (score <= 75) baseHours = 4;
-  else baseHours = 6;
+ if (sourceType === 'photo_trace') {
+  // トレースは基本1時間スタート
+  baseHours = 1;
 }
 
   if (sourceType === 'reference_drawing') {
@@ -178,9 +175,10 @@ if (sourceType === 'photo_trace' && structureComplexity >= 70) {
 }
 
 function getDifficultyMultiplier(score: number) {
-  const min = 0.8;
-const max = 1.8;
-const curved = Math.pow(score / 100, 1.8);
+const min = 0.9;
+const max = 1.4;
+
+const curved = Math.pow(score / 100, 2);
   // 低難度は上がりにくく、高難度で伸びるカーブ
 
   const multiplier = min + curved * (max - min);
