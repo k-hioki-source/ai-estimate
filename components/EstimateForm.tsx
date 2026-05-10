@@ -166,6 +166,16 @@ export default function EstimateForm() {
               <label htmlFor="quantity">点数</label>
               <input id="quantity" name="quantity" type="number" min="1" defaultValue="1" required />
             </div>
+
+            <div>
+  <label htmlFor="sourceType">制作方法</label>
+  <select id="sourceType" name="sourceType" defaultValue="photo_trace">
+    <option value="photo_trace">写真・画像トレース</option>
+    <option value="reference_drawing">写真・図面・資料から作図</option>
+    <option value="cad_conversion">XVL・3DCADから作成</option>
+  </select>
+</div>
+            
             <div>
               <label htmlFor="usage">用途（必須）</label>
               <select id="usage" name="usage" defaultValue="manual">
