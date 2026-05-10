@@ -1,43 +1,90 @@
+type SourceType = 'photo_trace' | 'reference_drawing' | 'cad_conversion';
+type Usage = 'manual' | 'parts' | 'sales';
+type Style = 'line' | 'color' | 'real';
+
 export function calculateEstimate({
-  workType,
+  sourceType,
+  usage,
+  style,
   difficultyScore,
   quantity,
 }: {
-  workType: string;
+  sourceType: SourceType;
+  usage: Usage;
+  style: Style;
   difficultyScore: number;
   quantity: number;
 }) {
-  // ■基準時間
-  const baseHoursMap: Record<string, number> = {
-    simple_trace: 1,
-    standard_trace: 1.5,
-    technical_drawing: 3,
-    realistic_illustration: 10,
-    concept_diagram: 30,
-  };
-
-  let baseHours = baseHoursMap[workType] || 1.5;
-
-  // ■難易度補正
-  const factor = 0.8 + (difficultyScore / 100) * 0.6;
-  let hours = baseHours * factor;
-
-  // ■微調整（オプション）
-  hours += (difficultyScore - 50) / 50;
-
-  // ■丸め
-  hours = Math.max(0.8, Math.round(hours * 2) / 2);
-
   const hourlyRate = 3000;
 
-  const unitPrice = Math.round((hours * hourlyRate) / 100) * 100;
+  let baseHours = 1;
 
-  const totalPrice = Math.round((unitPrice * quantity) / 100) * 100;
+  if (sourceType === 'photo_trace') {
+    baseHours = 1;
+  }
+
+  if (sourceType === 'reference_drawing') {
+    baseHours = 3;
+  }
+
+  if (sourceType === 'cad_conversion') {
+    baseHours = 2.5;
+  }
+
+  let usageMultiplier = 1;
+
+  if (usage === 'manual') usageMultiplier = 0.9;
+  if (usage === 'parts') usageMultiplier = 1.1;
+  if (usage === 'sales') usageMultiplier = 1.3;
+
+  let styleMultiplier = 1;
+
+  if (style === 'line') styleMultiplier = 1;
+  if (style === 'color') styleMultiplier = 1.4;
+  if (style === 'real') styleMultiplier = 2.2;
+
+  const difficultyFactor = 0.8 + (difficultyScore / 100) * 0.8;
+
+  let hours =
+    baseHours *
+    usageMultiplier *
+    styleMultiplier *
+    difficultyFactor;
+
+  if (sourceType === 'photo_trace' && difficultyScore >= 70) {
+    hours += 1;
+  }
+
+  if (sourceType === 'reference_drawing' && difficultyScore >= 70) {
+    hours += 2;
+  }
+
+  if (sourceType === 'cad_conversion' && style === 'real') {
+    hours += 2;
+  }
+
+  hours = Math.max(1, Math.round(hours * 2) / 2);
+
+  let unitPrice = hours * hourlyRate;
+  unitPrice = Math.round(unitPrice / 100) * 100;
+
+  let quantityMultiplier = quantity;
+
+  if (quantity >= 10) quantityMultiplier = quantity * 0.8;
+  else if (quantity >= 5) quantityMultiplier = quantity * 0.9;
+
+  const totalPrice = Math.round((unitPrice * quantityMultiplier) / 100) * 100;
 
   return {
     hours,
     unitPrice,
     totalPrice,
     hourlyRate,
+    sourceType,
+    usageMultiplier,
+    styleMultiplier,
+    difficultyFactor,
+    quantity,
+    priceText: `${totalPrice.toLocaleString()}円`,
   };
 }
