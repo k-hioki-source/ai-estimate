@@ -60,6 +60,32 @@ const base64 = bytes.toString('base64');
   notes: input.notes,
 });
 
+// ------------------------
+// 備考による補正（ここ追加）
+// ------------------------
+
+if (
+  input.notes.includes('分解') ||
+  input.notes.includes('断面') ||
+  input.notes.includes('内部')
+) {
+  analysis.structureComplexity += 20;
+}
+
+const partMatch = input.notes.match(/(\d+)点/);
+
+if (partMatch) {
+  const parts = Number(partMatch[1]);
+
+  if (parts >= 10) {
+    analysis.partDensity += 20;
+  }
+
+  if (parts >= 20) {
+    analysis.partDensity += 40;
+  }
+}    
+
     // ★ここ追加
 let workType = analysis.workType;
 
