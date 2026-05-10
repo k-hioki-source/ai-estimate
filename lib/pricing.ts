@@ -69,8 +69,8 @@ structureComplexity: number;
   let styleMultiplier = 1;
 
   if (style === 'line') styleMultiplier = 1;
-  if (style === 'color') styleMultiplier = 1.35;
-  if (style === 'real') styleMultiplier = 2.2;
+if (style === 'color') styleMultiplier = 1.2;
+if (style === 'real') styleMultiplier = 1.5;
 
   // -----------------------------
   // ④ AI難易度補正（0.1刻み）
@@ -113,6 +113,20 @@ structureComplexity: number;
       styleMultiplier *
       difficultyMultiplier +
     structureBonusHours;
+  // -----------------------------
+// リアル表現補正
+// -----------------------------
+if (style === 'real' && lineDifficulty >= 50) {
+  hours += 1;
+}
+
+if (style === 'real' && lineDifficulty >= 70) {
+  hours += 2;
+}
+
+if (style === 'real' && structureComplexity >= 70) {
+  hours += 2;
+}
 
   // 最低工数
   hours = Math.max(1, hours);
