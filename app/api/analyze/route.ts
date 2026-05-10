@@ -19,6 +19,14 @@ function getUsage(value: string): 'manual' | 'parts' | 'sales' {
   return 'manual';
 }
 
+function getSourceType(
+  value: string
+): 'photo_trace' | 'reference_drawing' | 'cad_conversion' {
+  if (value === 'reference_drawing') return 'reference_drawing';
+  if (value === 'cad_conversion') return 'cad_conversion';
+  return 'photo_trace';
+}
+
 export async function POST(req: NextRequest) {
   try {
     const form = await req.formData();
@@ -38,6 +46,8 @@ const base64 = bytes.toString('base64');
     // 入力
     // -----------------------------
     const input = {
+      const input = {
+      sourceType: getSourceType(getString(form.get('sourceType'))),
       usage: getUsage(getString(form.get('usage'))),
       style: getStyle(getString(form.get('style'))),
       quantity: Number(getString(form.get('quantity')) || '1'),
@@ -55,6 +65,7 @@ const base64 = bytes.toString('base64');
     const rawAnalysis = await analyzeImage({
   imageBase64: base64,
   mimeType,
+  sourceType: input.sourceType,
   style: input.style,
   usage: input.usage,
   notes: input.notes,
@@ -116,8 +127,12 @@ if (analysis.workType === 'technical_drawing') {
     // 見積計算（固定ロジック）
     // -----------------------------
     const estimate = calculateEstimate({
-  workType: workType,
+  sourceType: input.sourceType,
+  usage: input.usage,
+  style: input.style,
+
   difficultyScore: analysis.difficultyScore,
+
   quantity: input.quantity,
 });
 
@@ -163,6 +178,7 @@ if (analysis.workType === 'technical_drawing') {
       estimate: {
         total: estimate.totalPrice,
         subtotal: estimate.unitPrice,
+        sourceType: input.sourceType,
         deliveryDays: '3〜5営業日',
         basePrice: estimate.unitPrice,
         hourlyRate: estimate.hourlyRate,
