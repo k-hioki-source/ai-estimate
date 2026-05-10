@@ -24,12 +24,14 @@ export function calculateEstimate({
   // -----------------------------
   let baseHours = 1;
 
-  if (sourceType === 'photo_trace') {
     // 写真・画像トレースは難易度で段階化
-    if (score <= 30) baseHours = 1;
-    else if (score <= 55) baseHours = 1.5;
-    else baseHours = 2.5;
-  }
+  if (sourceType === 'photo_trace') {
+  if (score <= 30) baseHours = 1;
+  else if (score <= 45) baseHours = 1.5;
+  else if (score <= 60) baseHours = 2.5;
+  else if (score <= 75) baseHours = 4;
+  else baseHours = 6;
+}
 
   if (sourceType === 'reference_drawing') {
     // 写真・図面・資料から作図
@@ -113,6 +115,18 @@ export function calculateEstimate({
   // 0.5時間単位に丸め
   hours = Math.round(hours * 2) / 2;
 
+  if (sourceType === 'photo_trace' && partDensity >= 70) {
+  hours += 1;
+}
+
+if (sourceType === 'photo_trace' && lineDifficulty >= 70) {
+  hours += 1;
+}
+
+if (sourceType === 'photo_trace' && structureComplexity >= 70) {
+  hours += 1;
+}
+  
   // -----------------------------
   // ⑦ 金額算出
   // -----------------------------
@@ -156,11 +170,11 @@ export function calculateEstimate({
 }
 
 function getDifficultyMultiplier(score: number) {
-  const min = 0.9;
-  const max = 2.4;
-
+  const min = 0.8;
+const max = 1.8;
+const curved = Math.pow(score / 100, 1.8);
   // 低難度は上がりにくく、高難度で伸びるカーブ
-  const curved = Math.pow(score / 100, 1.4);
+
   const multiplier = min + curved * (max - min);
 
   // 0.1刻み
