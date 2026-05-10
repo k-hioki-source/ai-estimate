@@ -126,13 +126,14 @@ if (analysis.workType === 'technical_drawing') {
     // -----------------------------
     // 見積計算（固定ロジック）
     // -----------------------------
-    const estimate = calculateEstimate({
+ const estimate = calculateEstimate({
   sourceType: input.sourceType,
   usage: input.usage,
   style: input.style,
-
   difficultyScore: analysis.difficultyScore,
-
+  partDensity: analysis.partDensity,
+  lineDifficulty: analysis.lineDifficulty,
+  structureComplexity: analysis.structureComplexity,
   quantity: input.quantity,
 });
 
