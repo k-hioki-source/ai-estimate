@@ -158,7 +158,7 @@ if (style === 'real' && structureComplexity >= 70) {
   // 0.5時間単位に丸め
   hours = Math.round(hours * 2) / 2;
 
-  if (sourceType === 'photo_trace' && partDensity >= 70) {
+  if (sourceType === 'photo_trace' && partDensity >= 75) {
   hours += 1;
 }
 
