@@ -159,7 +159,7 @@ if (style === 'real' && structureComplexity >= 70) {
   hours = Math.round(hours * 2) / 2;
 
   if (sourceType === 'photo_trace' && partDensity >= 75) {
-  hours += 1;
+  hours += 0.5;
 }
 
 if (sourceType === 'photo_trace' && structureComplexity >= 60) {
