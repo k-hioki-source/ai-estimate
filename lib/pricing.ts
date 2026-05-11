@@ -162,20 +162,20 @@ if (style === 'real' && structureComplexity >= 70) {
   hours += 1;
 }
 
-if (sourceType === 'photo_trace' && lineDifficulty >= 50) {
+if (sourceType === 'photo_trace' && structureComplexity >= 60) {
   hours += 0.5;
 }
 
-if (sourceType === 'photo_trace' && lineDifficulty >= 70) {
-  hours += 1;
+if (sourceType === 'photo_trace' && structureComplexity >= 75) {
+  hours += 0.5;
 }
 
-if (sourceType === 'photo_trace' && structureComplexity >= 50) {
-  hours += 1;
+if (sourceType === 'photo_trace' && lineDifficulty >= 60) {
+  hours += 0.5;
 }
 
-if (sourceType === 'photo_trace' && structureComplexity >= 70) {
-  hours += 1;
+if (sourceType === 'photo_trace' && lineDifficulty >= 80) {
+  hours += 0.5;
 }
   
   // -----------------------------
