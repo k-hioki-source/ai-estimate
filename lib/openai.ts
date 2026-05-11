@@ -100,11 +100,16 @@ concept_diagram：
 JSONのみで出力してください。
 
 {
-  "workType": "simple_trace" | "standard_trace" | "technical_drawing" | "realistic_illustration" | "concept_diagram",
+  "workType": "...",
   "difficultyScore": number,
   "partDensity": number,
   "lineDifficulty": number,
   "structureComplexity": number,
+
+  "isExplodedView": boolean,
+  "hasLeaderLines": boolean,
+  "hasPartNumbers": boolean,
+
   "summary": string
 }
 
@@ -141,6 +146,9 @@ summaryは日本語で簡潔に書いてください。
     partDensity: clampNumber(parsed.partDensity, 50, 0, 100),
     lineDifficulty: clampNumber(parsed.lineDifficulty, 50, 0, 100),
     structureComplexity: clampNumber(parsed.structureComplexity, 50, 0, 100),
+    isExplodedView: parsed.isExplodedView ?? false,
+hasLeaderLines: parsed.hasLeaderLines ?? false,
+hasPartNumbers: parsed.hasPartNumbers ?? false,
     summary:
       typeof parsed.summary === 'string'
         ? parsed.summary
