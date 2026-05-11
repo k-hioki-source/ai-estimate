@@ -114,7 +114,12 @@ if (style === 'real') styleMultiplier = 1.5;
   // ⑥ 工数算出
   // -----------------------------
   let hours =
-    // -----------------------------
+    baseHours *
+      usageMultiplier *
+      styleMultiplier *
+      difficultyMultiplier +
+    structureBonusHours;
+   // -----------------------------
 // パーツ用途補正
 // -----------------------------
 if (usage === 'parts') {
@@ -134,11 +139,6 @@ if (hasLeaderLines) {
 if (hasPartNumbers) {
   hours += 1;
 }
-    baseHours *
-      usageMultiplier *
-      styleMultiplier *
-      difficultyMultiplier +
-    structureBonusHours;
   // -----------------------------
 // リアル表現補正
 // -----------------------------
