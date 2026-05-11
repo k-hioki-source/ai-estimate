@@ -134,6 +134,9 @@ if (analysis.workType === 'technical_drawing') {
   partDensity: analysis.partDensity,
   lineDifficulty: analysis.lineDifficulty,
   structureComplexity: analysis.structureComplexity,
+   isExplodedView: analysis.isExplodedView,
+hasLeaderLines: analysis.hasLeaderLines,
+hasPartNumbers: analysis.hasPartNumbers,
   quantity: input.quantity,
 });
 
