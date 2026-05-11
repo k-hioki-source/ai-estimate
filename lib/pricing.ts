@@ -123,21 +123,19 @@ if (style === 'real') styleMultiplier = 1.5;
 // パーツ用途補正
 // -----------------------------
 if (usage === 'parts') {
-  hours += 1.5;
+  hours += sourceType === 'photo_trace' ? 0.5 : 1.5;
 }
-  // -----------------------------
-// 分解図・組図補正
-// -----------------------------
+
 if (isExplodedView) {
-  hours += 2;
+  hours += sourceType === 'photo_trace' ? 1 : 2;
 }
 
 if (hasLeaderLines) {
-  hours += 1;
+  hours += sourceType === 'photo_trace' ? 0.5 : 1;
 }
 
 if (hasPartNumbers) {
-  hours += 1;
+  hours += sourceType === 'photo_trace' ? 0.5 : 1;
 }
   // -----------------------------
 // リアル表現補正
