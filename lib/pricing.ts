@@ -11,6 +11,9 @@ export function calculateEstimate({
   partDensity,
   lineDifficulty,
   structureComplexity,
+  isExplodedView,
+hasLeaderLines,
+hasPartNumbers,
 
   quantity,
 }: {
@@ -21,6 +24,9 @@ export function calculateEstimate({
   partDensity: number;
 lineDifficulty: number;
 structureComplexity: number;
+  isExplodedView: boolean;
+hasLeaderLines: boolean;
+hasPartNumbers: boolean;
   quantity: number;
 }) {
   const hourlyRate = 3000;
@@ -108,6 +114,26 @@ if (style === 'real') styleMultiplier = 1.5;
   // ⑥ 工数算出
   // -----------------------------
   let hours =
+    // -----------------------------
+// パーツ用途補正
+// -----------------------------
+if (usage === 'parts') {
+  hours += 1.5;
+}
+  // -----------------------------
+// 分解図・組図補正
+// -----------------------------
+if (isExplodedView) {
+  hours += 2;
+}
+
+if (hasLeaderLines) {
+  hours += 1;
+}
+
+if (hasPartNumbers) {
+  hours += 1;
+}
     baseHours *
       usageMultiplier *
       styleMultiplier *
