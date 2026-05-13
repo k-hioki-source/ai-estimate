@@ -109,7 +109,7 @@ JSONのみで出力してください。
   "isExplodedView": boolean,
   "hasLeaderLines": boolean,
   "hasPartNumbers": boolean,
-
+  "isIndustrialProduct": boolean,
   "summary": string
 }
 
@@ -149,6 +149,7 @@ summaryは日本語で簡潔に書いてください。
     isExplodedView: parsed.isExplodedView ?? false,
 hasLeaderLines: parsed.hasLeaderLines ?? false,
 hasPartNumbers: parsed.hasPartNumbers ?? false,
+    isIndustrialProduct: parsed.isIndustrialProduct ?? false,
     summary:
       typeof parsed.summary === 'string'
         ? parsed.summary
