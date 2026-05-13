@@ -14,7 +14,7 @@ export function calculateEstimate({
   isExplodedView,
 hasLeaderLines,
 hasPartNumbers,
-
+isIndustrialProduct,
   quantity,
 }: {
   sourceType: SourceType;
@@ -27,6 +27,7 @@ structureComplexity: number;
   isExplodedView: boolean;
 hasLeaderLines: boolean;
 hasPartNumbers: boolean;
+  isIndustrialProduct: boolean;
   quantity: number;
 }) {
   const hourlyRate = 3000;
@@ -119,6 +120,28 @@ if (style === 'real') styleMultiplier = 1.5;
       styleMultiplier *
       difficultyMultiplier +
     structureBonusHours;
+  // -----------------------------
+// 工業製品リアル補正
+// -----------------------------
+if (style === 'real' && isIndustrialProduct) {
+  hours += 4;
+}
+
+if (
+  style === 'real' &&
+  isIndustrialProduct &&
+  lineDifficulty >= 60
+) {
+  hours += 2;
+}
+
+if (
+  style === 'real' &&
+  isIndustrialProduct &&
+  difficultyScore >= 70
+) {
+  hours += 2;
+}
    // -----------------------------
 // パーツ用途補正
 // -----------------------------
