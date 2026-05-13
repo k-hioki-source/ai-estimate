@@ -138,6 +138,7 @@ if (analysis.workType === 'technical_drawing') {
 hasLeaderLines: analysis.hasLeaderLines,
 hasPartNumbers: analysis.hasPartNumbers,
   quantity: input.quantity,
+   isIndustrialProduct: analysis.isIndustrialProduct,
 });
 
     // -----------------------------
