@@ -155,11 +155,11 @@ export default function EstimateForm() {
               <input id="companyName" name="companyName" placeholder="株式会社◯◯" />
             </div>
             <div>
-              <label htmlFor="customerName">ご担当者名</label>
+              <label htmlFor="customerName">ご担当者名（必須）</label>
               <input id="customerName" name="customerName" placeholder="山田 太郎" required />
             </div>
             <div>
-              <label htmlFor="email">メールアドレス</label>
+              <label htmlFor="email">メールアドレス（必須）</label>
               <input id="email" type="email" name="email" placeholder="sample@example.com" required />
             </div>
             <div>
@@ -168,7 +168,7 @@ export default function EstimateForm() {
             </div>
 
             <div>
-  <label htmlFor="sourceType">制作方法</label>
+  <label htmlFor="sourceType">制作方法／資料</label>
   <select id="sourceType" name="sourceType" defaultValue="photo_trace">
     <option value="photo_trace">写真・画像トレース</option>
     <option value="reference_drawing">写真・図面・資料から作図</option>
@@ -185,7 +185,7 @@ export default function EstimateForm() {
               </select>
             </div>
             <div className="gridSpan2">
-  <label>表現（必須）</label>
+  <label>イラスト表現（必須）</label>
 
   <div className="styleGrid">
 
@@ -304,11 +304,17 @@ export default function EstimateForm() {
           </div>
 
           <div>
-            <label htmlFor="notes">備考</label>
+            <label htmlFor="notes">イラストの内容・制作条件</label>
             <textarea
               id="notes"
               name="notes"
-              placeholder="用途、希望納期、著作権譲渡の有無、修正回数、参考情報など"
+              placeholder="例：
+・分解図
+・部品点数20点
+・支給：写真、2D図面、組図
+・AI納品希望
+・WEB掲載用
+・リアルタッチ希望"
             />
           </div>
 
