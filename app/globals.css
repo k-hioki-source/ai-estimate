@@ -51,6 +51,62 @@ button:disabled { opacity: 0.65; cursor: not-allowed; }
   min-height: 52px;
   box-shadow: 0 12px 28px rgba(37, 99, 235, 0.22);
 }
+
+.styleGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.styleCard {
+  border: 1px solid #d6dbe6;
+  border-radius: 14px;
+  overflow: hidden;
+  cursor: pointer;
+  background: #fff;
+  transition: 0.2s;
+  position: relative;
+}
+
+.styleCard:hover {
+  border-color: #2563eb;
+  transform: translateY(-2px);
+}
+
+.styleCard input {
+  position: absolute;
+  opacity: 0;
+}
+
+.styleCard img {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  display: block;
+  background: #f3f4f6;
+}
+
+.styleBody {
+  padding: 12px;
+}
+
+.styleBody strong {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 15px;
+}
+
+.styleBody span {
+  font-size: 13px;
+  color: #666;
+  line-height: 1.5;
+}
+
+.styleCard:has(input:checked) {
+  border: 2px solid #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
 .muted { color: #5b6474; }
 .compactText { max-width: 640px; line-height: 1.7; }
 .eyebrow {
