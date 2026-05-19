@@ -184,14 +184,80 @@ export default function EstimateForm() {
                 <option value="sales">販促用（リアルイラスト）</option>
               </select>
             </div>
-            <div>
-              <label htmlFor="style">表現（必須）</label>
-              <select id="style" name="style" defaultValue="line">
-                <option value="line">白黒線画</option>
-                <option value="color">カラー</option>
-                <option value="real">リアルタッチ</option>
-              </select>
-            </div>
+            <div className="gridSpan2">
+  <label>表現（必須）</label>
+
+  <div className="styleGrid">
+
+    {/* 白黒線画 */}
+    <label className="styleCard">
+      <input
+        type="radio"
+        name="style"
+        value="line"
+        defaultChecked
+      />
+
+      <img
+        src="/samples/line.jpg"
+        alt="白黒線画"
+      />
+
+      <div className="styleBody">
+        <strong>白黒線画</strong>
+
+        <span>
+          取扱説明書・パーツカタログ向け
+        </span>
+      </div>
+    </label>
+
+    {/* カラー */}
+    <label className="styleCard">
+      <input
+        type="radio"
+        name="style"
+        value="color"
+      />
+
+      <img
+        src="/samples/color.jpg"
+        alt="カラーイラスト"
+      />
+
+      <div className="styleBody">
+        <strong>カラーイラスト</strong>
+
+        <span>
+          製品説明・WEB・プレゼン資料向け
+        </span>
+      </div>
+    </label>
+
+    {/* リアル */}
+    <label className="styleCard">
+      <input
+        type="radio"
+        name="style"
+        value="real"
+      />
+
+      <img
+        src="/samples/real.jpg"
+        alt="リアルイラスト"
+      />
+
+      <div className="styleBody">
+        <strong>リアルイラスト</strong>
+
+        <span>
+          販促・広告・メインビジュアル向け
+        </span>
+      </div>
+    </label>
+
+  </div>
+</div>
             <div>
               <label htmlFor="size">サイズ感</label>
               <select id="size" name="size" defaultValue="medium">
