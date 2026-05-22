@@ -300,6 +300,12 @@ export default function EstimateForm() {
       setPreview(URL.createObjectURL(file));
     }}
   />
+<p className="uploadNotice">
+    ※アップロードいただいた画像・図面データは、お見積り算出の目的にのみ使用いたします。<br />
+    AIの学習データとして利用されることはありません。<br />
+    また、データは一定時間後に自動削除されますので、安心してご利用ください。
+  </p>
+              
 </div>
           </div>
 
