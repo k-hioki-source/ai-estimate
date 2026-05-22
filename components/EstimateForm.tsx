@@ -144,11 +144,13 @@ export default function EstimateForm() {
         </div>
 
         <form
-          className="stack"
-          action={async (formData) => {
-            await handleSubmit(formData);
-          }}
-        >
+  className="stack"
+  onSubmit={async (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    await handleSubmit(formData);
+  }}
+>
           <div className="grid grid-2">
             <div>
               <label htmlFor="companyName">会社名</label>
