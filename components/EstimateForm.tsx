@@ -332,7 +332,7 @@ export default function EstimateForm() {
           {preview ? <img src={preview} alt="preview" className="preview" /> : null}
 
           <button type="submit" disabled={loading} className="primaryButton">
-            {loading ? 'AIが解析中...' : '概算金額を表示する'}
+            {loading ? 'AIが画像を解析しています...' : '概算金額を表示する'}
           </button>
         </form>
 
@@ -345,7 +345,26 @@ export default function EstimateForm() {
           </ul>
         </div>
       </section>
+{loading && (
+  <div className="loadingCard">
 
+    <div className="loadingSpinner" />
+
+    <h3>AIが概算見積りを計算中です</h3>
+
+    <ul className="loadingSteps">
+      <li>画像を解析しています...</li>
+      <li>構造の複雑さを判定しています...</li>
+      <li>制作工数を計算しています...</li>
+      <li>概算金額を算出しています...</li>
+    </ul>
+
+    <p className="loadingNote">
+      通常5〜15秒ほどで完了します
+    </p>
+
+  </div>
+)}
       {error ? <div className="errorBox">エラー: {error}</div> : null}
 
             {result ? (
