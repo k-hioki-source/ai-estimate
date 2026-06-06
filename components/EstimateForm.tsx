@@ -43,6 +43,9 @@ function difficultyLabel(score: number) {
 
 export default function EstimateForm() {
   const [loading, setLoading] = useState(false);
+  const [companyName, setCompanyName] = useState('');
+const [customerName, setCustomerName] = useState('');
+const [email, setEmail] = useState('');
   const [preview, setPreview] = useState<string | null>(null);
   const [result, setResult] = useState<ApiResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -154,15 +157,36 @@ export default function EstimateForm() {
           <div className="grid grid-2">
             <div>
               <label htmlFor="companyName">会社名</label>
-              <input id="companyName" name="companyName" placeholder="株式会社◯◯" />
+             <input
+  id="companyName"
+  name="companyName"
+  placeholder="株式会社◯◯"
+  value={companyName}
+  onChange={(e) => setCompanyName(e.target.value)}
+/>
             </div>
             <div>
               <label htmlFor="customerName">ご担当者名（必須）</label>
-              <input id="customerName" name="customerName" placeholder="山田 太郎" required />
+             <input
+  id="customerName"
+  name="customerName"
+  placeholder="山田 太郎"
+  required
+  value={customerName}
+  onChange={(e) => setCustomerName(e.target.value)}
+/>
             </div>
             <div>
               <label htmlFor="email">メールアドレス（必須）</label>
-              <input id="email" type="email" name="email" placeholder="sample@example.com" required />
+              <input
+  id="email"
+  type="email"
+  name="email"
+  placeholder="sample@example.com"
+  required
+  value={email}
+  onChange={(e) => setEmail(e.target.value)}
+/>
             </div>
             <div>
               <label htmlFor="quantity">点数</label>
