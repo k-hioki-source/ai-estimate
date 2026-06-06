@@ -54,7 +54,23 @@ real = リアルイラスト
 ユーザー依頼文：
 ${message}
 
+notesは、ユーザー文をそのままコピーしないでください。
+見積りに必要な制作条件として、箇条書き風に短く整理してください。
+
+例：
+ユーザー文：
+「図面と写真があります。パーツカタログ用の分解図を白黒線画で作りたいです。」
+
+notes：
+「支給資料：図面・写真
+用途：パーツカタログ
+内容：分解図
+表現：白黒線画」
+
 JSONのみで返してください。
+
+reasonは選択理由を1〜2文で説明してください。
+notesは整理された制作条件にしてください。
 
 {
   "sourceType": "photo_trace" | "reference_drawing" | "cad_conversion",
@@ -82,7 +98,11 @@ JSONのみで返してください。
       sourceType: normalizeSourceType(parsed.sourceType),
       usage: normalizeUsage(parsed.usage),
       style: normalizeStyle(parsed.style),
-      notes: parsed.notes || message,
+      notes:
+  typeof parsed.notes === 'string' && parsed.notes.trim()
+    ? parsed.notes
+    : `依頼内容：${message}`,
+      
       reason: parsed.reason || '依頼内容からフォーム項目を提案しました。',
     });
   } catch (e) {
