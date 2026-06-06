@@ -46,6 +46,8 @@ export default function EstimateForm() {
   const [companyName, setCompanyName] = useState('');
 const [customerName, setCustomerName] = useState('');
 const [email, setEmail] = useState('');
+  const [lastFormData, setLastFormData] = useState<FormData | null>(null);
+const [formalSending, setFormalSending] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
   const [result, setResult] = useState<ApiResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -57,6 +59,7 @@ const [email, setEmail] = useState('');
 
   async function handleSubmit(formData: FormData) {
     setLoading(true);
+    setLastFormData(formData);
     setError(null);
     setResult(null);
 
@@ -65,6 +68,52 @@ const [email, setEmail] = useState('');
     method: 'POST',
     body: formData,
   });
+
+  async function handleFormalQuoteRequest() {
+  if (!lastFormData) {
+    setError('送信内容が見つかりません。もう一度概算見積りを実行してください。');
+    return;
+  }
+
+  setFormalSending(true);
+  setError(null);
+
+  try {
+    const formData = new FormData();
+
+    lastFormData.forEach((value, key) => {
+      formData.append(key, value);
+    });
+
+    formData.set('requestFormalQuote', 'yes');
+
+    const res = await fetch('/api/analyze', {
+      method: 'POST',
+      body: formData,
+    });
+
+    const text = await res.text();
+
+    let json: ApiResponse;
+    try {
+      json = JSON.parse(text) as ApiResponse;
+    } catch {
+      throw new Error(
+        text || '正式見積り依頼の送信に失敗しました。'
+      );
+    }
+
+    if (!res.ok) {
+      throw new Error(json.error || '正式見積り依頼の送信に失敗しました。');
+    }
+
+    setResult(json);
+  } catch (e) {
+    setError(e instanceof Error ? e.message : '不明なエラーです。');
+  } finally {
+    setFormalSending(false);
+  }
+}
 
   const text = await res.text();
 
@@ -480,11 +529,20 @@ const [email, setEmail] = useState('');
             </div>
 
             <div className="ctaActions">
-              <div className="ctaButtonLike">
-                {result.input.requestFormalQuote
-                  ? '正式見積り希望として受付済みです'
-                  : '概算確認のみで送信されています'}
-              </div>
+              {result.input.requestFormalQuote ? (
+  <div className="ctaButtonLike">
+    正式見積り希望として受付済みです
+  </div>
+) : (
+  <button
+    type="button"
+    className="primaryButton"
+    onClick={handleFormalQuoteRequest}
+    disabled={formalSending}
+  >
+    {formalSending ? '正式見積り依頼を送信中...' : 'この内容で正式見積りを依頼する'}
+  </button>
+)}
               <p className="footerNote">
                 正式見積り希望にチェックを入れて送信した場合は、参考画像も管理者宛に送信されます。
               </p>
