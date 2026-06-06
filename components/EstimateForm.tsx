@@ -69,6 +69,31 @@ const [formalSending, setFormalSending] = useState(false);
     body: formData,
   });
 
+  
+
+  const text = await res.text();
+
+  let json: ApiResponse;
+  try {
+    json = JSON.parse(text) as ApiResponse;
+  } catch {
+    throw new Error(
+      text || 'サーバーから不正な応答が返されました。画像サイズや形式をご確認ください。'
+    );
+  }
+
+  if (!res.ok) {
+    throw new Error(json.error || '送信に失敗しました。');
+  }
+
+  setResult(json);
+} catch (e) {
+  setError(e instanceof Error ? e.message : '不明なエラーです。');
+} finally {
+  setLoading(false);
+}
+    }
+
   async function handleFormalQuoteRequest() {
   if (!lastFormData) {
     setError('送信内容が見つかりません。もう一度概算見積りを実行してください。');
@@ -114,30 +139,7 @@ const [formalSending, setFormalSending] = useState(false);
     setFormalSending(false);
   }
 }
-
-  const text = await res.text();
-
-  let json: ApiResponse;
-  try {
-    json = JSON.parse(text) as ApiResponse;
-  } catch {
-    throw new Error(
-      text || 'サーバーから不正な応答が返されました。画像サイズや形式をご確認ください。'
-    );
-  }
-
-  if (!res.ok) {
-    throw new Error(json.error || '送信に失敗しました。');
-  }
-
-  setResult(json);
-} catch (e) {
-  setError(e instanceof Error ? e.message : '不明なエラーです。');
-} finally {
-  setLoading(false);
-}
-    }
-
+  
   return (
   <div className="stackLarge">
 
