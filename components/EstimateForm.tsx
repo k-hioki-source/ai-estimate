@@ -46,6 +46,9 @@ export default function EstimateForm() {
   const [companyName, setCompanyName] = useState('');
 const [customerName, setCustomerName] = useState('');
 const [email, setEmail] = useState('');
+  const [assistText, setAssistText] = useState('');
+const [assistLoading, setAssistLoading] = useState(false);
+const [assistReason, setAssistReason] = useState<string | null>(null);
   const [lastFormData, setLastFormData] = useState<FormData | null>(null);
 const [formalSending, setFormalSending] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
@@ -69,6 +72,50 @@ const [formalSending, setFormalSending] = useState(false);
     body: formData,
   });
 
+async function handleSuggestForm() {
+  if (!assistText.trim()) {
+    setError('依頼内容を入力してください。');
+    return;
+  }
+
+  setAssistLoading(true);
+  setError(null);
+  setAssistReason(null);
+
+  try {
+    const res = await fetch('/api/suggest-form', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ message: assistText }),
+    });
+
+    const json = await res.json();
+
+    if (!res.ok) {
+      throw new Error(json.error || 'フォーム提案に失敗しました。');
+    }
+
+    const sourceType = document.getElementById('sourceType') as HTMLSelectElement | null;
+    const usage = document.getElementById('usage') as HTMLSelectElement | null;
+    const style = document.querySelector(
+      `input[name="style"][value="${json.style}"]`
+    ) as HTMLInputElement | null;
+    const notes = document.getElementById('notes') as HTMLTextAreaElement | null;
+
+    if (sourceType) sourceType.value = json.sourceType;
+    if (usage) usage.value = json.usage;
+    if (style) style.checked = true;
+    if (notes) notes.value = json.notes;
+
+    setAssistReason(json.reason);
+  } catch (e) {
+    setError(e instanceof Error ? e.message : '不明なエラーです。');
+  } finally {
+    setAssistLoading(false);
+  }
+}
   
 
   const text = await res.text();
@@ -214,6 +261,38 @@ const [formalSending, setFormalSending] = useState(false);
     await handleSubmit(formData);
   }}
 >
+
+          <div className="assistBox">
+  <div className="assistHead">
+    <div>
+      <div className="eyebrow">入力に迷った方へ</div>
+      <h3 className="assistTitle">依頼内容を文章で入力すると、AIが選択項目を提案します</h3>
+    </div>
+  </div>
+
+  <textarea
+    className="assistTextarea"
+    value={assistText}
+    onChange={(e) => setAssistText(e.target.value)}
+    placeholder="例：図面と写真があります。パーツカタログ用の分解図を白黒線画で作りたいです。"
+  />
+
+  <button
+    type="button"
+    className="secondaryButton"
+    onClick={handleSuggestForm}
+    disabled={assistLoading}
+  >
+    {assistLoading ? 'AIが提案中...' : 'AIにフォーム入力を提案してもらう'}
+  </button>
+
+  {assistReason ? (
+    <p className="assistReason">
+      AI提案理由：{assistReason}
+    </p>
+  ) : null}
+</div>
+          
           <div className="grid grid-2">
             <div>
               <label htmlFor="companyName">会社名</label>
