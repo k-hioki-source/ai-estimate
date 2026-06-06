@@ -95,7 +95,7 @@ const [formalSending, setFormalSending] = useState(false);
     }
 
   async function handleFormalQuoteRequest() {
-  if (!lastFormData) {
+  if (!lastFormData || !result) {
     setError('送信内容が見つかりません。もう一度概算見積りを実行してください。');
     return;
   }
@@ -111,28 +111,37 @@ const [formalSending, setFormalSending] = useState(false);
     });
 
     formData.set('requestFormalQuote', 'yes');
+    formData.set('fixedEstimateTotal', String(result.estimate.total));
+    formData.set('fixedEstimatedHours', String(result.estimate.estimatedHours));
+    formData.set('fixedDifficultyScore', String(result.vision.complexityScore));
+    formData.set('fixedSubjectType', result.vision.subjectType);
+    formData.set('fixedReason', result.vision.reason);
 
-    const res = await fetch('/api/analyze', {
+    const res = await fetch('/api/formal-quote', {
       method: 'POST',
       body: formData,
     });
 
     const text = await res.text();
 
-    let json: ApiResponse;
+    let json: { ok?: boolean; error?: string; message?: string };
     try {
-      json = JSON.parse(text) as ApiResponse;
+      json = JSON.parse(text);
     } catch {
-      throw new Error(
-        text || '正式見積り依頼の送信に失敗しました。'
-      );
+      throw new Error(text || '正式見積り依頼の送信に失敗しました。');
     }
 
     if (!res.ok) {
       throw new Error(json.error || '正式見積り依頼の送信に失敗しました。');
     }
 
-    setResult(json);
+    setResult({
+      ...result,
+      input: {
+        ...result.input,
+        requestFormalQuote: true,
+      },
+    });
   } catch (e) {
     setError(e instanceof Error ? e.message : '不明なエラーです。');
   } finally {
