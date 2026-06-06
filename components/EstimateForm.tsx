@@ -439,7 +439,7 @@ async function handleFormalQuoteRequest() {
 </div>
             <div>
               <label htmlFor="size">サイズ感</label>
-              <select id="size" name="size" defaultValue="medium">
+              <select id="size" name="size" defaultValue="small">
                 <option value="small">小</option>
                 <option value="medium">中</option>
                 <option value="large">大</option>
