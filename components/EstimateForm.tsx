@@ -127,10 +127,25 @@ async function handleSuggestForm() {
     ) as HTMLInputElement | null;
     const notes = document.getElementById('notes') as HTMLTextAreaElement | null;
 
-    if (sourceType) sourceType.value = json.sourceType;
-    if (usage) usage.value = json.usage;
-    if (style) style.checked = true;
-    if (notes) notes.value = json.notes;
+    if (sourceType) {
+  sourceType.value = json.sourceType;
+  sourceType.dispatchEvent(new Event('change', { bubbles: true }));
+}
+
+if (usage) {
+  usage.value = json.usage;
+  usage.dispatchEvent(new Event('change', { bubbles: true }));
+}
+
+if (style) {
+  style.checked = true;
+  style.dispatchEvent(new Event('change', { bubbles: true }));
+}
+
+if (notes) {
+  notes.value = json.notes;
+  notes.dispatchEvent(new Event('input', { bubbles: true }));
+}
 
     setAssistReason(json.reason);
   } catch (e) {
