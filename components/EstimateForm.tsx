@@ -60,17 +60,40 @@ const [formalSending, setFormalSending] = useState(false);
     [result]
   );
 
-  async function handleSubmit(formData: FormData) {
-    setLoading(true);
-    setLastFormData(formData);
-    setError(null);
-    setResult(null);
+async function handleSubmit(formData: FormData) {
+  setLoading(true);
+  setLastFormData(formData);
+  setError(null);
+  setResult(null);
 
+  try {
+    const res = await fetch('/api/analyze', {
+      method: 'POST',
+      body: formData,
+    });
+
+    const text = await res.text();
+
+    let json: ApiResponse;
     try {
-  const res = await fetch('/api/analyze', {
-    method: 'POST',
-    body: formData,
-  });
+      json = JSON.parse(text) as ApiResponse;
+    } catch {
+      throw new Error(
+        text || 'サーバーから不正な応答が返されました。画像サイズや形式をご確認ください。'
+      );
+    }
+
+    if (!res.ok) {
+      throw new Error(json.error || '送信に失敗しました。');
+    }
+
+    setResult(json);
+  } catch (e) {
+    setError(e instanceof Error ? e.message : '不明なエラーです。');
+  } finally {
+    setLoading(false);
+  }
+}
 
 async function handleSuggestForm() {
   if (!assistText.trim()) {
@@ -116,32 +139,8 @@ async function handleSuggestForm() {
     setAssistLoading(false);
   }
 }
-  
 
-  const text = await res.text();
-
-  let json: ApiResponse;
-  try {
-    json = JSON.parse(text) as ApiResponse;
-  } catch {
-    throw new Error(
-      text || 'サーバーから不正な応答が返されました。画像サイズや形式をご確認ください。'
-    );
-  }
-
-  if (!res.ok) {
-    throw new Error(json.error || '送信に失敗しました。');
-  }
-
-  setResult(json);
-} catch (e) {
-  setError(e instanceof Error ? e.message : '不明なエラーです。');
-} finally {
-  setLoading(false);
-}
-    }
-
-  async function handleFormalQuoteRequest() {
+async function handleFormalQuoteRequest() {
   if (!lastFormData || !result) {
     setError('送信内容が見つかりません。もう一度概算見積りを実行してください。');
     return;
