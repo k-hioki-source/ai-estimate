@@ -80,9 +80,9 @@ export function calculateEstimate({
   // 制作方法別の基本補正
   // -----------------------------
   if (sourceType === 'photo_trace') {
-    if (score >= 50) hours += 0.5;
-    if (score >= 70) hours += 0.5;
-  }
+  if (score >= 60) hours += 0.5;
+  if (score >= 80) hours += 0.5;
+}
 
   if (sourceType === 'reference_drawing') {
     if (score >= 65) hours += 1;
@@ -152,6 +152,22 @@ export function calculateEstimate({
     }
   }
 
+  // 簡単な取説用写真トレースは1hに抑える
+if (
+  sourceType === 'photo_trace' &&
+  usage === 'manual' &&
+  style === 'line' &&
+  score <= 55 &&
+  partDensity < 60 &&
+  lineDifficulty < 60 &&
+  structureComplexity < 60 &&
+  !isExplodedView &&
+  !hasLeaderLines &&
+  !hasPartNumbers
+) {
+  hours = 1;
+}
+  // 丸め
   hours = Math.max(1, hours);
   hours = Math.round(hours * 2) / 2;
 
