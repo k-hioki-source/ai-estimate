@@ -77,7 +77,6 @@ concept_diagram：
 地形、設備、配管、矢印、流れ、システム全体、レイアウト設計を含むもの。
 
 【重要な判定ルール】
-・トレースとあってもリアルイラストなら realistic_illustration にする。
 ・単体の工具、部品、パーツを写真からなぞるだけなら technical_drawing にしない。
 ・ただし、分解図、断面図、内部構造、部品点数が多い場合は technical_drawing とする。
 ・「分解図」「断面」「内部」「部品点数」「構造理解」が備考にある場合は難易度を上げる。
@@ -85,6 +84,10 @@ concept_diagram：
 ・層構造、材質説明、断面説明、単体製品の説明図は concept_diagram ではなく technical_drawing とする。
 ・concept_diagram は、複数要素や全体構成を説明する場合に限定する。
 ・リアル表現の場合は realistic_illustration を強く検討するが、単純な部品であれば technical_drawing に留める。
+・表現が real の場合は、原則 realistic_illustration とする。
+・写真トレースであっても、リアル表現・質感表現・陰影・ハイライト・金属感・樹脂感が必要な場合は standard_trace にしない。
+・realistic_illustration は、構造理解の有無ではなく、質感・陰影・立体感を表現する作業として判定する。
+・real 表現の場合、単純な形状でも difficultyScore は最低50以上とする。
 
 【難易度スコア】
 0〜100で評価してください。
@@ -97,6 +100,19 @@ concept_diagram：
 ・断面、分解、内部構造の有無
 ・レイアウト設計の有無
 ・リアル表現、質感表現の必要性
+
+【styleによる強制判定】
+
+style が real の場合：
+workType は realistic_illustration を優先する。
+standard_trace は使用しない。
+
+style が color の場合：
+単純な色分けであれば standard_trace または technical_drawing。
+質感やグラデーションが必要な場合は realistic_illustration を検討する。
+
+style が line の場合：
+線画トレース、構造図、分解図として判定する。
 
 JSONのみで出力してください。
 
