@@ -120,27 +120,28 @@ if (style === 'real') styleMultiplier = 1.5;
       styleMultiplier *
       difficultyMultiplier +
     structureBonusHours;
-  // -----------------------------
+// -----------------------------
 // 工業製品リアル補正
+// 既存画像トレースの場合は上げすぎない
 // -----------------------------
 if (style === 'real' && isIndustrialProduct) {
-  hours += 4;
+  hours += sourceType === 'photo_trace' ? 1.5 : 3;
 }
 
 if (
   style === 'real' &&
   isIndustrialProduct &&
-  lineDifficulty >= 60
+  lineDifficulty >= 70
 ) {
-  hours += 2;
+  hours += sourceType === 'photo_trace' ? 0.5 : 1.5;
 }
 
 if (
   style === 'real' &&
   isIndustrialProduct &&
-  difficultyScore >= 70
+  difficultyScore >= 80
 ) {
-  hours += 2;
+  hours += sourceType === 'photo_trace' ? 0.5 : 1.5;
 }
    // -----------------------------
 // パーツ用途補正
@@ -160,26 +161,34 @@ if (hasLeaderLines) {
 if (hasPartNumbers) {
   hours += sourceType === 'photo_trace' ? 0.5 : 1;
 }
-  // -----------------------------
+// -----------------------------
 // リアル表現補正
 // -----------------------------
-if (style === 'real' && lineDifficulty >= 50) {
+if (style === 'real' && lineDifficulty >= 60) {
+  hours += 0.5;
+}
+
+if (style === 'real' && lineDifficulty >= 80) {
   hours += 1;
 }
 
-if (style === 'real' && lineDifficulty >= 70) {
-  hours += 2;
-}
-
-if (style === 'real' && structureComplexity >= 70) {
-  hours += 2;
+if (style === 'real' && structureComplexity >= 75) {
+  hours += 1;
 }
 
   // 最低工数
   hours = Math.max(1, hours);
 
-  // 0.5時間単位に丸め
-  hours = Math.round(hours * 2) / 2;
+  // 各種補正
+if (...) {
+  hours += ...
+}
+
+// 最低工数
+hours = Math.max(1, hours);
+
+// 0.5時間単位に丸め
+hours = Math.round(hours * 2) / 2;
 
   if (sourceType === 'photo_trace' && partDensity >= 75) {
   hours += 0.5;
