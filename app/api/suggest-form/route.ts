@@ -47,6 +47,22 @@ manual = 取扱説明書
 parts = パーツカタログ
 sales = 販促・WEB・広告・プレゼン用
 
+【用途判定ルール】
+
+製品説明図 → sales
+構造説明図 → sales
+システム説明図 → sales
+プレゼン資料 → sales
+展示会パネル → sales
+
+取扱説明書 → manual
+作業手順 → manual
+安全手順 → manual
+
+パーツカタログ → parts
+分解図 → parts
+部品表 → parts
+
 line = 白黒線画
 color = カラーイラスト
 real = リアルイラスト
