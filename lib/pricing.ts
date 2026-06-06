@@ -177,21 +177,7 @@ if (style === 'real' && structureComplexity >= 75) {
   hours += 1;
 }
 
-  // 最低工数
-  hours = Math.max(1, hours);
-
-  // 各種補正
-if (...) {
-  hours += ...
-}
-
-// 最低工数
-hours = Math.max(1, hours);
-
-// 0.5時間単位に丸め
-hours = Math.round(hours * 2) / 2;
-
-  if (sourceType === 'photo_trace' && partDensity >= 75) {
+ if (sourceType === 'photo_trace' && partDensity >= 75) {
   hours += 0.5;
 }
 
@@ -210,6 +196,12 @@ if (sourceType === 'photo_trace' && lineDifficulty >= 60) {
 if (sourceType === 'photo_trace' && lineDifficulty >= 80) {
   hours += 0.5;
 }
+
+// 最低工数
+hours = Math.max(1, hours);
+
+// 0.5時間単位に丸め
+hours = Math.round(hours * 2) / 2;
   
   // -----------------------------
   // ⑦ 金額算出
