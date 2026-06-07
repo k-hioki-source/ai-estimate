@@ -139,10 +139,14 @@ if (analysis.workType === 'technical_drawing') {
 
     let minimumHours = 0;
 
+const reasonText = analysis.summary || '';
+
+let minimumHours = 0;
+
 if (
-  reason.includes('オートバイ') ||
-  reason.includes('バイク') ||
-  reason.includes('自転車')
+  reasonText.includes('オートバイ') ||
+  reasonText.includes('バイク') ||
+  reasonText.includes('自転車')
 ) {
   minimumHours = 2.5;
 }
