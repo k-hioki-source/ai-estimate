@@ -104,6 +104,20 @@ if (partMatch) {
     // ★ここ追加
 let workType = analysis.workType;
 
+    const conceptWords = ['概念図', 'システム図', '構成図', '製品説明図', '説明図', 'フロー図'];
+
+const isConceptRequest =
+  conceptWords.some((word) => input.notes.includes(word)) ||
+  (input.usage === 'sales' && input.style === 'real' && analysis.partDensity >= 60);
+
+if (isConceptRequest) {
+  workType = 'concept_diagram';
+  analysis.difficultyScore = Math.max(analysis.difficultyScore, 85);
+  analysis.partDensity = Math.max(analysis.partDensity, 70);
+  analysis.lineDifficulty = Math.max(analysis.lineDifficulty, 70);
+  analysis.structureComplexity = Math.max(analysis.structureComplexity, 80);
+}
+
 if (
   input.notes.includes('概念') ||
   input.notes.includes('フロー') ||
