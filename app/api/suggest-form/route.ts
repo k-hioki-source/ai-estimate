@@ -10,6 +10,21 @@ export async function POST(req: NextRequest) {
   try {
     const { message } = await req.json();
 
+    const normalizedMessage = message;
+
+const forcePonchiHomepage =
+  (
+    normalizedMessage.includes('ポンチ絵') ||
+    normalizedMessage.includes('ラフ') ||
+    normalizedMessage.includes('手描き')
+  ) &&
+  (
+    normalizedMessage.includes('ホームページ') ||
+    normalizedMessage.includes('WEB') ||
+    normalizedMessage.includes('Web') ||
+    normalizedMessage.includes('サイト')
+  );
+
     if (!message || typeof message !== 'string') {
       return NextResponse.json(
         { error: '依頼内容を入力してください。' },
