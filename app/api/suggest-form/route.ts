@@ -121,6 +121,9 @@ line = 白黒線画
 color = カラーイラスト
 real = リアルイラスト、写実表現、質感表現、陰影表現、グラデーション表現
 
+reasonは必ず入力文のどの言葉を根拠にしたかを含めて、1〜2文で具体的に説明してください。
+例：「図面」と「パーツカタログ」という記載があるため、資料から作図・パーツカタログ用途と判断しました。
+
 【最優先ルール】
 
 「パーツカタログ」「部品カタログ」「部品表」「パーツリスト」「部品リスト」「パーツイラスト」が含まれる場合は usage = parts。
@@ -207,7 +210,17 @@ JSONのみで返してください。
           ? '支給資料：ポンチ絵\n用途：ホームページ掲載\n内容：挿絵・イメージイラスト\n表現：カラーイラスト'
           : buildNotesFromMessage(normalizedMessage),
 
-      reason: parsed.reason || '依頼内容からフォーム項目を提案しました。',
+      reason:
+  typeof parsed.reason === 'string' && parsed.reason.trim()
+    ? parsed.reason
+    : buildReason(
+        normalizedMessage,
+        forcePartsCatalog,
+        forceReferenceDrawingFromMaterials,
+        forceReferenceDrawing,
+        forceSales,
+        forceReal
+      ),
     });
   } catch (e) {
     console.error(e);
@@ -304,4 +317,40 @@ function getSuppliedMaterials(message: string) {
   }
 
   return materials.length ? materials.join('・') : '未指定';
+}
+function buildReason(
+  message: string,
+  forcePartsCatalog: boolean,
+  forceReferenceDrawingFromMaterials: boolean,
+  forceReferenceDrawing: boolean,
+  forceSales: boolean,
+  forceReal: boolean
+) {
+  const reasons: string[] = [];
+
+  if (forceReferenceDrawingFromMaterials) {
+    reasons.push('図面・組図などの資料から新規作図と判断');
+  }
+
+  if (forceReferenceDrawing) {
+    reasons.push('説明図・販促用イラストのため資料から作図と判断');
+  }
+
+  if (forcePartsCatalog) {
+    reasons.push('パーツカタログ用途と判断');
+  }
+
+  if (forceSales) {
+    reasons.push('販促・WEB・プレゼン用途と判断');
+  }
+
+  if (forceReal) {
+    reasons.push('リアル表現の指定を検出');
+  }
+
+  if (reasons.length === 0) {
+    reasons.push('依頼内容から最も近い制作条件を選択');
+  }
+
+  return reasons.join('／');
 }
