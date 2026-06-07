@@ -144,20 +144,27 @@ JSONのみで返してください。
     }
 
     return NextResponse.json({
-  sourceType: forceReferenceDrawing
+  sourceType: forcePonchiHomepage
     ? 'reference_drawing'
-    : normalizeSourceType(parsed.sourceType),
+    : forceReferenceDrawing
+      ? 'reference_drawing'
+      : normalizeSourceType(parsed.sourceType),
 
-  usage: forceSales
+  usage: forcePonchiHomepage
     ? 'sales'
-    : normalizeUsage(parsed.usage),
+    : forceSales
+      ? 'sales'
+      : normalizeUsage(parsed.usage),
 
-  style: forceReal
-    ? 'real'
-    : normalizeStyle(parsed.style),
+  style: forcePonchiHomepage
+    ? 'color'
+    : forceReal
+      ? 'real'
+      : normalizeStyle(parsed.style),
 
-  notes:
-    typeof parsed.notes === 'string' && parsed.notes.trim()
+  notes: forcePonchiHomepage
+    ? '支給資料：ポンチ絵\n用途：ホームページ掲載\n内容：挿絵・イメージイラスト\n表現：カラーイラスト'
+    : typeof parsed.notes === 'string' && parsed.notes.trim()
       ? parsed.notes
       : `依頼内容：${message}`,
 
