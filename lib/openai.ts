@@ -90,21 +90,7 @@ concept_diagram：
 
 difficultyScore は20～35とする
 
-【重要な判定ルール】
-・単体の工具、部品、パーツを写真からなぞるだけなら technical_drawing にしない。
-・ただし、分解図、断面図、内部構造、部品点数が多い場合は technical_drawing とする。
-・「分解図」「断面」「内部」「部品点数」「構造理解」が備考にある場合は難易度を上げる。
-・「概念図」「フロー」「全体図」「システム」「構成図」「説明図」が備考にある場合は concept_diagram を強く検討する。
-・層構造、材質説明、断面説明、単体製品の説明図は concept_diagram ではなく technical_drawing とする。
-・concept_diagram は、複数要素や全体構成を説明する場合に限定する。
-・リアル表現の場合は realistic_illustration を強く検討するが、単純な部品であれば technical_drawing に留める。
-・表現が real の場合は、原則 realistic_illustration とする。
-・写真トレースであっても、リアル表現・質感表現・陰影・ハイライト・金属感・樹脂感が必要な場合は standard_trace にしない。
-・realistic_illustration は、構造理解の有無ではなく、質感・陰影・立体感を表現する作業として判定する。
-・real 表現の場合、単純な形状でも difficultyScore は最低50以上とする。
-
 【概念図補正】
-
 以下に該当する場合は difficultyScore を 10〜20 加算する
 
 ・概念図
@@ -118,6 +104,20 @@ difficultyScore は20～35とする
 理由：
 描写難度だけでなく、
 情報整理・レイアウト設計工数が発生するため。
+
+【重要な判定ルール】
+・単体の工具、部品、パーツを写真からなぞるだけなら technical_drawing にしない。
+・ただし、分解図、断面図、内部構造、部品点数が多い場合は technical_drawing とする。
+・「分解図」「断面」「内部」「部品点数」「構造理解」が備考にある場合は難易度を上げる。
+・「概念図」「フロー」「全体図」「システム」「構成図」「説明図」が備考にある場合は concept_diagram を強く検討する。
+・層構造、材質説明、断面説明、単体製品の説明図は concept_diagram ではなく technical_drawing とする。
+・concept_diagram は、複数要素や全体構成を説明する場合に限定する。
+・リアル表現の場合は realistic_illustration を強く検討するが、単純な部品であれば technical_drawing に留める。
+・表現が real の場合は、原則 realistic_illustration とする。
+・写真トレースであっても、リアル表現・質感表現・陰影・ハイライト・金属感・樹脂感が必要な場合は standard_trace にしない。
+・realistic_illustration は、構造理解の有無ではなく、質感・陰影・立体感を表現する作業として判定する。
+・real 表現の場合、単純な形状でも difficultyScore は最低50以上とする。
+
 
 【線画化難易度ルール】
 
