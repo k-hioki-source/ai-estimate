@@ -137,6 +137,16 @@ if (analysis.workType === 'technical_drawing') {
   }
 }
 
+    let minimumHours = 0;
+
+if (
+  reason.includes('オートバイ') ||
+  reason.includes('バイク') ||
+  reason.includes('自転車')
+) {
+  minimumHours = 2.5;
+}
+    
     // -----------------------------
     // 見積計算（固定ロジック）
     // -----------------------------
@@ -155,6 +165,14 @@ hasPartNumbers: analysis.hasPartNumbers,
    isIndustrialProduct: analysis.isIndustrialProduct,
 });
 
+    const estimate = calculateEstimate(...);
+
+if (minimumHours > 0 && estimate.hours < minimumHours) {
+  estimate.hours = minimumHours;
+  estimate.unitPrice = Math.round(minimumHours * 3000 / 100) * 100;
+  estimate.totalPrice = estimate.unitPrice;
+}
+    
     // -----------------------------
     // レスポンス
     // -----------------------------
