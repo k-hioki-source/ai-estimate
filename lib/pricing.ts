@@ -76,6 +76,14 @@ export function calculateEstimate({
     styleMultiplier *
     difficultyMultiplier;
 
+  if (
+  style === 'real' &&
+  usage === 'sales' &&
+  difficultyScore >= 70
+) {
+  hours += 10;
+}
+  
   // -----------------------------
   // 制作方法別の基本補正
   // -----------------------------
