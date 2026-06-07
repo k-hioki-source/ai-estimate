@@ -17,6 +17,32 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const normalizedMessage = message;
+
+// ルールベースの強制判定
+const forceReferenceDrawing =
+  normalizedMessage.includes('画像から作図') ||
+  normalizedMessage.includes('画像を参考に作図') ||
+  normalizedMessage.includes('画像をもとに作図') ||
+  normalizedMessage.includes('写真を参考に作図') ||
+  normalizedMessage.includes('プレゼン用') ||
+  normalizedMessage.includes('イメージイラスト') ||
+  normalizedMessage.includes('製品説明図') ||
+  normalizedMessage.includes('販促用');
+
+const forceSales =
+  normalizedMessage.includes('プレゼン用') ||
+  normalizedMessage.includes('イメージイラスト') ||
+  normalizedMessage.includes('製品説明図') ||
+  normalizedMessage.includes('販促用');
+
+const forceReal =
+  normalizedMessage.includes('リアル') ||
+  normalizedMessage.includes('リアルな表現') ||
+  normalizedMessage.includes('質感') ||
+  normalizedMessage.includes('陰影') ||
+  normalizedMessage.includes('グラデーション');
+    
     const prompt = `
 あなたはテクニカルイラスト制作会社の見積りフォーム入力支援AIです。
 ユーザーの依頼文から、最適なフォーム項目を提案してください。
@@ -105,15 +131,26 @@ JSONのみで返してください。
     }
 
     return NextResponse.json({
-      sourceType: normalizeSourceType(parsed.sourceType),
-      usage: normalizeUsage(parsed.usage),
-      style: normalizeStyle(parsed.style),
-      notes:
-        typeof parsed.notes === 'string' && parsed.notes.trim()
-          ? parsed.notes
-          : `依頼内容：${message}`,
-      reason: parsed.reason || '依頼内容からフォーム項目を提案しました。',
-    });
+  sourceType: forceReferenceDrawing
+    ? 'reference_drawing'
+    : normalizeSourceType(parsed.sourceType),
+
+  usage: forceSales
+    ? 'sales'
+    : normalizeUsage(parsed.usage),
+
+  style: forceReal
+    ? 'real'
+    : normalizeStyle(parsed.style),
+
+  notes:
+    typeof parsed.notes === 'string' && parsed.notes.trim()
+      ? parsed.notes
+      : `依頼内容：${message}`,
+
+  reason: parsed.reason || '依頼内容からフォーム項目を提案しました。',
+});
+    
   } catch (e) {
     console.error(e);
     return NextResponse.json(
