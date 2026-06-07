@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
-
 const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY!,
 });
@@ -20,64 +19,67 @@ export async function POST(req: NextRequest) {
     const normalizedMessage = message;
 
     const forcePartsCatalog =
-  normalizedMessage.includes('パーツカタログ') ||
-  normalizedMessage.includes('部品カタログ') ||
-  normalizedMessage.includes('パーツリスト') ||
-  normalizedMessage.includes('部品リスト') ||
-  normalizedMessage.includes('部品表');
+      normalizedMessage.includes('パーツカタログ') ||
+      normalizedMessage.includes('部品カタログ') ||
+      normalizedMessage.includes('パーツリスト') ||
+      normalizedMessage.includes('部品リスト') ||
+      normalizedMessage.includes('部品表');
 
-const forceReferenceDrawingFromMaterials =
-  normalizedMessage.includes('図面') ||
-  normalizedMessage.includes('組図') ||
-  normalizedMessage.includes('設計図') ||
-  normalizedMessage.includes('2D図面') ||
-  normalizedMessage.includes('TIFF');
+    const forceReferenceDrawingFromMaterials =
+      normalizedMessage.includes('図面') ||
+      normalizedMessage.includes('組図') ||
+      normalizedMessage.includes('設計図') ||
+      normalizedMessage.includes('2D図面') ||
+      normalizedMessage.includes('TIFF');
 
-const forceLineForParts =
-  forcePartsCatalog &&
-  !normalizedMessage.includes('カラー') &&
-  !normalizedMessage.includes('リアル');
+    const forceLineForParts =
+      forcePartsCatalog &&
+      !normalizedMessage.includes('カラー') &&
+      !normalizedMessage.includes('リアル');
 
-const forcePonchiHomepage =
-  (
-    normalizedMessage.includes('ポンチ絵') ||
-    normalizedMessage.includes('ラフ') ||
-    normalizedMessage.includes('手描き')
-  ) &&
-  (
-    normalizedMessage.includes('ホームページ') ||
-    normalizedMessage.includes('WEB') ||
-    normalizedMessage.includes('Web') ||
-    normalizedMessage.includes('サイト')
-  );
+    const forcePonchiHomepage =
+      (
+        normalizedMessage.includes('ポンチ絵') ||
+        normalizedMessage.includes('ラフ') ||
+        normalizedMessage.includes('手描き')
+      ) &&
+      (
+        normalizedMessage.includes('ホームページ') ||
+        normalizedMessage.includes('WEB') ||
+        normalizedMessage.includes('Web') ||
+        normalizedMessage.includes('サイト')
+      );
 
-// ルールベースの強制判定
-const forceReferenceDrawing =
-  normalizedMessage.includes('画像から作図') ||
-  normalizedMessage.includes('画像を参考に作図') ||
-  normalizedMessage.includes('画像をもとに作図') ||
-  normalizedMessage.includes('写真を参考に作図') ||
-  normalizedMessage.includes('プレゼン用') ||
-  normalizedMessage.includes('イメージイラスト') ||
-  normalizedMessage.includes('製品説明図') ||
-  normalizedMessage.includes('販促用');
+    const forceReferenceDrawing =
+      normalizedMessage.includes('画像から作図') ||
+      normalizedMessage.includes('画像を参考に作図') ||
+      normalizedMessage.includes('画像をもとに作図') ||
+      normalizedMessage.includes('写真を参考に作図') ||
+      normalizedMessage.includes('プレゼン用') ||
+      normalizedMessage.includes('イメージイラスト') ||
+      normalizedMessage.includes('製品説明図') ||
+      normalizedMessage.includes('販促用');
 
-const forceSales =
-  normalizedMessage.includes('プレゼン用') ||
-  normalizedMessage.includes('イメージイラスト') ||
-  normalizedMessage.includes('製品説明図') ||
-  normalizedMessage.includes('販促用');
+    const forceSales =
+      normalizedMessage.includes('プレゼン用') ||
+      normalizedMessage.includes('イメージイラスト') ||
+      normalizedMessage.includes('製品説明図') ||
+      normalizedMessage.includes('販促用') ||
+      normalizedMessage.includes('ホームページ') ||
+      normalizedMessage.includes('WEB') ||
+      normalizedMessage.includes('Web') ||
+      normalizedMessage.includes('サイト');
 
-const forceReal =
-  normalizedMessage.includes('リアル') ||
-  normalizedMessage.includes('リアルな表現') ||
-  normalizedMessage.includes('質感') ||
-  normalizedMessage.includes('陰影') ||
-  normalizedMessage.includes('グラデーション');
+    const forceReal =
+      normalizedMessage.includes('リアル') ||
+      normalizedMessage.includes('リアルな表現') ||
+      normalizedMessage.includes('質感') ||
+      normalizedMessage.includes('陰影') ||
+      normalizedMessage.includes('グラデーション');
 
     const forcePartsCatalogNotes =
-  forcePartsCatalog && forceReferenceDrawingFromMaterials;
-    
+      forcePartsCatalog && forceReferenceDrawingFromMaterials;
+
     const prompt = `
 あなたはテクニカルイラスト制作会社の見積りフォーム入力支援AIです。
 ユーザーの依頼文から、最適なフォーム項目を提案してください。
@@ -166,50 +168,47 @@ JSONのみで返してください。
     }
 
     const organizedNotes =
-  typeof parsed.notes === 'string' && parsed.notes.trim()
-    ? parsed.notes
-    : buildNotesFromMessage(normalizedMessage);
-    
+      typeof parsed.notes === 'string' && parsed.notes.trim()
+        ? parsed.notes
+        : buildNotesFromMessage(normalizedMessage);
+
     return NextResponse.json({
-  sourceType:
-  forceReferenceDrawingFromMaterials || forcePonchiHomepage
-    ? 'reference_drawing'
-    : forceReferenceDrawing
-      ? 'reference_drawing'
-      : normalizeSourceType(parsed.sourceType),
+      sourceType:
+        forceReferenceDrawingFromMaterials || forcePonchiHomepage
+          ? 'reference_drawing'
+          : forceReferenceDrawing
+            ? 'reference_drawing'
+            : normalizeSourceType(parsed.sourceType),
 
-usage:
-  forcePartsCatalog
-    ? 'parts'
-    : forcePonchiHomepage
-      ? 'sales'
-      : forceSales
-        ? 'sales'
-        : normalizeUsage(parsed.usage),
+      usage:
+        forcePartsCatalog
+          ? 'parts'
+          : forcePonchiHomepage
+            ? 'sales'
+            : forceSales
+              ? 'sales'
+              : normalizeUsage(parsed.usage),
 
-style:
-  forceLineForParts
-    ? 'line'
-    : forcePonchiHomepage
-      ? 'color'
-      : forceReal
-        ? 'real'
-        : normalizeStyle(parsed.style),
+      style:
+        forceLineForParts
+          ? 'line'
+          : forcePonchiHomepage
+            ? 'color'
+            : forceReal
+              ? 'real'
+              : normalizeStyle(parsed.style),
 
-  notes: forcePartsCatalogNotes
-  ? `支給資料：${getSuppliedMaterials(normalizedMessage)}
+      notes: forcePartsCatalogNotes
+        ? `支給資料：${getSuppliedMaterials(normalizedMessage)}
 用途：パーツカタログ
-内容：パーツカタログ用イラスト
+内容：パーツイラスト
 表現：白黒線画`
-  : forcePonchiHomepage
-    ? '支給資料：ポンチ絵\n用途：ホームページ掲載\n内容：挿絵・イメージイラスト\n表現：カラーイラスト'
-    : organizedNotes,
-      
-    
+        : forcePonchiHomepage
+          ? '支給資料：ポンチ絵\n用途：ホームページ掲載\n内容：挿絵・イメージイラスト\n表現：カラーイラスト'
+          : organizedNotes,
 
-  reason: parsed.reason || '依頼内容からフォーム項目を提案しました。',
-});
-    
+      reason: parsed.reason || '依頼内容からフォーム項目を提案しました。',
+    });
   } catch (e) {
     console.error(e);
     return NextResponse.json(
@@ -217,7 +216,6 @@ style:
       { status: 500 }
     );
   }
-}
 }
 
 function normalizeSourceType(value: string) {
@@ -259,6 +257,8 @@ function buildNotesFromMessage(message: string) {
   } else if (
     message.includes('ホームページ') ||
     message.includes('WEB') ||
+    message.includes('Web') ||
+    message.includes('サイト') ||
     message.includes('プレゼン') ||
     message.includes('販促')
   ) {
@@ -267,6 +267,7 @@ function buildNotesFromMessage(message: string) {
 
   let content = '未指定';
   if (message.includes('分解図')) content = '分解図';
+  else if (message.includes('パーツカタログ')) content = 'パーツイラスト';
   else if (message.includes('製品説明図')) content = '製品説明図';
   else if (message.includes('構造説明図')) content = '構造説明図';
   else if (message.includes('イメージイラスト')) content = 'イメージイラスト';
@@ -274,14 +275,22 @@ function buildNotesFromMessage(message: string) {
 
   let style = '未指定';
   if (message.includes('リアル')) style = 'リアルイラスト';
-  else if (message.includes('カラー') || message.includes('色')) style = 'カラーイラスト';
-  else if (
+  else if (message.includes('カラー') || message.includes('色')) {
+    style = 'カラーイラスト';
+  } else if (
     message.includes('線画') ||
     message.includes('白黒') ||
-    message.includes('モノクロ')
+    message.includes('モノクロ') ||
+    message.includes('パーツカタログ')
   ) {
     style = '白黒線画';
   }
+
+  return `支給資料：${materials.length ? materials.join('・') : '未指定'}
+用途：${usage}
+内容：${content}
+表現：${style}`;
+}
 
 function getSuppliedMaterials(message: string) {
   const materials: string[] = [];
