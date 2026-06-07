@@ -10,6 +10,13 @@ export async function POST(req: NextRequest) {
   try {
     const { message } = await req.json();
 
+    if (!message || typeof message !== 'string') {
+      return NextResponse.json(
+        { error: '依頼内容を入力してください。' },
+        { status: 400 }
+      );
+    }
+
     const normalizedMessage = message;
 
 const forcePonchiHomepage =
@@ -24,15 +31,6 @@ const forcePonchiHomepage =
     normalizedMessage.includes('Web') ||
     normalizedMessage.includes('サイト')
   );
-
-    if (!message || typeof message !== 'string') {
-      return NextResponse.json(
-        { error: '依頼内容を入力してください。' },
-        { status: 400 }
-      );
-    }
-
-    const normalizedMessage = message;
 
 // ルールベースの強制判定
 const forceReferenceDrawing =
