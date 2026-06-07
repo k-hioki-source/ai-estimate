@@ -119,8 +119,8 @@ export function calculateEstimate({
     if (part >= 75) hours += 0.5;
     if (structure >= 60) hours += 0.5;
     if (structure >= 75) hours += 0.5;
-    if (line >= 60) hours += 0.5;
-    if (line >= 80) hours += 0.5;
+    if (line >= 60) hours += 1;
+    if (line >= 80) hours += 1;
   }
 
   // -----------------------------
