@@ -150,7 +150,7 @@ if (usage) {
  
 
 if (notes) {
-  notes.value = json.notes;
+  notes.value = json.notes || '';
   notes.dispatchEvent(new Event('input', { bubbles: true }));
 }
 
