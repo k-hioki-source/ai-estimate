@@ -165,7 +165,7 @@ hasPartNumbers: analysis.hasPartNumbers,
    isIndustrialProduct: analysis.isIndustrialProduct,
 });
 
-    const estimate = calculateEstimate(...);
+
 
 if (minimumHours > 0 && estimate.hours < minimumHours) {
   estimate.hours = minimumHours;
