@@ -79,9 +79,9 @@ export function calculateEstimate({
   if (
   style === 'real' &&
   usage === 'sales' &&
-  difficultyScore >= 70
+  score >= 80
 ) {
-  hours += 10;
+  hours = Math.max(hours, 30);
 }
   
   // -----------------------------
