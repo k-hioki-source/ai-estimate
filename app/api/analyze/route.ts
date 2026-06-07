@@ -137,7 +137,7 @@ if (analysis.workType === 'technical_drawing') {
   }
 }
 
-    let minimumHours = 0;
+   
 
 const reasonText = analysis.summary || '';
 
