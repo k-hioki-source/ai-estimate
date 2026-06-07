@@ -139,3 +139,5 @@ function normalizeStyle(value: string) {
   if (value === 'real') return 'real';
   return 'line';
 }
+
+export {};
