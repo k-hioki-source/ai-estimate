@@ -143,6 +143,11 @@ JSONのみで返してください。
       parsed = {};
     }
 
+    const organizedNotes =
+  typeof parsed.notes === 'string' && parsed.notes.trim()
+    ? parsed.notes
+    : buildNotesFromMessage(normalizedMessage);
+    
     return NextResponse.json({
   sourceType: forcePonchiHomepage
     ? 'reference_drawing'
@@ -163,7 +168,9 @@ JSONのみで返してください。
       : normalizeStyle(parsed.style),
 
   notes: forcePonchiHomepage
-    ? '支給資料：ポンチ絵\n用途：ホームページ掲載\n内容：挿絵・イメージイラスト\n表現：カラーイラスト'
+  ? '支給資料：ポンチ絵\n用途：ホームページ掲載\n内容：挿絵・イメージイラスト\n表現：カラーイラスト'
+  : organizedNotes,
+      
     : typeof parsed.notes === 'string' && parsed.notes.trim()
       ? parsed.notes
       : `依頼内容：${message}`,
@@ -196,4 +203,55 @@ function normalizeStyle(value: string) {
   if (value === 'color') return 'color';
   if (value === 'real') return 'real';
   return 'line';
+}
+
+function buildNotesFromMessage(message: string) {
+  const materials: string[] = [];
+
+  if (message.includes('写真')) materials.push('写真');
+  if (message.includes('画像')) materials.push('画像');
+  if (message.includes('図面')) materials.push('図面');
+  if (message.includes('組図')) materials.push('組図');
+  if (message.includes('ポンチ絵')) materials.push('ポンチ絵');
+  if (message.includes('ラフ')) materials.push('ラフ');
+  if (message.includes('Excel') || message.includes('エクセル')) {
+    materials.push('Excelリスト');
+  }
+
+  let usage = '未指定';
+  if (message.includes('パーツカタログ') || message.includes('部品カタログ')) {
+    usage = 'パーツカタログ';
+  } else if (message.includes('取扱説明書') || message.includes('取説')) {
+    usage = '取扱説明書';
+  } else if (
+    message.includes('ホームページ') ||
+    message.includes('WEB') ||
+    message.includes('プレゼン') ||
+    message.includes('販促')
+  ) {
+    usage = '販促・WEB掲載';
+  }
+
+  let content = '未指定';
+  if (message.includes('分解図')) content = '分解図';
+  else if (message.includes('製品説明図')) content = '製品説明図';
+  else if (message.includes('構造説明図')) content = '構造説明図';
+  else if (message.includes('イメージイラスト')) content = 'イメージイラスト';
+  else if (message.includes('挿絵')) content = '挿絵';
+
+  let style = '未指定';
+  if (message.includes('リアル')) style = 'リアルイラスト';
+  else if (message.includes('カラー') || message.includes('色')) style = 'カラーイラスト';
+  else if (
+    message.includes('線画') ||
+    message.includes('白黒') ||
+    message.includes('モノクロ')
+  ) {
+    style = '白黒線画';
+  }
+
+  return `支給資料：${materials.length ? materials.join('・') : '未指定'}
+用途：${usage}
+内容：${content}
+表現：${style}`;
 }
