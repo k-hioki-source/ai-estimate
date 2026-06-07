@@ -218,6 +218,7 @@ style:
     );
   }
 }
+}
 
 function normalizeSourceType(value: string) {
   if (value === 'reference_drawing') return 'reference_drawing';
