@@ -171,9 +171,7 @@ JSONのみで返してください。
   ? '支給資料：ポンチ絵\n用途：ホームページ掲載\n内容：挿絵・イメージイラスト\n表現：カラーイラスト'
   : organizedNotes,
       
-    : typeof parsed.notes === 'string' && parsed.notes.trim()
-      ? parsed.notes
-      : `依頼内容：${message}`,
+    
 
   reason: parsed.reason || '依頼内容からフォーム項目を提案しました。',
 });
