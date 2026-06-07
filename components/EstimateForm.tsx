@@ -138,10 +138,7 @@ if (usage) {
   usage.dispatchEvent(new Event('change', { bubbles: true }));
 }
 
-if (style) {
-  style.checked = true;
-  style.dispatchEvent(new Event('change', { bubbles: true }));
-}
+
 
    if (
   json.style === 'line' ||
