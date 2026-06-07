@@ -158,18 +158,18 @@ if (
   usage === 'manual' &&
   style === 'line' &&
   score <= 55 &&
-  partDensity < 60 &&
-  lineDifficulty < 60 &&
-  structureComplexity < 60 &&
+  part <= 40 &&
+  line <= 50 &&
+  structure <= 40 &&
   !isExplodedView &&
   !hasLeaderLines &&
   !hasPartNumbers
 ) {
-  hours = 1;
+  hours = 0.8;
 }
   // 丸め
-  hours = Math.max(1, hours);
-  hours = Math.round(hours * 2) / 2;
+  hours = Math.max(0.8, hours);
+  hours = Math.round(hours * 10) / 10;
 
   let unitPrice = hours * hourlyRate;
   unitPrice = Math.max(3000, unitPrice);
