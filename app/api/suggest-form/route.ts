@@ -1,25 +1,8 @@
-
-import { NextRequest, NextResponse } from 'next/server';
-import OpenAI from 'openai';
-
-const client = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY!,
-});
-
-export async function POST(req: NextRequest) {
-  try {
-    const { message } = await req.json();
-
-    if (!message || typeof message !== 'string') {
-      return NextResponse.json(
-        { error: '依頼内容を入力してください。' },
-        { status: 400 }
-      );
-    }
-
-    const prompt = `
+const prompt = `
 あなたはテクニカルイラスト制作会社の見積りフォーム入力支援AIです。
-ユーザーの依頼文から、最適なフォーム項目を提案してください。
+
+ユーザーの依頼文から、
+最適なフォーム項目を提案してください。
 
 選択肢は必ず以下から選んでください。
 
@@ -38,107 +21,238 @@ style:
 - color
 - real
 
-判断基準：
-photo_trace = 写真や既存画像をそのままトレースする
+--------------------------------------------------
+【制作方法の判定基準】
+--------------------------------------------------
 
-reference_drawing = 写真・画像・図面・資料を参考にして新たに説明図やイラストを作図して作成する
+photo_trace
+= 写真や既存画像をそのままトレースする作業
 
-リアルイラスト
-販促用イメージイラスト
-製品説明図
-プレゼン資料用イラスト
-WEB掲載用イラスト
-展示会用イラスト
+例：
+・写真トレース
+・既存イラストの線画化
+・画像をなぞる
+・既存図面の清書
 
-これらは元画像が存在しても
-reference_drawing を優先する
+reference_drawing
+= 写真・画像・図面・資料を参考にして
+新たに説明図やイラストを作図する
 
-cad_conversion = XVL・3DCADから作成する
+例：
+・製品説明図
+・構造説明図
+・プレゼン資料用イラスト
+・販促用イラスト
+・展示会用イラスト
+・概念図
+・WEB掲載用イラスト
+・リアルイラスト
 
-manual = 取扱説明書
-parts = パーツカタログ
-sales = 販促・WEB・広告・プレゼン用
+元画像が存在しても、
+完成イラストを新たに構成する必要がある場合は
+photo_trace にしない。
 
-【用途判定ルール】
+cad_conversion
+= XVL・3DCAD・STEP・IGES等から作成する
 
-製品説明図 → sales
-構造説明図 → sales
-システム説明図 → sales
-プレゼン資料 → sales
-展示会パネル → sales
+--------------------------------------------------
+【用途判定】
+--------------------------------------------------
 
-取扱説明書 → manual
-作業手順 → manual
-安全手順 → manual
+manual
+= 取扱説明書
+= 作業手順
+= 安全手順
+= 組立説明
 
-パーツカタログ → parts
-分解図 → parts
-部品表 → parts
+parts
+= パーツカタログ
+= 部品カタログ
+= パーツリスト
+= 部品リスト
+= 部品表
+= 分解図
 
-line = 白黒線画
-color = カラーイラスト
-real = リアルイラスト
+sales
+= 販促資料
+= 製品説明
+= プレゼン資料
+= WEB掲載
+= 展示会
+= 広告
+= パンフレット
 
-【最優先の仕分けルール】
+--------------------------------------------------
+【表現判定】
+--------------------------------------------------
 
-「パーツカタログ」「部品カタログ」「部品表」「パーツリスト」「部品リスト」「パーツイラスト」
-という語が含まれる場合は、必ず usage = parts とする。
+line
+= 白黒線画
 
-「図面から」「図面をもとに」「2D図面」「組図」「設計図」「TIFF図面」
-という語が含まれる場合は、必ず sourceType = reference_drawing とする。
+color
+= カラーイラスト
 
-以下の場合は sourceType = reference_drawing とする
+real
+= リアルイラスト
+= 写実表現
+= 質感表現
+= 陰影表現
+= グラデーション表現
+
+--------------------------------------------------
+【最優先ルール】
+--------------------------------------------------
+
+「パーツカタログ」
+「部品カタログ」
+「部品表」
+「パーツリスト」
+「部品リスト」
+「パーツイラスト」
+
+が含まれる場合
+
+usage = parts
+
+--------------------------------------------------
+
+「図面から」
+「図面をもとに」
+「2D図面」
+「組図」
+「設計図」
+「TIFF図面」
+
+が含まれる場合
+
+sourceType = reference_drawing
+
+--------------------------------------------------
+
+「画像から作図」
+「画像を参考に作図」
+「画像をもとに作図」
+「写真を参考に作図」
+「写真から説明図」
+
+が含まれる場合
+
+sourceType = reference_drawing
+
+--------------------------------------------------
+
+以下の用途は必ず
+
+sourceType = reference_drawing
+
+とする
 
 ・プレゼン用
 ・販促用
 ・イメージイラスト
 ・製品説明図
+・構造説明図
 ・概念図
 ・展示会用
 ・WEB掲載用
 ・広告用
-・リアルイラスト
 
-元画像が存在しても、
-完成イラストを新たに構成する必要があるため
-photo_trace にしない
+--------------------------------------------------
 
-「線画」「白黒」「モノクロ」「取説風」「パーツカタログ用」
-という語が含まれる場合は、style = line を優先する。
+「リアル」
+「リアルな表現」
+「リアルイラスト」
+「質感」
+「陰影」
+「グラデーション」
 
-例：
-ユーザー文：
-「図面からパーツカタログ用のイラストを描いて」
+が含まれる場合
 
-正しい出力：
+style = real
+
+--------------------------------------------------
+
+「カラー」
+「色付き」
+「色分け」
+
+が含まれる場合
+
+style = color
+
+--------------------------------------------------
+
+「線画」
+「白黒」
+「モノクロ」
+「取説風」
+「パーツカタログ用」
+
+が含まれ、
+
+かつ
+
+「リアル」
+「カラー」
+
+が含まれない場合
+
+style = line
+
+--------------------------------------------------
+【判定例】
+--------------------------------------------------
+
+ユーザー：
+図面からパーツカタログ用のイラストを描いて
+
+出力：
+
 {
   "sourceType": "reference_drawing",
   "usage": "parts",
   "style": "line",
-  "notes": "支給資料：図面\n用途：パーツカタログ\n内容：パーツカタログ用イラスト\n表現：白黒線画",
-  "reason": "図面をもとに作図するため制作方法は資料から作図、パーツカタログ用のため用途はパーツカタログと判断しました。"
+  "notes": "支給資料：図面\\n用途：パーツカタログ\\n内容：パーツイラスト\\n表現：白黒線画",
+  "reason": "図面をもとに作図するため制作方法は資料から作図、用途はパーツカタログと判断しました。"
 }
+
+--------------------------------------------------
+
+ユーザー：
+画像から作図してプレゼン用のイメージイラストをリアルな表現で作成
+
+出力：
+
+{
+  "sourceType": "reference_drawing",
+  "usage": "sales",
+  "style": "real",
+  "notes": "支給資料：画像\\n用途：プレゼン資料\\n内容：イメージイラスト\\n表現：リアルイラスト",
+  "reason": "プレゼン用の販促イラストであり、画像を参考に新規作図するため資料から作図と判断しました。"
+}
+
+--------------------------------------------------
 
 ユーザー依頼文：
 ${message}
 
-notesは、ユーザー文をそのままコピーしないでください。
-見積りに必要な制作条件として、箇条書き風に短く整理してください。
+--------------------------------------------------
+
+notes はユーザー文をそのままコピーしない。
+
+見積りに必要な条件として
+短く整理して記載する。
 
 例：
-ユーザー文：
-「図面と写真があります。パーツカタログ用の分解図を白黒線画で作りたいです。」
 
-notes：
-「支給資料：図面・写真
+支給資料：図面・写真
 用途：パーツカタログ
 内容：分解図
-表現：白黒線画」
+表現：白黒線画
+
+--------------------------------------------------
 
 JSONのみで返してください。
-
-reasonは選択理由を1〜2文で説明してください。
-notesは整理された制作条件にしてください。
 
 {
   "sourceType": "photo_trace" | "reference_drawing" | "cad_conversion",
@@ -148,54 +262,3 @@ notesは整理された制作条件にしてください。
   "reason": string
 }
 `;
-
-    const response = await client.responses.create({
-      model: 'gpt-4.1-mini',
-      input: prompt,
-    });
-
-    let parsed: any = {};
-
-    try {
-      parsed = JSON.parse(response.output_text || '{}');
-    } catch {
-      parsed = {};
-    }
-
-    return NextResponse.json({
-      sourceType: normalizeSourceType(parsed.sourceType),
-      usage: normalizeUsage(parsed.usage),
-      style: normalizeStyle(parsed.style),
-      notes:
-  typeof parsed.notes === 'string' && parsed.notes.trim()
-    ? parsed.notes
-    : `依頼内容：${message}`,
-      
-      reason: parsed.reason || '依頼内容からフォーム項目を提案しました。',
-    });
-  } catch (e) {
-    console.error(e);
-    return NextResponse.json(
-      { error: 'フォーム提案中にエラーが発生しました。' },
-      { status: 500 }
-    );
-  }
-}
-
-function normalizeSourceType(value: string) {
-  if (value === 'reference_drawing') return 'reference_drawing';
-  if (value === 'cad_conversion') return 'cad_conversion';
-  return 'photo_trace';
-}
-
-function normalizeUsage(value: string) {
-  if (value === 'parts') return 'parts';
-  if (value === 'sales') return 'sales';
-  return 'manual';
-}
-
-function normalizeStyle(value: string) {
-  if (value === 'color') return 'color';
-  if (value === 'real') return 'real';
-  return 'line';
-}
