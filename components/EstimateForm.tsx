@@ -55,7 +55,7 @@ const [formalSending, setFormalSending] = useState(false);
   const [result, setResult] = useState<ApiResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selectedStyle, setSelectedStyle] = useState<'line' | 'color' | 'real'>('line');
-
+const [notes, setNotes] = useState('');
   const difficultyStars = useMemo(
     () => (result ? starText(result.vision.complexityScore) : ''),
     [result]
@@ -502,16 +502,18 @@ async function handleFormalQuoteRequest() {
           <div>
             <label htmlFor="notes">イラストの内容・制作条件</label>
             <textarea
-              id="notes"
-              name="notes"
-              placeholder="例：
+  id="notes"
+  name="notes"
+  value={notes}
+  onChange={(e) => setNotes(e.target.value)}
+  placeholder="例：
 ・分解図
 ・部品点数20点
 ・支給：写真、2D図面、組図
 ・AI納品希望
 ・WEB掲載用
 ・リアルタッチ希望"
-            />
+/>
           </div>
 
           <label className="checkRow">
