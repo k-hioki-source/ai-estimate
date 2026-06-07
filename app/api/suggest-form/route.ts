@@ -19,6 +19,25 @@ export async function POST(req: NextRequest) {
 
     const normalizedMessage = message;
 
+    const forcePartsCatalog =
+  normalizedMessage.includes('パーツカタログ') ||
+  normalizedMessage.includes('部品カタログ') ||
+  normalizedMessage.includes('パーツリスト') ||
+  normalizedMessage.includes('部品リスト') ||
+  normalizedMessage.includes('部品表');
+
+const forceReferenceDrawingFromMaterials =
+  normalizedMessage.includes('図面') ||
+  normalizedMessage.includes('組図') ||
+  normalizedMessage.includes('設計図') ||
+  normalizedMessage.includes('2D図面') ||
+  normalizedMessage.includes('TIFF');
+
+const forceLineForParts =
+  forcePartsCatalog &&
+  !normalizedMessage.includes('カラー') &&
+  !normalizedMessage.includes('リアル');
+
 const forcePonchiHomepage =
   (
     normalizedMessage.includes('ポンチ絵') ||
@@ -55,6 +74,9 @@ const forceReal =
   normalizedMessage.includes('質感') ||
   normalizedMessage.includes('陰影') ||
   normalizedMessage.includes('グラデーション');
+
+    const forcePartsCatalogNotes =
+  forcePartsCatalog && forceReferenceDrawingFromMaterials;
     
     const prompt = `
 あなたはテクニカルイラスト制作会社の見積りフォーム入力支援AIです。
@@ -149,27 +171,39 @@ JSONのみで返してください。
     : buildNotesFromMessage(normalizedMessage);
     
     return NextResponse.json({
-  sourceType: forcePonchiHomepage
+  sourceType:
+  forceReferenceDrawingFromMaterials || forcePonchiHomepage
     ? 'reference_drawing'
     : forceReferenceDrawing
       ? 'reference_drawing'
       : normalizeSourceType(parsed.sourceType),
 
-  usage: forcePonchiHomepage
-    ? 'sales'
-    : forceSales
+usage:
+  forcePartsCatalog
+    ? 'parts'
+    : forcePonchiHomepage
       ? 'sales'
-      : normalizeUsage(parsed.usage),
+      : forceSales
+        ? 'sales'
+        : normalizeUsage(parsed.usage),
 
-  style: forcePonchiHomepage
-    ? 'color'
-    : forceReal
-      ? 'real'
-      : normalizeStyle(parsed.style),
+style:
+  forceLineForParts
+    ? 'line'
+    : forcePonchiHomepage
+      ? 'color'
+      : forceReal
+        ? 'real'
+        : normalizeStyle(parsed.style),
 
-  notes: forcePonchiHomepage
-  ? '支給資料：ポンチ絵\n用途：ホームページ掲載\n内容：挿絵・イメージイラスト\n表現：カラーイラスト'
-  : organizedNotes,
+  notes: forcePartsCatalogNotes
+  ? `支給資料：${getSuppliedMaterials(normalizedMessage)}
+用途：パーツカタログ
+内容：パーツカタログ用イラスト
+表現：白黒線画`
+  : forcePonchiHomepage
+    ? '支給資料：ポンチ絵\n用途：ホームページ掲載\n内容：挿絵・イメージイラスト\n表現：カラーイラスト'
+    : organizedNotes,
       
     
 
@@ -248,8 +282,16 @@ function buildNotesFromMessage(message: string) {
     style = '白黒線画';
   }
 
-  return `支給資料：${materials.length ? materials.join('・') : '未指定'}
-用途：${usage}
-内容：${content}
-表現：${style}`;
+function getSuppliedMaterials(message: string) {
+  const materials: string[] = [];
+
+  if (message.includes('写真')) materials.push('写真');
+  if (message.includes('画像')) materials.push('画像');
+  if (message.includes('図面')) materials.push('図面');
+  if (message.includes('組図')) materials.push('組図');
+  if (message.includes('Excel') || message.includes('エクセル')) {
+    materials.push('Excelリスト');
+  }
+
+  return materials.length ? materials.join('・') : '未指定';
 }
