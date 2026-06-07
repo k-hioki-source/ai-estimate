@@ -131,6 +131,14 @@ export function calculateEstimate({
     if (line >= 80) hours += 1;
   }
 
+  if (
+  reason.includes('オートバイ') ||
+  reason.includes('バイク') ||
+  reason.includes('自転車')
+) {
+  estimatedHours = Math.max(estimatedHours, 2.5);
+}
+
   // -----------------------------
   // リアル表現補正
   // -----------------------------
