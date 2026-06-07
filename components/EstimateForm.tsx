@@ -54,6 +54,7 @@ const [formalSending, setFormalSending] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
   const [result, setResult] = useState<ApiResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [selectedStyle, setSelectedStyle] = useState<'line' | 'color' | 'real'>('line');
 
   const difficultyStars = useMemo(
     () => (result ? starText(result.vision.complexityScore) : ''),
@@ -141,6 +142,15 @@ if (style) {
   style.checked = true;
   style.dispatchEvent(new Event('change', { bubbles: true }));
 }
+
+   if (
+  json.style === 'line' ||
+  json.style === 'color' ||
+  json.style === 'real'
+) {
+  setSelectedStyle(json.style);
+}
+ 
 
 if (notes) {
   notes.value = json.notes;
@@ -371,11 +381,12 @@ async function handleFormalQuoteRequest() {
     {/* 白黒線画 */}
     <label className="styleCard">
       <input
-        type="radio"
-        name="style"
-        value="line"
-        defaultChecked
-      />
+  type="radio"
+  name="style"
+  value="line"
+  checked={selectedStyle === 'line'}
+  onChange={() => setSelectedStyle('line')}
+/>
 
       <img
         src="/samples/line.jpg"
@@ -394,10 +405,12 @@ async function handleFormalQuoteRequest() {
     {/* カラー */}
     <label className="styleCard">
       <input
-        type="radio"
-        name="style"
-        value="color"
-      />
+  type="radio"
+  name="style"
+  value="color"
+  checked={selectedStyle === 'color'}
+  onChange={() => setSelectedStyle('color')}
+/>
 
       <img
         src="/samples/color.jpg"
@@ -416,10 +429,12 @@ async function handleFormalQuoteRequest() {
     {/* リアル */}
     <label className="styleCard">
       <input
-        type="radio"
-        name="style"
-        value="real"
-      />
+  type="radio"
+  name="style"
+  value="real"
+  checked={selectedStyle === 'real'}
+  onChange={() => setSelectedStyle('real')}
+/>
 
       <img
         src="/samples/real.jpg"
