@@ -56,6 +56,8 @@ const [formalSending, setFormalSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedStyle, setSelectedStyle] = useState<'line' | 'color' | 'real'>('line');
 const [notes, setNotes] = useState('');
+  const [selectedSourceType, setSelectedSourceType] = useState('photo_trace');
+const [selectedUsage, setSelectedUsage] = useState('manual');
   const difficultyStars = useMemo(
     () => (result ? starText(result.vision.complexityScore) : ''),
     [result]
@@ -121,21 +123,32 @@ async function handleSuggestForm() {
       throw new Error(json.error || 'フォーム提案に失敗しました。');
     }
 
-    const sourceType = document.getElementById('sourceType') as HTMLSelectElement | null;
-    const usage = document.getElementById('usage') as HTMLSelectElement | null;
-    const style = document.querySelector(
-      `input[name="style"][value="${json.style}"]`
-    ) as HTMLInputElement | null;
-    const notes = document.getElementById('notes') as HTMLTextAreaElement | null;
-
-    if (sourceType) {
-  sourceType.value = json.sourceType;
-  sourceType.dispatchEvent(new Event('change', { bubbles: true }));
+  if (
+  json.sourceType === 'photo_trace' ||
+  json.sourceType === 'reference_drawing' ||
+  json.sourceType === 'cad_conversion'
+) {
+  setSelectedSourceType(json.sourceType);
 }
 
-if (usage) {
-  usage.value = json.usage;
-  usage.dispatchEvent(new Event('change', { bubbles: true }));
+if (
+  json.usage === 'manual' ||
+  json.usage === 'parts' ||
+  json.usage === 'sales'
+) {
+  setSelectedUsage(json.usage);
+}
+
+if (
+  json.style === 'line' ||
+  json.style === 'color' ||
+  json.style === 'real'
+) {
+  setSelectedStyle(json.style);
+}
+
+if (json.notes) {
+  setNotes(json.notes);
 }
 
 
@@ -354,7 +367,12 @@ async function handleFormalQuoteRequest() {
 
             <div>
   <label htmlFor="sourceType">制作方法／資料</label>
-  <select id="sourceType" name="sourceType" defaultValue="photo_trace">
+ <select
+  id="sourceType"
+  name="sourceType"
+  value={selectedSourceType}
+  onChange={(e) => setSelectedSourceType(e.target.value)}
+>
     <option value="photo_trace">写真・画像トレース</option>
     <option value="reference_drawing">写真・図面・資料から作図</option>
     <option value="cad_conversion">XVL・3DCADから作成</option>
@@ -363,7 +381,12 @@ async function handleFormalQuoteRequest() {
             
             <div>
               <label htmlFor="usage">用途（必須）</label>
-              <select id="usage" name="usage" defaultValue="manual">
+              <select
+  id="usage"
+  name="usage"
+  value={selectedUsage}
+  onChange={(e) => setSelectedUsage(e.target.value)}
+>
                 <option value="manual">取扱説明書</option>
                 <option value="parts">パーツカタログ</option>
                 <option value="sales">販促用（リアルイラスト）</option>
