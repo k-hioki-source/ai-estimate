@@ -63,6 +63,59 @@ const [selectedUsage, setSelectedUsage] = useState('manual');
     [result]
   );
 
+async function compressImage(file: File): Promise<File> {
+  return new Promise((resolve) => {
+    const img = new Image();
+
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+
+      let width = img.width;
+      let height = img.height;
+
+      const maxSize = 1600;
+
+      if (width > height) {
+        if (width > maxSize) {
+          height = (height * maxSize) / width;
+          width = maxSize;
+        }
+      } else {
+        if (height > maxSize) {
+          width = (width * maxSize) / height;
+          height = maxSize;
+        }
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+
+      const ctx = canvas.getContext('2d');
+      ctx?.drawImage(img, 0, 0, width, height);
+
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) return resolve(file);
+
+          resolve(
+            new File(
+              [blob],
+              file.name,
+              {
+                type: 'image/jpeg',
+              }
+            )
+          );
+        },
+        'image/jpeg',
+        0.8
+      );
+    };
+
+    img.src = URL.createObjectURL(file);
+  });
+}
+  
 async function handleSubmit(formData: FormData) {
   setLoading(true);
   setLastFormData(formData);
