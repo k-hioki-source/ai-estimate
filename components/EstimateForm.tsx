@@ -118,11 +118,20 @@ async function compressImage(file: File): Promise<File> {
   
 async function handleSubmit(formData: FormData) {
   setLoading(true);
-  setLastFormData(formData);
   setError(null);
   setResult(null);
 
   try {
+    const image = formData.get('image');
+
+    if (image instanceof File && image.size > 0) {
+      const compressed = await compressImage(image);
+
+      formData.set('image', compressed, compressed.name);
+    }
+
+    setLastFormData(formData);
+
     const res = await fetch('/api/analyze', {
       method: 'POST',
       body: formData,
