@@ -170,10 +170,22 @@ JSONのみで返してください。
       parsed = {};
     }
 
-    const organizedNotes =
-      typeof parsed.notes === 'string' && parsed.notes.trim()
-        ? parsed.notes
+    const baseNotes = forcePartsCatalogNotes
+      ? `支給資料：${getSuppliedMaterials(normalizedMessage)}
+用途：パーツカタログ
+内容：パーツイラスト
+表現：白黒線画`
+      : forcePonchiHomepage
+        ? `支給資料：ポンチ絵
+用途：ホームページ掲載
+内容：挿絵・イメージイラスト
+表現：カラーイラスト`
         : buildNotesFromMessage(normalizedMessage);
+
+    const finalNotes = `${baseNotes}
+
+【お客様ご入力内容】
+${normalizedMessage}`;
 
     return NextResponse.json({
       sourceType:
@@ -201,26 +213,19 @@ JSONのみで返してください。
               ? 'real'
               : normalizeStyle(parsed.style),
 
-      notes: forcePartsCatalogNotes
-        ? `支給資料：${getSuppliedMaterials(normalizedMessage)}
-用途：パーツカタログ
-内容：パーツイラスト
-表現：白黒線画`
-        : forcePonchiHomepage
-          ? '支給資料：ポンチ絵\n用途：ホームページ掲載\n内容：挿絵・イメージイラスト\n表現：カラーイラスト'
-          : buildNotesFromMessage(normalizedMessage),
+      notes: finalNotes,
 
       reason:
-  typeof parsed.reason === 'string' && parsed.reason.trim()
-    ? parsed.reason
-    : buildReason(
-        normalizedMessage,
-        forcePartsCatalog,
-        forceReferenceDrawingFromMaterials,
-        forceReferenceDrawing,
-        forceSales,
-        forceReal
-      ),
+        typeof parsed.reason === 'string' && parsed.reason.trim()
+          ? parsed.reason
+          : buildReason(
+              normalizedMessage,
+              forcePartsCatalog,
+              forceReferenceDrawingFromMaterials,
+              forceReferenceDrawing,
+              forceSales,
+              forceReal
+            ),
     });
   } catch (e) {
     console.error(e);
@@ -318,6 +323,7 @@ function getSuppliedMaterials(message: string) {
 
   return materials.length ? materials.join('・') : '未指定';
 }
+
 function buildReason(
   message: string,
   forcePartsCatalog: boolean,
