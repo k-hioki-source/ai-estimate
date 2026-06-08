@@ -564,14 +564,6 @@ async function handleFormalQuoteRequest() {
         return;
       }
 
-      // ★追加：4MB制限（ここが重要）
-      if (file.size > 4 * 1024 * 1024) {
-        alert('画像サイズが大きすぎます（4MB以下にしてください）');
-        e.target.value = '';
-        setPreview(null);
-        return;
-      }
-
       setPreview(URL.createObjectURL(file));
     }}
   />
