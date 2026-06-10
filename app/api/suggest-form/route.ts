@@ -77,6 +77,23 @@ export async function POST(req: NextRequest) {
       normalizedMessage.includes('陰影') ||
       normalizedMessage.includes('グラデーション');
 
+    const forceIsometricIllustration =
+  normalizedMessage.includes('アイソメ') ||
+  normalizedMessage.includes('アイソメトリック') ||
+  normalizedMessage.includes('isometric');
+
+const forceColor =
+  normalizedMessage.includes('カラー') ||
+  normalizedMessage.includes('色付き') ||
+  normalizedMessage.includes('色分け');
+
+const forceBusinessIllustration =
+  normalizedMessage.includes('ビジネスマン') ||
+  normalizedMessage.includes('人物') ||
+  normalizedMessage.includes('立ち姿') ||
+  normalizedMessage.includes('挿絵') ||
+  normalizedMessage.includes('イラスト作成');
+
     const forcePartsCatalogNotes =
       forcePartsCatalog && forceReferenceDrawingFromMaterials;
 
@@ -170,17 +187,22 @@ JSONのみで返してください。
       parsed = {};
     }
 
-    const baseNotes = forcePartsCatalogNotes
-      ? `支給資料：${getSuppliedMaterials(normalizedMessage)}
+const baseNotes = forcePartsCatalogNotes
+  ? `支給資料：${getSuppliedMaterials(normalizedMessage)}
 用途：パーツカタログ
 内容：パーツイラスト
 表現：白黒線画`
-      : forcePonchiHomepage
-        ? `支給資料：ポンチ絵
+  : forcePonchiHomepage
+    ? `支給資料：ポンチ絵
 用途：ホームページ掲載
 内容：挿絵・イメージイラスト
 表現：カラーイラスト`
-        : buildNotesFromMessage(normalizedMessage);
+    : forceIsometricIllustration || forceBusinessIllustration
+      ? `支給資料：未指定
+用途：販促・WEB掲載
+内容：アイソメトリック・人物イラスト
+表現：カラーイラスト`
+      : buildNotesFromMessage(normalizedMessage);
 
     const finalNotes = `${baseNotes}
 
@@ -189,29 +211,29 @@ ${normalizedMessage}`;
 
     return NextResponse.json({
       sourceType:
-        forceReferenceDrawingFromMaterials || forcePonchiHomepage
-          ? 'reference_drawing'
-          : forceReferenceDrawing
-            ? 'reference_drawing'
-            : normalizeSourceType(parsed.sourceType),
+  forceIsometricIllustration || forceBusinessIllustration || forceReferenceDrawingFromMaterials || forcePonchiHomepage
+    ? 'reference_drawing'
+    : forceReferenceDrawing
+      ? 'reference_drawing'
+      : normalizeSourceType(parsed.sourceType),
 
       usage:
-        forcePartsCatalog
-          ? 'parts'
-          : forcePonchiHomepage
-            ? 'sales'
-            : forceSales
-              ? 'sales'
-              : normalizeUsage(parsed.usage),
+  forcePartsCatalog
+    ? 'parts'
+    : forceIsometricIllustration || forceBusinessIllustration || forcePonchiHomepage
+      ? 'sales'
+      : forceSales
+        ? 'sales'
+        : normalizeUsage(parsed.usage),
 
       style:
-        forceLineForParts
-          ? 'line'
-          : forcePonchiHomepage
-            ? 'color'
-            : forceReal
-              ? 'real'
-              : normalizeStyle(parsed.style),
+  forceLineForParts
+    ? 'line'
+    : forceColor || forceIsometricIllustration || forcePonchiHomepage
+      ? 'color'
+      : forceReal
+        ? 'real'
+        : normalizeStyle(parsed.style),
 
       notes: finalNotes,
 
