@@ -2,6 +2,8 @@ import { sendNotificationEmail } from '../../../lib/email';
 import { NextRequest, NextResponse } from 'next/server';
 import { analyzeImage } from '../../../lib/openai';
 import { calculateEstimate } from '../../../lib/pricing';
+import fs from 'fs/promises';
+import path from 'path';
 
 function getString(v: FormDataEntryValue | null): string {
   return typeof v === 'string' ? v : '';
@@ -32,15 +34,40 @@ export async function POST(req: NextRequest) {
     const form = await req.formData();
 
     const file = form.get('image') as File | null;
-if (!file) {
-  return NextResponse.json({ error: '画像がありません' }, { status: 400 });
+const sampleImagePath = getString(form.get('sampleImagePath'));
+
+let mimeType = 'image/jpeg';
+let base64 = '';
+let attachmentFileName = 'sample.jpg';
+
+if (file && file.size > 0) {
+  mimeType = file.type || 'image/jpeg';
+  const bytes = Buffer.from(await file.arrayBuffer());
+  base64 = bytes.toString('base64');
+  attachmentFileName = file.name || 'image.jpg';
+} else if (sampleImagePath) {
+  const safeSamplePath = sampleImagePath.replace(/^\/+/, '');
+
+  const fullPath = path.join(process.cwd(), 'public', safeSamplePath);
+
+  const bytes = await fs.readFile(fullPath);
+  base64 = bytes.toString('base64');
+
+  if (sampleImagePath.endsWith('.png')) {
+    mimeType = 'image/png';
+  } else if (sampleImagePath.endsWith('.webp')) {
+    mimeType = 'image/webp';
+  } else {
+    mimeType = 'image/jpeg';
+  }
+
+  attachmentFileName = path.basename(sampleImagePath);
+} else {
+  return NextResponse.json(
+    { error: '参考画像またはサンプル画像を選択してください' },
+    { status: 400 }
+  );
 }
-
-// ★ここ追加（mime取得）
-const mimeType = file.type || 'image/jpeg';
-
-const bytes = Buffer.from(await file.arrayBuffer());
-const base64 = bytes.toString('base64');
 
     // -----------------------------
     // 入力
@@ -193,7 +220,7 @@ if (minimumHours > 0 && estimate.hours < minimumHours) {
   requestFormalQuote: input.requestFormalQuote,
   imageAttachment: input.requestFormalQuote
     ? {
-        filename: file.name || 'image.jpg',
+        filename: attachmentFileName,
         content: base64,
       }
     : undefined,
