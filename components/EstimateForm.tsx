@@ -588,7 +588,7 @@ async function handleFormalQuoteRequest() {
                 <option value="rush">特急</option>
               </select>
             </div>
-              
+  <div className="gridSpan2">           
   <label htmlFor="image">参考画像</label>
   <input
     id="image"
@@ -615,8 +615,6 @@ async function handleFormalQuoteRequest() {
               
 </div>
           </div>
-
-         <div className="gridSpan2">
 
               <div className="gridSpan2">
   <label>参考画像がない方へ</label>
