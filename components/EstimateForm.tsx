@@ -588,7 +588,35 @@ async function handleFormalQuoteRequest() {
                 <option value="rush">特急</option>
               </select>
             </div>
-            <div className="gridSpan2">
+              
+  <label htmlFor="image">参考画像</label>
+  <input
+    id="image"
+    name="image"
+    type="file"
+    accept="image/jpeg,image/png,image/webp"
+    
+    onChange={(e) => {
+      const file = e.target.files?.[0];
+
+      if (!file) {
+        setPreview(null);
+        return;
+      }
+
+      setPreview(URL.createObjectURL(file));
+    }}
+  />
+<p className="uploadNotice">
+    <em>※アップロードいただいた画像・図面データは、お見積り算出の目的にのみ使用いたします。<br />
+    AIの学習データとして利用されることはありません。<br />
+    また、データは一定時間後に自動削除されますので、安心してご利用ください。</em>
+  </p>
+              
+</div>
+          </div>
+
+         <div className="gridSpan2">
 
               <div className="gridSpan2">
   <label>参考画像がない方へ</label>
@@ -622,33 +650,6 @@ async function handleFormalQuoteRequest() {
     <input type="hidden" name="sampleImagePath" value={selectedSample} />
   ) : null}
 </div>
-              
-  <label htmlFor="image">参考画像</label>
-  <input
-    id="image"
-    name="image"
-    type="file"
-    accept="image/jpeg,image/png,image/webp"
-    
-    onChange={(e) => {
-      const file = e.target.files?.[0];
-
-      if (!file) {
-        setPreview(null);
-        return;
-      }
-
-      setPreview(URL.createObjectURL(file));
-    }}
-  />
-<p className="uploadNotice">
-    <em>※アップロードいただいた画像・図面データは、お見積り算出の目的にのみ使用いたします。<br />
-    AIの学習データとして利用されることはありません。<br />
-    また、データは一定時間後に自動削除されますので、安心してご利用ください。</em>
-  </p>
-              
-</div>
-          </div>
 
           <div>
             <label htmlFor="notes">イラストの内容・制作条件</label>
