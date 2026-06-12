@@ -649,7 +649,7 @@ async function handleFormalQuoteRequest() {
     <input type="hidden" name="sampleImagePath" value={selectedSample} />
   ) : null}
 </div>
-
+</div>
           <div>
             <label htmlFor="notes">イラストの内容・制作条件</label>
             <textarea
