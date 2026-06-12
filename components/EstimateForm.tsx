@@ -368,13 +368,12 @@ async function handleFormalQuoteRequest() {
 
   <div>
     <h2 className="updateTitle">
-      参考画像がない場合も、サンプル選択で概算見積りが可能になりました
-    </h2>
-
-    <p className="updateText">
-      画像や図面をお持ちでない方でも、9種類のサンプルイラストから近いイメージを選ぶだけで、
-      AIが参考画像として解析し、概算金額を確認できます。
-    </p>
+  画像アップロードなしでも見積り可能になりました
+</h2>
+<p className="updateText">
+  参考画像がない方は、9種類のサンプルから近いイメージを選択できます。
+  選択したサンプルをもとにAIが概算金額を算出します。
+</p>
   </div>
 </section>
     
