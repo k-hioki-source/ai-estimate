@@ -363,6 +363,21 @@ async function handleFormalQuoteRequest() {
         </div>
       </section>
 
+    <section className="updateBox">
+  <div className="updateBadge">更新情報</div>
+
+  <div>
+    <h2 className="updateTitle">
+      参考画像がない場合も、サンプル選択で概算見積りが可能になりました
+    </h2>
+
+    <p className="updateText">
+      画像や図面をお持ちでない方でも、9種類のサンプルイラストから近いイメージを選ぶだけで、
+      AIが参考画像として解析し、概算金額を確認できます。
+    </p>
+  </div>
+</section>
+    
       <section className="card stackLarge">
         <div className="sectionHeading">
           <div>
