@@ -575,3 +575,45 @@ button:disabled { opacity: 0.65; cursor: not-allowed; }
     grid-template-columns: repeat(2, 1fr);
   }
 }
+.updateBox {
+  display: flex;
+  gap: 18px;
+  align-items: flex-start;
+  padding: 22px 24px;
+  border: 1px solid #bfdbfe;
+  background: #eff6ff;
+  border-radius: 18px;
+}
+
+.updateBadge {
+  flex: 0 0 auto;
+  background: #2563eb;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 6px 12px;
+  border-radius: 999px;
+}
+
+.updateTitle {
+  margin: 0 0 8px;
+  font-size: 20px;
+  color: #0f172a;
+}
+
+.updateText {
+  margin: 0;
+  color: #475569;
+  line-height: 1.7;
+}
+
+@media (max-width: 700px) {
+  .updateBox {
+    display: block;
+  }
+
+  .updateBadge {
+    display: inline-block;
+    margin-bottom: 10px;
+  }
+}
