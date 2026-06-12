@@ -590,7 +590,7 @@ async function handleFormalQuoteRequest() {
             </div>
             
   <div className="gridSpan2">           
-  <label htmlFor="image">参考画像</label>
+  <label htmlFor="image">参考画像（画像、図面、写真、原稿、ポンチ絵など）</label>
   <input
     id="image"
     name="image"
