@@ -42,6 +42,7 @@ function difficultyLabel(score: number) {
 }
 
 export default function EstimateForm() {
+  const [selectedSample, setSelectedSample] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [companyName, setCompanyName] = useState('');
 const [customerName, setCustomerName] = useState('');
@@ -117,6 +118,19 @@ async function compressImage(file: File): Promise<File> {
 }
   
 async function handleSubmit(formData: FormData) {
+
+  const image = formData.get('image');
+const sampleImagePath = formData.get('sampleImagePath');
+
+if (
+  (!(image instanceof File) || image.size === 0) &&
+  !sampleImagePath
+) {
+  setError('参考画像をアップロードするか、サンプル画像を選択してください。');
+  setLoading(false);
+  return;
+}
+  
   setLoading(true);
   setError(null);
   setResult(null);
@@ -290,6 +304,18 @@ async function handleFormalQuoteRequest() {
     setFormalSending(false);
   }
 }
+
+  const sampleImages = [
+  { label: '白黒線画（取扱説明書）', path: '/samples/estimate/manual-line.jpg' },
+  { label: 'パーツカタログ', path: '/samples/estimate/parts-catalog.jpg' },
+  { label: '分解図', path: '/samples/estimate/exploded-view.jpg' },
+  { label: '製品説明図', path: '/samples/estimate/product-explain.jpg' },
+  { label: '安全教育イラスト', path: '/samples/estimate/safety.jpg' },
+  { label: 'アイソメトリック', path: '/samples/estimate/isometric.jpg' },
+  { label: 'リアル製品イラスト', path: '/samples/estimate/real-product.jpg' },
+  { label: '人物イラスト', path: '/samples/estimate/person.jpg' },
+  { label: '3DCG風イラスト', path: '/samples/estimate/3dcg.jpg' },
+];
   
   return (
   <div className="stackLarge">
@@ -549,13 +575,47 @@ async function handleFormalQuoteRequest() {
               </select>
             </div>
             <div className="gridSpan2">
+
+              <div className="gridSpan2">
+  <label>参考画像がない方へ</label>
+  <p className="muted compactText">
+    参考画像をお持ちでない場合は、希望に近いサンプルをお選びください。
+    選択したサンプル画像を参考画像としてAIが解析します。
+  </p>
+
+  <div className="sampleGrid">
+    {sampleImages.map((sample) => (
+      <button
+        key={sample.path}
+        type="button"
+        className={
+          selectedSample === sample.path
+            ? 'sampleCard selected'
+            : 'sampleCard'
+        }
+        onClick={() => {
+          setSelectedSample(sample.path);
+          setPreview(sample.path);
+        }}
+      >
+        <img src={sample.path} alt={sample.label} />
+        <span>{sample.label}</span>
+      </button>
+    ))}
+  </div>
+
+  {selectedSample ? (
+    <input type="hidden" name="sampleImagePath" value={selectedSample} />
+  ) : null}
+</div>
+              
   <label htmlFor="image">参考画像</label>
   <input
     id="image"
     name="image"
     type="file"
     accept="image/jpeg,image/png,image/webp"
-    required
+    
     onChange={(e) => {
       const file = e.target.files?.[0];
 
