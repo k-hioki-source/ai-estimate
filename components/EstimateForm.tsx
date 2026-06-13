@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 type ApiResponse = {
   input: {
@@ -48,6 +48,14 @@ export default function EstimateForm() {
 const [customerName, setCustomerName] = useState('');
 const [email, setEmail] = useState('');
   const [assistText, setAssistText] = useState('');
+  useEffect(() => {
+  const params = new URLSearchParams(window.location.search);
+  const agentText = params.get('agentText');
+
+  if (agentText) {
+    setAssistText(agentText);
+  }
+}, []);
 const [assistLoading, setAssistLoading] = useState(false);
 const [assistReason, setAssistReason] = useState<string | null>(null);
   const [lastFormData, setLastFormData] = useState<FormData | null>(null);
