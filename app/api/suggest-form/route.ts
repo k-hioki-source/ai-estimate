@@ -26,12 +26,24 @@ export async function POST(req: NextRequest) {
       normalizedMessage.includes('部品表');
 
     const forceReferenceDrawingFromMaterials =
-      normalizedMessage.includes('図面') ||
-      normalizedMessage.includes('組図') ||
-      normalizedMessage.includes('設計図') ||
-      normalizedMessage.includes('2D図面') ||
-      normalizedMessage.includes('TIFF');
+  normalizedMessage.includes('図面') ||
+  normalizedMessage.includes('組図') ||
+  normalizedMessage.includes('設計図') ||
+  normalizedMessage.includes('2D図面') ||
+  normalizedMessage.includes('TIFF') ||
+  normalizedMessage.includes('PDF') ||
+  normalizedMessage.includes('DXF') ||
+  normalizedMessage.includes('ポンチ絵') ||
+  normalizedMessage.includes('らくがき') ||
+  normalizedMessage.includes('落書き') ||
+  normalizedMessage.includes('メモ') ||
+  normalizedMessage.includes('3Dキャプチャ') ||
+  normalizedMessage.includes('3D画像');
 
+    const forcePhotoTrace =
+  normalizedMessage.includes('写真トレース') ||
+  normalizedMessage.includes('画像トレース');
+    
     const forceLineForParts =
       forcePartsCatalog &&
       !normalizedMessage.includes('カラー') &&
@@ -211,11 +223,16 @@ ${normalizedMessage}`;
 
     return NextResponse.json({
       sourceType:
-  forceIsometricIllustration || forceBusinessIllustration || forceReferenceDrawingFromMaterials || forcePonchiHomepage
-    ? 'reference_drawing'
-    : forceReferenceDrawing
+  forcePhotoTrace
+    ? 'photo_trace'
+    : forceIsometricIllustration ||
+      forceBusinessIllustration ||
+      forceReferenceDrawingFromMaterials ||
+      forcePonchiHomepage
       ? 'reference_drawing'
-      : normalizeSourceType(parsed.sourceType),
+      : forceReferenceDrawing
+        ? 'reference_drawing'
+        : normalizeSourceType(parsed.sourceType),
 
       usage:
   forcePartsCatalog
@@ -238,16 +255,17 @@ ${normalizedMessage}`;
       notes: finalNotes,
 
       reason:
-        typeof parsed.reason === 'string' && parsed.reason.trim()
-          ? parsed.reason
-          : buildReason(
-              normalizedMessage,
-              forcePartsCatalog,
-              forceReferenceDrawingFromMaterials,
-              forceReferenceDrawing,
-              forceSales,
-              forceReal
-            ),
+  typeof parsed.reason === 'string' && parsed.reason.trim()
+    ? parsed.reason
+    : buildReason(
+        normalizedMessage,
+        forcePhotoTrace,
+        forcePartsCatalog,
+        forceReferenceDrawingFromMaterials,
+        forceReferenceDrawing,
+        forceSales,
+        forceReal
+      ),
     });
   } catch (e) {
     console.error(e);
@@ -279,15 +297,58 @@ function normalizeStyle(value: string) {
 function buildNotesFromMessage(message: string) {
   const materials: string[] = [];
 
-  if (message.includes('写真')) materials.push('写真');
-  if (message.includes('画像')) materials.push('画像');
-  if (message.includes('図面')) materials.push('図面');
-  if (message.includes('組図')) materials.push('組図');
-  if (message.includes('ポンチ絵')) materials.push('ポンチ絵');
-  if (message.includes('ラフ')) materials.push('ラフ');
-  if (message.includes('Excel') || message.includes('エクセル')) {
-    materials.push('Excelリスト');
-  }
+  if (message.includes('写真トレース')) materials.push('写真トレース');
+else if (message.includes('写真')) materials.push('写真');
+
+if (message.includes('画像トレース')) materials.push('画像トレース');
+else if (message.includes('画像')) materials.push('画像');
+
+if (
+  message.includes('3Dキャプチャ') ||
+  message.includes('3Dキャプ')
+) {
+  materials.push('3Dキャプチャ');
+}
+
+if (
+  message.includes('3D画像') ||
+  message.includes('3DCG')
+) {
+  materials.push('3D画像');
+}
+
+if (message.includes('PDF')) {
+  materials.push('PDF');
+}
+
+if (message.includes('DXF')) {
+  materials.push('DXF');
+}
+
+if (message.includes('図面')) materials.push('図面');
+if (message.includes('組図')) materials.push('組図');
+
+if (message.includes('ポンチ絵')) {
+  materials.push('ポンチ絵');
+}
+
+if (
+  message.includes('らくがき') ||
+  message.includes('落書き')
+) {
+  materials.push('らくがき');
+}
+
+if (message.includes('メモ')) {
+  materials.push('メモ');
+}
+
+if (
+  message.includes('Excel') ||
+  message.includes('エクセル')
+) {
+  materials.push('Excelリスト');
+}
 
   let usage = '未指定';
   if (message.includes('パーツカタログ') || message.includes('部品カタログ')) {
@@ -335,19 +396,91 @@ function buildNotesFromMessage(message: string) {
 function getSuppliedMaterials(message: string) {
   const materials: string[] = [];
 
-  if (message.includes('写真')) materials.push('写真');
-  if (message.includes('画像')) materials.push('画像');
-  if (message.includes('図面')) materials.push('図面');
-  if (message.includes('組図')) materials.push('組図');
-  if (message.includes('Excel') || message.includes('エクセル')) {
+  if (message.includes('写真トレース')) {
+    materials.push('写真トレース');
+  } else if (message.includes('写真')) {
+    materials.push('写真');
+  }
+
+  if (message.includes('画像トレース')) {
+    materials.push('画像トレース');
+  } else if (message.includes('画像')) {
+    materials.push('画像');
+  }
+
+  if (
+    message.includes('3Dキャプチャ') ||
+    message.includes('3Dキャプ')
+  ) {
+    materials.push('3Dキャプチャ');
+  }
+
+  if (
+    message.includes('3D画像') ||
+    message.includes('3DCG')
+  ) {
+    materials.push('3D画像');
+  }
+
+  if (message.includes('PDF')) {
+    materials.push('PDF');
+  }
+
+  if (message.includes('DXF')) {
+    materials.push('DXF');
+  }
+
+  if (message.includes('図面')) {
+    materials.push('図面');
+  }
+
+  if (message.includes('組図')) {
+    materials.push('組図');
+  }
+
+  if (message.includes('設計図')) {
+    materials.push('設計図');
+  }
+
+  if (message.includes('ポンチ絵')) {
+    materials.push('ポンチ絵');
+  }
+
+  if (
+    message.includes('らくがき') ||
+    message.includes('落書き')
+  ) {
+    materials.push('らくがき');
+  }
+
+  if (message.includes('メモ')) {
+    materials.push('メモ');
+  }
+
+  if (
+    message.includes('Excel') ||
+    message.includes('エクセル')
+  ) {
     materials.push('Excelリスト');
   }
 
-  return materials.length ? materials.join('・') : '未指定';
+  if (
+    message.includes('XVL') ||
+    message.includes('3DCAD') ||
+    message.includes('STEP') ||
+    message.includes('IGES')
+  ) {
+    materials.push('3D CADデータ');
+  }
+
+  return materials.length
+    ? [...new Set(materials)].join('・')
+    : '未指定';
 }
 
 function buildReason(
   message: string,
+  forcePhotoTrace: boolean,
   forcePartsCatalog: boolean,
   forceReferenceDrawingFromMaterials: boolean,
   forceReferenceDrawing: boolean,
@@ -355,6 +488,10 @@ function buildReason(
   forceReal: boolean
 ) {
   const reasons: string[] = [];
+
+  if (forcePhotoTrace) {
+    reasons.push('写真トレース・画像トレース指定のためトレース作業と判断');
+  }
 
   if (forceReferenceDrawingFromMaterials) {
     reasons.push('図面・組図などの資料から新規作図と判断');
