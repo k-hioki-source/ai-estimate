@@ -73,14 +73,20 @@ export async function POST(req: NextRequest) {
       normalizedMessage.includes('販促用');
 
     const forceSales =
-      normalizedMessage.includes('プレゼン用') ||
-      normalizedMessage.includes('イメージイラスト') ||
-      normalizedMessage.includes('製品説明図') ||
-      normalizedMessage.includes('販促用') ||
-      normalizedMessage.includes('ホームページ') ||
-      normalizedMessage.includes('WEB') ||
-      normalizedMessage.includes('Web') ||
-      normalizedMessage.includes('サイト');
+  normalizedMessage.includes('プレゼン用') ||
+  normalizedMessage.includes('イメージイラスト') ||
+  normalizedMessage.includes('製品説明図') ||
+  normalizedMessage.includes('販促用') ||
+  normalizedMessage.includes('ヒヤリハット') ||
+  normalizedMessage.includes('安全教育') ||
+  normalizedMessage.includes('安全衛生') ||
+  normalizedMessage.includes('労災') ||
+  normalizedMessage.includes('危険予知') ||
+  normalizedMessage.includes('KY活動') ||
+  normalizedMessage.includes('ホームページ') ||
+  normalizedMessage.includes('WEB') ||
+  normalizedMessage.includes('Web') ||
+  normalizedMessage.includes('サイト');
 
     const forceReal =
       normalizedMessage.includes('リアル') ||
@@ -142,7 +148,7 @@ cad_conversion = XVL・3DCAD・STEP・IGES等から作成する作業
 
 manual = 取扱説明書、作業手順、安全手順、組立説明
 parts = パーツカタログ、部品カタログ、パーツリスト、部品リスト、部品表、分解図
-sales = 販促資料、製品説明、プレゼン資料、WEB掲載、展示会、広告、パンフレット
+sales = 販促資料、製品説明、プレゼン資料、WEB掲載、展示会、広告、パンフレット、安全教育、ヒヤリハット、危険予知、労災防止
 
 【表現判定】
 
