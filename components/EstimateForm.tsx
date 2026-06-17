@@ -846,6 +846,6 @@ async function handleFormalQuoteRequest() {
         </div>
       </footer>
     </div>
-        </div>
+       
   );
 }
