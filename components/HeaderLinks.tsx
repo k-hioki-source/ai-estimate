@@ -1,21 +1,23 @@
+import Link from "next/link";
+
 export default function HeaderLinks() {
   return (
-    <div className="cs-header-links">
+    <nav className="headerLinks">
       <a
         href="https://www.create-support.co.jp/"
         target="_blank"
         rel="noopener noreferrer"
       >
-        会社サイトへ戻る →
+        会社サイト
       </a>
 
-      <a href="/privacy-policy">
-        プライバシーポリシー
-      </a>
-
-      <a href="/terms">
+      <Link href="/terms">
         利用規約
-      </a>
-    </div>
+      </Link>
+
+      <Link href="/privacy-policy">
+        プライバシーポリシー
+      </Link>
+    </nav>
   );
 }
