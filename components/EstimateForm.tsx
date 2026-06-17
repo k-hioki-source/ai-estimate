@@ -335,7 +335,12 @@ async function handleFormalQuoteRequest() {
       </a>
   <HeaderLinks />
     </div>
-
+.trustBar {
+  text-align: center;
+  font-size: 13px;
+  color: #666;
+  margin-bottom: 16px;
+}
   
 
     {/* ヒーロー */}
