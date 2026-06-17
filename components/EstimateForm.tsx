@@ -327,10 +327,10 @@ async function handleFormalQuoteRequest() {
   
   return (
   <div className="stackLarge">
-  </div>
+  
     {/* ヘッダー（ロゴ） */}
   <HeaderLinks />
-    
+  </div>  
 
   
 
