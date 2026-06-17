@@ -625,13 +625,3 @@ button:disabled { opacity: 0.65; cursor: not-allowed; }
   align-items: center;
   font-size: 14px;
 }
-
-.cs-header-links a {
-  color: #1f5fa8;
-  text-decoration: none;
-  font-weight: 600;
-}
-
-.cs-header-links a:hover {
-  text-decoration: underline;
-}
