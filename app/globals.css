@@ -695,3 +695,9 @@ button:disabled { opacity: 0.65; cursor: not-allowed; }
   color: #ffffff;
   border-color: #1f5fa8;
 }
+.trustBar {
+  text-align: center;
+  font-size: 13px;
+  color: #666;
+  margin-bottom: 16px;
+}
