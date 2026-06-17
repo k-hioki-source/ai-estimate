@@ -625,3 +625,29 @@ button:disabled { opacity: 0.65; cursor: not-allowed; }
   align-items: center;
   font-size: 14px;
 }
+
+.cs-policy-page {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 40px 20px 80px;
+  line-height: 1.9;
+}
+
+.cs-policy-page h1 {
+  margin-bottom: 24px;
+  font-size: 2rem;
+}
+
+.cs-policy-page h2 {
+  margin-top: 32px;
+  margin-bottom: 12px;
+  color: #1f5fa8;
+}
+
+.cs-policy-page ul {
+  margin-left: 1.5rem;
+}
+
+.cs-policy-page li {
+  margin-bottom: 8px;
+}
