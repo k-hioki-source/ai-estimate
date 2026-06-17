@@ -334,7 +334,7 @@ async function handleFormalQuoteRequest() {
         <img src="https://www.create-support.co.jp/public/titlelogo.png" alt="クリエイトサポート" />
       </a>
   <HeaderLinks />
-    
+    </div>
 
   
 
