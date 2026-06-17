@@ -335,12 +335,9 @@ async function handleFormalQuoteRequest() {
       </a>
   <HeaderLinks />
     </div>
-.trustBar {
-  text-align: center;
-  font-size: 13px;
-  color: #666;
-  margin-bottom: 16px;
-}
+<div className="trustBar">
+  テクニカルイラスト制作30年以上｜法人対応｜正式見積対応
+</div>
   
 
     {/* ヒーロー */}
