@@ -664,3 +664,34 @@ button:disabled { opacity: 0.65; cursor: not-allowed; }
 .policy-nav a:hover {
   text-decoration: underline;
 }
+.headerLinks {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 0 0 24px;
+}
+
+.headerLinks a {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 14px;
+
+  background: #ffffff;
+  border: 1px solid #d7e3f4;
+  border-radius: 999px;
+
+  color: #1f5fa8;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 600;
+
+  transition: all 0.2s ease;
+}
+
+.headerLinks a:hover {
+  background: #1f5fa8;
+  color: #ffffff;
+  border-color: #1f5fa8;
+}
