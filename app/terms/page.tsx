@@ -8,7 +8,12 @@ export const metadata = {
 export default function TermsPage() {
   return (
     <main className="cs-policy-page">
-      <h1>AI自動イラスト見積り利用規約</h1>
+
+  <div className="policy-nav">
+    <a href="/">← AI自動イラスト見積りトップへ戻る</a>
+  </div>
+
+  <h1>AI自動イラスト見積り利用規約</h1>
 
       <p>
         この利用規約（以下「本規約」）は、
