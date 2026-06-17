@@ -7,8 +7,13 @@ export const metadata = {
 
 export default function PrivacyPolicyPage() {
   return (
-    <main className="cs-policy-page">
-      <h1>プライバシーポリシー</h1>
+   <main className="cs-policy-page">
+
+  <div className="policy-nav">
+    <a href="/">← AI自動イラスト見積りトップへ戻る</a>
+  </div>
+
+  <h1>プライバシーポリシー</h1>
 
       <p>
         株式会社クリエイトサポート（以下「当社」）は、
