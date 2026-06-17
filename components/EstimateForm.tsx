@@ -333,14 +333,13 @@ async function handleFormalQuoteRequest() {
       <a href="https://www.create-support.co.jp/" className="logoLink">
         <img src="https://www.create-support.co.jp/public/titlelogo.png" alt="クリエイトサポート" />
       </a>
-
-      <a
-        href="https://www.create-support.co.jp/"
-        className="backLink"
-      >
-        会社サイトへ戻る →
-      </a>
     </div>
+
+    <div class="cs-header-links">
+  <a href="https://www.create-support.co.jp/">会社サイトへ戻る →</a>
+  <a href="/privacy-policy">プライバシーポリシー</a>
+  <a href="/terms">利用規約</a>
+</div>
 
     {/* ヒーロー */}
     <section className="hero card">
