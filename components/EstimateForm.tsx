@@ -329,16 +329,7 @@ async function handleFormalQuoteRequest() {
   <div className="stackLarge">
 
     {/* ヘッダー（ロゴ） */}
-    <div className="header">
-      <a href="https://www.create-support.co.jp/" className="logoLink">
-        <img src="https://www.create-support.co.jp/public/titlelogo.png" alt="クリエイトサポート" />
-      </a>
-
-      <div className="cs-header-links">
-  <a href="https://www.create-support.co.jp/">会社サイトへ戻る →</a>
-  <a href="/privacy-policy">プライバシーポリシー</a>
-  <a href="/terms">利用規約</a>
-</div>
+   import HeaderLinks from "./HeaderLinks";
     </div>
 
   
