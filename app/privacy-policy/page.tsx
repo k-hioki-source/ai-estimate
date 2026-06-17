@@ -1,4 +1,4 @@
-```tsx
+
 export const metadata = {
   title: "プライバシーポリシー | AI自動イラスト見積り",
   description:
@@ -117,4 +117,4 @@ export default function PrivacyPolicyPage() {
     </main>
   );
 }
-```
+
