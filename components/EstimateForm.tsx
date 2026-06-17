@@ -330,7 +330,7 @@ async function handleFormalQuoteRequest() {
 
     {/* ヘッダー（ロゴ） */}
   <HeaderLinks />
-    </div>
+    
 
   
 
@@ -846,5 +846,6 @@ async function handleFormalQuoteRequest() {
         </div>
       </footer>
     </div>
+        </div>
   );
 }
