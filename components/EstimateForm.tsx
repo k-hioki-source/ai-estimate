@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-
+import HeaderLinks from "./HeaderLinks";
 type ApiResponse = {
   input: {
     requestFormalQuote: boolean;
@@ -329,7 +329,7 @@ async function handleFormalQuoteRequest() {
   <div className="stackLarge">
 
     {/* ヘッダー（ロゴ） */}
-   import HeaderLinks from "./HeaderLinks";
+  <HeaderLinks />
     </div>
 
   
