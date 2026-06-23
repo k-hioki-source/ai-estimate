@@ -227,6 +227,11 @@ style が color の場合：
 style が line の場合：
 線画トレース、構造図、分解図として判定する。
 
+【追記】
+寸法線、引出し線、注記、文字、番号、説明ラベルがある場合は、
+単純なトレースよりも線整理・文字配置・情報整理の工数が増えるため、
+difficultyScore と lineDifficulty をやや高めに評価してください。
+
 【最終判定】
 
 difficultyScore は
