@@ -53,10 +53,11 @@ ${isFormal ? '正式見積り依頼' : 'AI概算見積りフォーム'}から送
 メール：${payload.email || ''}
 
 ■見積り条件
+制作方法：${payload.sourceType || ''}
 用途：${payload.usage || ''}
 表現：${payload.style || ''}
 点数：${payload.quantity || 1}
-正式見積り希望：${isFormal ? 'あり' : 'なし'}
+正式見積り希望：${payload.requestFormalQuote ? 'あり' : 'なし'}
 
 ■AI判定
 作業タイプ：${payload.workType || '-'}
