@@ -7,6 +7,7 @@ export type NotificationPayload = {
   usage?: string;
   style?: string;
   quantity?: number;
+  sourceType?: string;
   notes?: string;
   complexityScore?: number;
   totalPrice?: number;
