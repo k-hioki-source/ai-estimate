@@ -11,6 +11,7 @@ export type NotificationPayload = {
   complexityScore?: number;
   totalPrice?: number;
   requestFormalQuote?: boolean;
+  aiReason?: string;
 
   imageAttachment?: {
     filename: string;
@@ -58,6 +59,8 @@ ${isFormal ? '正式見積り依頼' : 'AI概算見積りフォーム'}から送
 ■AI判定
 難易度スコア：${payload.complexityScore ?? '-'}
 概算金額：${payload.totalPrice?.toLocaleString() ?? '-'}円
+AI判定コメント：
+${payload.aiReason || ''}
 
 ■備考
 ${payload.notes || ''}
