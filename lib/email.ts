@@ -68,14 +68,14 @@ ${payload.notes || ''}
 ※このメールはAI自動イラスト見積りフォームから自動送信されています。
 `,
     attachments:
-      isFormal && payload.imageAttachment
-        ? [
-            {
-              filename: payload.imageAttachment.filename,
-              content: payload.imageAttachment.content,
-            },
-          ]
-        : undefined,
+  payload.imageAttachment
+    ? [
+        {
+          filename: payload.imageAttachment.filename,
+          content: payload.imageAttachment.content,
+        },
+      ]
+    : undefined,
   });
 
   // =========================
