@@ -218,7 +218,7 @@ if (minimumHours > 0 && estimate.hours < minimumHours) {
   complexityScore: analysis.difficultyScore,
   totalPrice: estimate.totalPrice,
   requestFormalQuote: input.requestFormalQuote,
-  aiReason: analysis.reason || analysis.summary || '',
+  aiReason: analysis.summary || '',
   imageAttachment: {
   filename: attachmentFileName,
   content: base64,
