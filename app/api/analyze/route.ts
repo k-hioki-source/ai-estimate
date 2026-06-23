@@ -218,12 +218,10 @@ if (minimumHours > 0 && estimate.hours < minimumHours) {
   complexityScore: analysis.difficultyScore,
   totalPrice: estimate.totalPrice,
   requestFormalQuote: input.requestFormalQuote,
-  imageAttachment: input.requestFormalQuote
-    ? {
-        filename: attachmentFileName,
-        content: base64,
-      }
-    : undefined,
+  imageAttachment: {
+  filename: attachmentFileName,
+  content: base64,
+},
 });
     return NextResponse.json({
       // ★ フロント互換（これが無いと落ちる）
