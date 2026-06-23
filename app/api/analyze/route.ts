@@ -212,6 +212,7 @@ if (minimumHours > 0 && estimate.hours < minimumHours) {
   name: getString(form.get('customerName')),
   email: getString(form.get('email')),
   usage: input.usage,
+  sourceType: input.sourceType,
   style: input.style,
   quantity: input.quantity,
   notes: input.notes,
