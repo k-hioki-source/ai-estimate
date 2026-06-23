@@ -14,7 +14,6 @@ export type NotificationPayload = {
   aiReason?: string;
   workType?: string;
 estimatedHours?: number;
-aiReason?: string;
 
   imageAttachment?: {
     filename: string;
