@@ -818,6 +818,32 @@ async function handleFormalQuoteRequest() {
                 <p className="muted">納期目安: {result.estimate.deliveryDays}</p>
               </div>
 
+              {result?.confidence ? (
+  <div className="confidenceBox">
+    <div className="confidenceHeader">
+      <span>AI見積り精度</span>
+      <strong>{result.confidence.score}%</strong>
+    </div>
+
+    <p className="confidenceLevel">
+      精度：{result.confidence.level}
+    </p>
+
+    <p className="confidenceComment">
+      {result.confidence.comment}
+    </p>
+
+    <div className="confidenceTips">
+      <strong>さらに精度を上げるには</strong>
+      <ul>
+        {result.confidence.tips.map((tip) => (
+          <li key={tip}>{tip}</li>
+        ))}
+      </ul>
+    </div>
+  </div>
+) : null}
+
               <div className="summaryCard">
                 <div className="summaryItem">
                   <span>対象</span>
