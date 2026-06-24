@@ -777,44 +777,58 @@ button:disabled { opacity: 0.65; cursor: not-allowed; }
   color: #1e40af;
 }
 .confidenceBox {
-  margin-top: 24px;
-  padding: 20px;
+  grid-column: 1 / -1;
+  width: 100%;
+  box-sizing: border-box;
+
+  margin-top: 22px;
+  padding: 18px 20px;
+
   border: 1px solid #bfdbfe;
   border-radius: 16px;
-  background: #f8fbff;
+  background: rgba(248, 251, 255, 0.96);
+
+  color: #0f172a;
 }
 
 .confidenceHeader {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 10px;
+  gap: 16px;
+  margin-bottom: 8px;
 }
 
 .confidenceHeader span {
-  font-weight: 700;
-  color: #1e3a8a;
+  font-weight: 800;
+  color: #1d4ed8;
 }
 
 .confidenceHeader strong {
-  font-size: 28px;
+  font-size: 30px;
   color: #2563eb;
+  line-height: 1;
 }
 
 .confidenceLevel {
-  font-weight: 700;
-  color: #0f172a;
+  margin: 0 0 8px;
+  font-weight: 800;
 }
 
 .confidenceComment {
-  color: #475569;
+  margin: 0;
   line-height: 1.7;
+  color: #334155;
 }
 
 .confidenceTips {
   margin-top: 14px;
   padding-top: 14px;
   border-top: 1px solid #dbeafe;
+}
+
+.confidenceTips strong {
+  color: #1e3a8a;
 }
 
 .confidenceTips ul {
