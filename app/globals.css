@@ -742,3 +742,15 @@ button:disabled { opacity: 0.65; cursor: not-allowed; }
     width: 100%;
   }
 }
+.sampleToggleLabel {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.sampleToggleLabel input {
+  width: 18px;
+  height: 18px;
+}
