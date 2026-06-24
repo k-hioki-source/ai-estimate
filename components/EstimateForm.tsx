@@ -818,7 +818,25 @@ async function handleFormalQuoteRequest() {
                 <p className="muted">納期目安: {result.estimate.deliveryDays}</p>
               </div>
 
-              {result?.confidence ? (
+              
+
+              <div className="summaryCard">
+                <div className="summaryItem">
+                  <span>対象</span>
+                  <strong>{result.vision.subjectType}</strong>
+                </div>
+                <div className="summaryItem">
+  <span>難易度スコア</span>
+  <strong>{result.vision.complexityScore}</strong>
+</div>
+                <div className="summaryItem">
+                  <span>難易度</span>
+                  <strong>{difficultyLabel(result.vision.complexityScore)}</strong>
+                </div>
+              </div>
+            </div>
+
+            {result?.confidence ? (
   <div className="confidenceBox">
     <div className="confidenceHeader">
       <span>AI見積り精度</span>
@@ -843,23 +861,7 @@ async function handleFormalQuoteRequest() {
     </div>
   </div>
 ) : null}
-
-              <div className="summaryCard">
-                <div className="summaryItem">
-                  <span>対象</span>
-                  <strong>{result.vision.subjectType}</strong>
-                </div>
-                <div className="summaryItem">
-  <span>難易度スコア</span>
-  <strong>{result.vision.complexityScore}</strong>
-</div>
-                <div className="summaryItem">
-                  <span>難易度</span>
-                  <strong>{difficultyLabel(result.vision.complexityScore)}</strong>
-                </div>
-              </div>
-            </div>
-
+            
             <p className="noticeText">
               ※この金額は参考画像と入力条件から算出した概算です。正式なお見積りは、内容確認後にご案内いたします。
             </p>
