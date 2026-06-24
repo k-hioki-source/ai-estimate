@@ -15,7 +15,7 @@ export type NotificationPayload = {
   aiReason?: string;
   workType?: string;
   difficultyScore?: number;
-estimatedHours?: number;
+
 aiComment?: string;
 estimatedHours?: number;
 
