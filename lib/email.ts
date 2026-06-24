@@ -75,6 +75,11 @@ ${isFormal ? '正式見積り依頼' : 'AI概算見積りフォーム'}から送
 AI判定コメント：
 ${payload.aiReason || '-'}
 
+■AI見積り精度
+精度：${payload.confidenceScore ?? '-'}%
+判定：${payload.confidenceLevel || '-'}
+コメント：${payload.confidenceComment || '-'}
+
 ■備考
 ${payload.notes || ''}
 
