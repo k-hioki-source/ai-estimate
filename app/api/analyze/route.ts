@@ -218,10 +218,10 @@ if (
   workType = 'concept_diagram';
 }
 
-    // ------------------------
-// technical補正（ここ追加）
 // ------------------------
-if (analysis.workType === 'technical_drawing') {
+// technical補正
+// ------------------------
+if (workType === 'technical_drawing') {
   if (analysis.structureComplexity < 45) {
     workType = 'standard_trace';
   } else {
@@ -229,7 +229,23 @@ if (analysis.workType === 'technical_drawing') {
   }
 }
 
-   
+// ------------------------
+// リアル判定の過剰評価補正
+// アイソメ・フラット系の軽いカラーイラストを
+// realistic_illustration から外す
+// ------------------------
+if (
+  workType === 'realistic_illustration' &&
+  analysis.difficultyScore <= 70 &&
+  analysis.summary &&
+  !analysis.summary.includes('質感') &&
+  !analysis.summary.includes('金属感') &&
+  !analysis.summary.includes('反射') &&
+  !analysis.summary.includes('写実')
+) {
+  workType = 'technical_drawing';
+  analysis.difficultyScore = Math.min(analysis.difficultyScore, 55);
+}
 
 const reasonText = analysis.summary || '';
 
@@ -294,8 +310,8 @@ if (minimumHours > 0 && estimate.hours < minimumHours) {
   totalPrice: estimate.totalPrice,
   requestFormalQuote: input.requestFormalQuote,
 
-  workType: analysis.workType,
-  estimatedHours: estimate.hours,
+  workType: workType,
+estimatedHours: estimate.hours,
   
   aiReason: analysis.summary || '',
   confidenceScore: confidence.score,
