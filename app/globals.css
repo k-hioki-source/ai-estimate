@@ -776,3 +776,48 @@ button:disabled { opacity: 0.65; cursor: not-allowed; }
 
   color: #1e40af;
 }
+.confidenceBox {
+  margin-top: 24px;
+  padding: 20px;
+  border: 1px solid #bfdbfe;
+  border-radius: 16px;
+  background: #f8fbff;
+}
+
+.confidenceHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.confidenceHeader span {
+  font-weight: 700;
+  color: #1e3a8a;
+}
+
+.confidenceHeader strong {
+  font-size: 28px;
+  color: #2563eb;
+}
+
+.confidenceLevel {
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.confidenceComment {
+  color: #475569;
+  line-height: 1.7;
+}
+
+.confidenceTips {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid #dbeafe;
+}
+
+.confidenceTips ul {
+  margin: 8px 0 0;
+  padding-left: 20px;
+}
