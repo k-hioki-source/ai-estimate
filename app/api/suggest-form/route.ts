@@ -280,15 +280,7 @@ ${normalizedMessage}`;
         ? 'real'
         : normalizeStyle(parsed.style),
 
-      style:
-  forceImageDiagram
-    ? 'real'
-    : forceLineForParts
-      ? 'line'
-      : forceReal
-        ? 'real'
-        : normalizeStyle(parsed.style),
-
+     
       notes: finalNotes,
 
       reason:
