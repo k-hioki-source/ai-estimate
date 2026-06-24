@@ -446,36 +446,7 @@ async function handleFormalQuoteRequest() {
   }}
 >
 
-          <div className="assistBox">
-  <div className="assistHead">
-    <div>
-      <div className="eyebrow">入力に迷った方へ</div>
-      <h3 className="assistTitle">依頼内容を文章で入力すると、AIエージェントが選択項目を提案します</h3>
-    </div>
-  </div>
 
-  <textarea
-    className="assistTextarea"
-    value={assistText}
-    onChange={(e) => setAssistText(e.target.value)}
-    placeholder="例：図面と写真があります。パーツカタログ用の分解図を白黒線画で作りたいです。"
-  />
-
-  <button
-    type="button"
-    className="secondaryButton"
-    onClick={handleSuggestForm}
-    disabled={assistLoading}
-  >
-    {assistLoading ? 'AIが提案中...' : 'AIエージェントにフォーム入力を提案してもらう'}
-  </button>
-
-  {assistReason ? (
-    <p className="assistReason">
-      AI提案理由：{assistReason}
-    </p>
-  ) : null}
-</div>
           
           <div className="grid grid-2">
             <div>
@@ -515,7 +486,40 @@ async function handleFormalQuoteRequest() {
               <label htmlFor="quantity">点数</label>
               <input id="quantity" name="quantity" type="number" min="1" defaultValue="1" required />
             </div>
+          </div>
 
+                    <div className="assistBox">
+  <div className="assistHead">
+    <div>
+      <div className="eyebrow">入力に迷った方へ</div>
+      <h3 className="assistTitle">依頼内容を文章で入力すると、AIエージェントが選択項目を提案します</h3>
+    </div>
+  </div>
+
+  <textarea
+    className="assistTextarea"
+    value={assistText}
+    onChange={(e) => setAssistText(e.target.value)}
+    placeholder="例：図面と写真があります。パーツカタログ用の分解図を白黒線画で作りたいです。"
+  />
+
+  <button
+    type="button"
+    className="secondaryButton"
+    onClick={handleSuggestForm}
+    disabled={assistLoading}
+  >
+    {assistLoading ? 'AIが提案中...' : 'AIエージェントにフォーム入力を提案してもらう'}
+  </button>
+
+  {assistReason ? (
+    <p className="assistReason">
+      AI提案理由：{assistReason}
+    </p>
+  ) : null}
+</div>
+
+          <div className="grid grid-2">
             <div>
   <label htmlFor="sourceType">制作方法／資料</label>
  <select
