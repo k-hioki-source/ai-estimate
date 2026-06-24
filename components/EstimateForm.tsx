@@ -27,6 +27,12 @@ type ApiResponse = {
   adjustedHours: number;
   quantity: number;
 };
+  confidence?: {
+  score: number;
+  level: string;
+  comment: string;
+  tips: string[];
+};
   error?: string;
 };
 
