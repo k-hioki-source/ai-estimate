@@ -760,6 +760,8 @@ button:disabled { opacity: 0.65; cursor: not-allowed; }
   border: 2px solid #dbeafe;
   border-radius: 16px;
   background: #f8fbff;
+  grid-column: 1 / -1;
+  width:100%;
 }
 
 .imageSectionTitle {
