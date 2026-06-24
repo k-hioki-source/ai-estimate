@@ -196,6 +196,15 @@ hasPartNumbers: analysis.hasPartNumbers,
    isIndustrialProduct: analysis.isIndustrialProduct,
 });
 
+const confidence = calculateConfidence({
+  difficultyScore: analysis.difficultyScore,
+  partDensity: analysis.partDensity,
+  lineDifficulty: analysis.lineDifficulty,
+  structureComplexity: analysis.structureComplexity,
+  summary: analysis.summary,
+  hasImage: !!base64,
+  hasNotes: !!input.notes,
+});
 
 
 if (minimumHours > 0 && estimate.hours < minimumHours) {
@@ -261,6 +270,7 @@ if (minimumHours > 0 && estimate.hours < minimumHours) {
 
         quantity: input.quantity,
       },
+      confidence,
     });
   } catch (e) {
     console.error(e);
