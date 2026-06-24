@@ -97,9 +97,14 @@ export async function POST(req: NextRequest) {
   normalizedMessage.includes('サイト');
 
     const forceColor =
+  normalizedMessage.includes('カラー') ||
+  normalizedMessage.includes('色付き') ||
+  normalizedMessage.includes('色分け') ||
+  normalizedMessage.includes('アイソメ') ||
   normalizedMessage.includes('アイソメトリック') ||
   normalizedMessage.includes('アイソメ図') ||
-  normalizedMessage.includes('フラットデザイン');
+  normalizedMessage.includes('フラットデザイン') ||
+  normalizedMessage.includes('ベクターイラスト');
 
     const forceReal =
       normalizedMessage.includes('リアル') ||
@@ -118,11 +123,6 @@ export async function POST(req: NextRequest) {
   normalizedMessage.includes('アイソメ') ||
   normalizedMessage.includes('アイソメトリック') ||
   normalizedMessage.includes('isometric');
-
-const forceColor =
-  normalizedMessage.includes('カラー') ||
-  normalizedMessage.includes('色付き') ||
-  normalizedMessage.includes('色分け');
 
 const forceBusinessIllustration =
   normalizedMessage.includes('ビジネスマン') ||
