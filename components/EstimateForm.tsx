@@ -639,7 +639,7 @@ async function handleFormalQuoteRequest() {
             </div>
    
   <div className="imageSection">         
-             
+  <div className="gridSpan2">          
   <label htmlFor="image">参考画像（画像、図面、写真、原稿、ポンチ絵など）</label>
   <input
     id="image"
@@ -710,7 +710,7 @@ async function handleFormalQuoteRequest() {
     </>
   ) : null}
 </div>
-</div>
+</div></div>
           <div>
             <label htmlFor="notes">イラストの内容・制作条件（詳しく入力すると見積り精度が向上します）</label>
             <textarea
