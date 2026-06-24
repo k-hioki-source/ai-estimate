@@ -705,3 +705,40 @@ button:disabled { opacity: 0.65; cursor: not-allowed; }
   font-size: 14px;
   line-height: 1.4;
 }
+.formActions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.formActions .primaryButton {
+  flex: 1;
+}
+
+.clearButton {
+  width: 190px;
+  padding: 14px 18px;
+  border-radius: 999px;
+  border: 1px solid #d0d7e2;
+  background: #fff;
+  color: #5f6b7a;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.clearButton:hover {
+  background: #f5f7fb;
+  color: #2563eb;
+  border-color: #2563eb;
+}
+
+@media (max-width: 640px) {
+  .formActions {
+    flex-direction: column;
+  }
+
+  .formActions .primaryButton,
+  .clearButton {
+    width: 100%;
+  }
+}
