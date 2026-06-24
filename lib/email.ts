@@ -86,65 +86,51 @@ ${payload.notes || ''}
   });
 
   // =========================
-  // ■② ユーザー自動返信
-  // =========================
-  if (payload.email) {
-    await resend.emails.send({
-      from,
-      to: payload.email,
-      subject: isFormal
-        ? '【自動返信】正式見積りのご依頼を受け付けました'
-        : '【自動返信】AI概算見積り結果のご案内',
-      text: isFormal
-        ? `
+// ■② ユーザー自動返信
+// =========================
+if (payload.email) {
+  await resend.emails.send({
+    from,
+    to: payload.email,
+    subject: isFormal
+      ? '【自動返信】正式見積りのご依頼を受け付けました'
+      : '【自動返信】AI概算見積り結果のご案内',
+    text: `
 ${payload.name || ''} 様
 
-この度は正式見積りをご依頼いただき、誠にありがとうございます。
+この度は${isFormal ? '正式見積りをご依頼' : 'AI自動イラスト見積りをご利用'}いただき、誠にありがとうございます。
 クリエイトサポートです。
 
-以下の内容で正式見積りのご依頼を受け付けました。
+以下の内容で${isFormal ? '正式見積りのご依頼' : '概算見積り'}を受け付けました。
 
 ━━━━━━━━━━━━━━━
 ■ご依頼内容
-用途：${payload.usage || ''}
-表現：${payload.style || ''}
+制作方法：${payload.sourceType || '未指定'}
+用途：${payload.usage || '未指定'}
+表現：${payload.style || '未指定'}
 点数：${payload.quantity || 1}
+正式見積り希望：${isFormal ? 'あり' : 'なし'}
 
-■AI概算金額
-約 ${payload.totalPrice?.toLocaleString() ?? '-'} 円
+■AI判定
+作業タイプ：${payload.workType || '未判定'}
+難易度スコア：${payload.difficultyScore ?? '-'}
+想定制作時間：${payload.estimatedHours ?? '-'}時間
+AI概算金額：約 ${payload.totalPrice?.toLocaleString() ?? '-'} 円
+
+■AI判定コメント
+${payload.aiComment || '画像とご入力内容をもとに概算金額を算出しました。'}
+
+■お客様ご入力内容
+${payload.notes || '未入力'}
 ━━━━━━━━━━━━━━━
 
-担当者が内容を確認のうえ、正式なお見積りをご案内いたします。
-通常1営業日以内を目安にご連絡いたします。
+※本メールはAIによる概算見積り結果のご案内です。
+※実際の制作費は、支給資料の内容・描き込み量・修正範囲・納期などにより変動する場合がございます。
 
-ご不明な点がございましたら、お気軽にお問い合わせください。
-
-────────────────
-株式会社クリエイトサポート
-https://www.create-support.co.jp/
-────────────────
-`
-        : `
-${payload.name || ''} 様
-
-この度はAI自動イラスト見積りをご利用いただき、ありがとうございます。
-クリエイトサポートです。
-
-以下の内容で概算見積りを受け付けました。
-
-━━━━━━━━━━━━━━━
-■ご依頼内容
-用途：${payload.usage || ''}
-表現：${payload.style || ''}
-点数：${payload.quantity || 1}
-
-■AI概算金額
-約 ${payload.totalPrice?.toLocaleString() ?? '-'} 円
-━━━━━━━━━━━━━━━
-
-本メールはAIによる概算見積り結果のご案内です。
-
-ご予算調整や仕様相談だけでも歓迎しております。
+${isFormal
+  ? `担当者が内容を確認のうえ、正式なお見積りをご案内いたします。
+通常1営業日以内を目安にご連絡いたします。`
+  : `ご予算調整や仕様相談だけでも歓迎しております。
 
 「この内容だと実際いくらになる？」
 「こうすると安くなる？」
@@ -153,7 +139,8 @@ ${payload.name || ''} 様
 といったご相談もお気軽にご返信ください。
 
 イラスト相談・正式見積りはこちら
-https://www.create-support.co.jp/contact/
+https://www.create-support.co.jp/contact/`
+}
 
 ────────────────
 株式会社クリエイトサポート
@@ -163,8 +150,8 @@ Mobile：090-2943-2763
 https://www.create-support.co.jp/
 ────────────────
 `,
-    });
-  }
+  });
+}
 
   return { ok: true };
 }
