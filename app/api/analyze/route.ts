@@ -298,6 +298,9 @@ if (minimumHours > 0 && estimate.hours < minimumHours) {
   estimatedHours: estimate.hours,
   
   aiReason: analysis.summary || '',
+  confidenceScore: confidence.score,
+confidenceLevel: confidence.level,
+confidenceComment: confidence.comment,
   imageAttachment: {
   filename: attachmentFileName,
   content: base64,
