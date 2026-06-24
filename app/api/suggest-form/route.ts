@@ -20,6 +20,9 @@ export async function POST(req: NextRequest) {
 
     const forcePartsCatalog =
       normalizedMessage.includes('パーツカタログ') ||
+      normalizedMessage.includes('パーツイラスト') ||
+      normalizedMessage.includes('分解図') ||
+      normalizedMessage.includes('展開図') ||
       normalizedMessage.includes('部品カタログ') ||
       normalizedMessage.includes('パーツリスト') ||
       normalizedMessage.includes('部品リスト') ||
@@ -92,6 +95,11 @@ export async function POST(req: NextRequest) {
   normalizedMessage.includes('WEB') ||
   normalizedMessage.includes('Web') ||
   normalizedMessage.includes('サイト');
+
+    const forceColor =
+  normalizedMessage.includes('アイソメトリック') ||
+  normalizedMessage.includes('アイソメ図') ||
+  normalizedMessage.includes('フラットデザイン');
 
     const forceReal =
       normalizedMessage.includes('リアル') ||
