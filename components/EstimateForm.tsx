@@ -491,8 +491,8 @@ async function handleFormalQuoteRequest() {
                     <div className="assistBox">
   <div className="assistHead">
     <div>
-      <div className="eyebrow">入力に迷った方へ</div>
-      <h3 className="assistTitle">依頼内容を文章で入力すると、AIエージェントが選択項目を提案します</h3>
+      <div className="eyebrow">AIが入力をサポート</div>
+      <h3 className="assistTitle">依頼内容を文章で入力するだけで、AIが見積りフォームを自動作成します</h3>
     </div>
   </div>
 
