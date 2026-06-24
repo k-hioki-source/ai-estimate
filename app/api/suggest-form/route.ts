@@ -73,9 +73,14 @@ export async function POST(req: NextRequest) {
       normalizedMessage.includes('販促用');
 
     const forceSales =
+  normalizedMessage.includes('プレゼン') ||
   normalizedMessage.includes('プレゼン用') ||
+  normalizedMessage.includes('提案資料') ||
+  normalizedMessage.includes('営業資料') ||
+  normalizedMessage.includes('イメージ図') ||
   normalizedMessage.includes('イメージイラスト') ||
   normalizedMessage.includes('製品説明図') ||
+  normalizedMessage.includes('販促') ||
   normalizedMessage.includes('販促用') ||
   normalizedMessage.includes('ヒヤリハット') ||
   normalizedMessage.includes('安全教育') ||
@@ -94,6 +99,12 @@ export async function POST(req: NextRequest) {
       normalizedMessage.includes('質感') ||
       normalizedMessage.includes('陰影') ||
       normalizedMessage.includes('グラデーション');
+      normalizedMessage.includes('海洋開発') ||
+  normalizedMessage.includes('洋上風力') ||
+  normalizedMessage.includes('工場全景') ||
+  normalizedMessage.includes('設備全景') ||
+  normalizedMessage.includes('完成予想図') ||
+  normalizedMessage.includes('イメージ図');
 
     const forceIsometricIllustration =
   normalizedMessage.includes('アイソメ') ||
@@ -111,6 +122,10 @@ const forceBusinessIllustration =
   normalizedMessage.includes('立ち姿') ||
   normalizedMessage.includes('挿絵') ||
   normalizedMessage.includes('イラスト作成');
+
+    const forceImageDiagram =
+  normalizedMessage.includes('イメージ図') ||
+  normalizedMessage.includes('完成予想図');
 
     const forcePartsCatalogNotes =
       forcePartsCatalog && forceReferenceDrawingFromMaterials;
@@ -174,6 +189,13 @@ reasonは必ず入力文のどの言葉を根拠にしたかを含めて、1〜2
 「カラー」「色付き」「色分け」が含まれる場合は style = color。
 
 「線画」「白黒」「モノクロ」「取説風」「パーツカタログ用」が含まれ、かつ「リアル」「カラー」が含まれない場合は style = line。
+
+「プレゼン」「提案資料」「営業資料」
+が含まれる場合は usage = sales
+
+「イメージ図」「完成予想図」「海洋開発」
+「設備全景」「洋上風力」
+が含まれる場合は style = real を優先する
 
 ユーザー依頼文：
 ${message}
@@ -254,6 +276,15 @@ ${normalizedMessage}`;
     ? 'line'
     : forceColor || forceIsometricIllustration || forcePonchiHomepage
       ? 'color'
+      : forceReal
+        ? 'real'
+        : normalizeStyle(parsed.style),
+
+      style:
+  forceImageDiagram
+    ? 'real'
+    : forceLineForParts
+      ? 'line'
       : forceReal
         ? 'real'
         : normalizeStyle(parsed.style),
