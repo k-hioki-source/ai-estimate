@@ -29,6 +29,71 @@ function getSourceType(
   return 'photo_trace';
 }
 
+function calculateConfidence({
+  difficultyScore,
+  partDensity,
+  lineDifficulty,
+  structureComplexity,
+  summary,
+  hasImage,
+  hasNotes,
+}: {
+  difficultyScore: number;
+  partDensity: number;
+  lineDifficulty: number;
+  structureComplexity: number;
+  summary?: string;
+  hasImage: boolean;
+  hasNotes: boolean;
+}) {
+  let score = 70;
+
+  if (hasImage) score += 10;
+  if (hasNotes) score += 5;
+
+  if (summary && summary.length >= 20) score += 5;
+
+  const spread = Math.max(
+    partDensity,
+    lineDifficulty,
+    structureComplexity
+  ) - Math.min(
+    partDensity,
+    lineDifficulty,
+    structureComplexity
+  );
+
+  if (spread <= 25) score += 5;
+  if (spread >= 50) score -= 10;
+
+  if (difficultyScore >= 40 && difficultyScore <= 80) score += 3;
+  if (difficultyScore >= 90) score -= 5;
+
+  score = Math.max(40, Math.min(95, score));
+
+  let level = '中';
+  let comment = '概算見積りとして参考になる結果です。';
+
+  if (score >= 80) {
+    level = '高';
+    comment = '対象物を認識できており、概算見積りとして十分参考になる結果です。';
+  } else if (score < 65) {
+    level = '低';
+    comment = '参考情報が少ないため、正式見積りでは金額が変わる可能性があります。';
+  }
+
+  return {
+    score,
+    level,
+    comment,
+    tips: [
+      '参考画像を追加',
+      '使用用途を詳しく入力',
+      '希望する表現方法を指定',
+    ],
+  };
+}
+
 export async function POST(req: NextRequest) {
   try {
     const form = await req.formData();
