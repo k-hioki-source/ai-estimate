@@ -729,7 +729,7 @@ async function handleFormalQuoteRequest() {
 
   <button
     type="button"
-    className="secondaryButton"
+    className="clearButton"
     onClick={handleClearForm}
     disabled={loading}
   >
