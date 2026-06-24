@@ -637,7 +637,7 @@ async function handleFormalQuoteRequest() {
                 <option value="rush">特急</option>
               </select>
             </div>
-            
+   <div className="imageSection">         
   <div className="gridSpan2">           
   <label htmlFor="image">参考画像（画像、図面、写真、原稿、ポンチ絵など）</label>
   <input
@@ -673,7 +673,7 @@ async function handleFormalQuoteRequest() {
       checked={showSamplePanel}
       onChange={(e) => setShowSamplePanel(e.target.checked)}
     />
-    <span>参考画像がない方へ</span>
+    <span>参考画像をお持ちでない方はこちら</span>
   </label>
 
   <p className="muted compactText">
@@ -708,7 +708,7 @@ async function handleFormalQuoteRequest() {
       ) : null}
     </>
   ) : null}
-</div>
+</div></div>
 </div>
           <div>
             <label htmlFor="notes">イラストの内容・制作条件（詳しく入力すると見積り精度が向上します）</label>
