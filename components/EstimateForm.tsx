@@ -718,7 +718,7 @@ async function handleFormalQuoteRequest() {
     )}
 
   </div>
-
+</div>
 </div>
           <div>
             <label htmlFor="notes">イラストの内容・制作条件（詳しく入力すると見積り精度が向上します）</label>
