@@ -43,6 +43,7 @@ function difficultyLabel(score: number) {
 
 export default function EstimateForm() {
   const [selectedSample, setSelectedSample] = useState<string | null>(null);
+  const [showSamplePanel, setShowSamplePanel] = useState(false);
   const [loading, setLoading] = useState(false);
   const [companyName, setCompanyName] = useState('');
 const [customerName, setCustomerName] = useState('');
@@ -665,36 +666,47 @@ async function handleFormalQuoteRequest() {
 </div>
          
 
-              <div className="gridSpan2">
-  <label>参考画像がない方へ</label>
+<div className="gridSpan2">
+  <label className="sampleToggleLabel">
+    <input
+      type="checkbox"
+      checked={showSamplePanel}
+      onChange={(e) => setShowSamplePanel(e.target.checked)}
+    />
+    <span>参考画像がない方へ</span>
+  </label>
+
   <p className="muted compactText">
-    参考画像をお持ちでない場合は、希望に近いサンプルをお選びください。
-    選択したサンプル画像を参考画像としてAIが解析します。
+    参考画像をお持ちでない場合は、チェックを入れて希望に近いサンプルをお選びください。
   </p>
 
-  <div className="sampleGrid">
-    {sampleImages.map((sample) => (
-      <button
-        key={sample.path}
-        type="button"
-        className={
-          selectedSample === sample.path
-            ? 'sampleCard selected'
-            : 'sampleCard'
-        }
-        onClick={() => {
-          setSelectedSample(sample.path);
-          setPreview(sample.path);
-        }}
-      >
-        <img src={sample.path} alt={sample.label} />
-        <span>{sample.label}</span>
-      </button>
-    ))}
-  </div>
+  {showSamplePanel ? (
+    <>
+      <div className="sampleGrid">
+        {sampleImages.map((sample) => (
+          <button
+            key={sample.path}
+            type="button"
+            className={
+              selectedSample === sample.path
+                ? 'sampleCard selected'
+                : 'sampleCard'
+            }
+            onClick={() => {
+              setSelectedSample(sample.path);
+              setPreview(sample.path);
+            }}
+          >
+            <img src={sample.path} alt={sample.label} />
+            <span>{sample.label}</span>
+          </button>
+        ))}
+      </div>
 
-  {selectedSample ? (
-    <input type="hidden" name="sampleImagePath" value={selectedSample} />
+      {selectedSample ? (
+        <input type="hidden" name="sampleImagePath" value={selectedSample} />
+      ) : null}
+    </>
   ) : null}
 </div>
 </div>
