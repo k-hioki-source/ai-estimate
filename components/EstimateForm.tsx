@@ -638,79 +638,88 @@ async function handleFormalQuoteRequest() {
               </select>
             </div>
    
-  <div className="imageSection">         
-  <div className="gridSpan2">          
-  <label htmlFor="image">参考画像（画像、図面、写真、原稿、ポンチ絵など）</label>
-  <input
-    id="image"
-    name="image"
-    type="file"
-    accept="image/jpeg,image/png,image/webp"
-    
-    onChange={(e) => {
-      const file = e.target.files?.[0];
+  <div className="gridSpan2">
 
-      if (!file) {
-        setPreview(null);
-        return;
-      }
+  <div className="imageSection">
 
-      setPreview(URL.createObjectURL(file));
-    }}
-  />
-<p className="uploadNotice">
-    <em>※アップロードいただいた画像・図面データは、お見積り算出の目的にのみ使用いたします。<br />
-    AIの学習データとして利用されることはありません。<br />
-    また、データは一定時間後に自動削除されますので、安心してご利用ください。</em>
-  </p>
-              
-</div>
-         
+    <label htmlFor="image">
+      参考画像（画像、図面、写真、原稿、ポンチ絵など）
+    </label>
 
-<div className="gridSpan2">
-  <label className="sampleToggleLabel">
     <input
-      type="checkbox"
-      checked={showSamplePanel}
-      onChange={(e) => setShowSamplePanel(e.target.checked)}
+      id="image"
+      name="image"
+      type="file"
+      accept="image/jpeg,image/png,image/webp"
+      onChange={(e) => {
+        const file = e.target.files?.[0];
+
+        if (!file) {
+          setPreview(null);
+          return;
+        }
+
+        setPreview(URL.createObjectURL(file));
+      }}
     />
-    <span>参考画像をお持ちでない方はこちら</span>
-  </label>
 
-  <p className="muted compactText">
-    参考画像をお持ちでない場合は、チェックを入れて希望に近いサンプルをお選びください。
-  </p>
+    <p className="uploadNotice">
+      <em>
+        ※アップロードいただいた画像・図面データは、お見積り算出の目的にのみ使用いたします。<br />
+        AIの学習データとして利用されることはありません。<br />
+        また、データは一定時間後に自動削除されますので、安心してご利用ください。
+      </em>
+    </p>
 
-  {showSamplePanel ? (
-    <>
-      <div className="sampleGrid">
-        {sampleImages.map((sample) => (
-          <button
-            key={sample.path}
-            type="button"
-            className={
-              selectedSample === sample.path
-                ? 'sampleCard selected'
-                : 'sampleCard'
-            }
-            onClick={() => {
-              setSelectedSample(sample.path);
-              setPreview(sample.path);
-            }}
-          >
-            <img src={sample.path} alt={sample.label} />
-            <span>{sample.label}</span>
-          </button>
-        ))}
-      </div>
+    <label className="sampleToggleLabel">
+      <input
+        type="checkbox"
+        checked={showSamplePanel}
+        onChange={(e) => setShowSamplePanel(e.target.checked)}
+      />
+      <span>参考画像をお持ちでない方はこちら</span>
+    </label>
 
-      {selectedSample ? (
-        <input type="hidden" name="sampleImagePath" value={selectedSample} />
-      ) : null}
-    </>
-  ) : null}
+    <p className="muted compactText">
+      参考画像をお持ちでない場合は、チェックを入れて希望に近いサンプルをお選びください。
+    </p>
+
+    {showSamplePanel && (
+      <>
+        <div className="sampleGrid">
+          {sampleImages.map((sample) => (
+            <button
+              key={sample.path}
+              type="button"
+              className={
+                selectedSample === sample.path
+                  ? 'sampleCard selected'
+                  : 'sampleCard'
+              }
+              onClick={() => {
+                setSelectedSample(sample.path);
+                setPreview(sample.path);
+              }}
+            >
+              <img src={sample.path} alt={sample.label} />
+              <span>{sample.label}</span>
+            </button>
+          ))}
+        </div>
+
+        {selectedSample ? (
+          <input
+            type="hidden"
+            name="sampleImagePath"
+            value={selectedSample}
+          />
+        ) : null}
+      </>
+    )}
+
+  </div>
+
 </div>
-</div></div>
           <div>
             <label htmlFor="notes">イラストの内容・制作条件（詳しく入力すると見積り精度が向上します）</label>
             <textarea
