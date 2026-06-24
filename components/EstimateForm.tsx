@@ -258,6 +258,48 @@ if (json.notes) {
   }
 }
 
+function handleClearForm() {
+  setAssistText('');
+  setAssistReason(null);
+  setSelectedSourceType('photo_trace');
+  setSelectedUsage('manual');
+  setSelectedStyle('line');
+  setNotes('');
+  setSelectedSample(null);
+  setPreview(null);
+  setResult(null);
+  setError(null);
+  setLastFormData(null);
+
+  const imageInput = document.getElementById('image') as HTMLInputElement | null;
+  if (imageInput) {
+    imageInput.value = '';
+  }
+
+  const quantityInput = document.getElementById('quantity') as HTMLInputElement | null;
+  if (quantityInput) {
+    quantityInput.value = '1';
+  }
+
+  const sizeSelect = document.getElementById('size') as HTMLSelectElement | null;
+  if (sizeSelect) {
+    sizeSelect.value = 'small';
+  }
+
+  const rushSelect = document.getElementById('rush') as HTMLSelectElement | null;
+  if (rushSelect) {
+    rushSelect.value = 'normal';
+  }
+
+  const formalCheckbox = document.querySelector(
+    'input[name="requestFormalQuote"]'
+  ) as HTMLInputElement | null;
+
+  if (formalCheckbox) {
+    formalCheckbox.checked = false;
+  }
+}
+  
 async function handleFormalQuoteRequest() {
   if (!lastFormData || !result) {
     setError('送信内容が見つかりません。もう一度概算見積りを実行してください。');
@@ -680,9 +722,20 @@ async function handleFormalQuoteRequest() {
 
           {preview ? <img src={preview} alt="preview" className="preview" /> : null}
 
-          <button type="submit" disabled={loading} className="primaryButton">
-            {loading ? 'AIが画像を解析しています...' : '概算金額を表示する'}
-          </button>
+          <div className="formActions">
+  <button type="submit" disabled={loading} className="primaryButton">
+    {loading ? 'AIが画像を解析しています...' : '概算金額を表示する'}
+  </button>
+
+  <button
+    type="button"
+    className="secondaryButton"
+    onClick={handleClearForm}
+    disabled={loading}
+  >
+    入力内容をクリア
+  </button>
+</div>
         </form>
 
         <div className="trustBox">
