@@ -3,7 +3,7 @@ import Script from 'next/script';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'AI自動イラスト見積り｜画像から概算費用を即時算出',
+  title: '製造業向けイラストのAI自動見積り｜製品説明図・分解図・取扱説明書対応',
   description:
     '参考画像をアップロードするだけで、テクニカルイラスト制作の概算費用をAIが自動算出。取扱説明書、パーツカタログ、販促用イラストに対応。',
   keywords: [
