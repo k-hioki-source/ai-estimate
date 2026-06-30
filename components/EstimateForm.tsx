@@ -846,7 +846,7 @@ async function handleFormalQuoteRequest() {
             {result?.estimateMatch ? (
   <div className="confidenceBox">
     <div className="confidenceHeader">
-      <span>AI見積り一致度</span>
+      <span>AI見積り信頼度</span>
       <strong>{result.estimateMatch.score}%</strong>
     </div>
 
@@ -859,8 +859,7 @@ async function handleFormalQuoteRequest() {
     </p>
 
     <p className="confidenceComment">
-      AI予想制作時間：{result.vision.estimatedHoursMin}〜{result.vision.estimatedHoursMax}時間<br />
-      システム算出：{result.estimate.estimatedHours}時間
+      概算制作時間：{result.estimate.estimatedHours}時間
     </p>
   </div>
 ) : null}
