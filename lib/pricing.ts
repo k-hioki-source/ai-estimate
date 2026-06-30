@@ -145,7 +145,17 @@ export function calculateEstimate({
   if (style === 'color') styleMultiplier = 1.2;
   if (style === 'real') styleMultiplier = 1.5;
 
-  if (
+ 
+
+  const difficultyMultiplier = getDifficultyMultiplier(score);
+
+  let hours =
+    baseHours *
+    usageMultiplier *
+    styleMultiplier *
+    difficultyMultiplier;
+
+   if (
   usage === 'sales' &&
   style === 'real' &&
   (
@@ -166,14 +176,6 @@ export function calculateEstimate({
 ) {
   hours = Math.max(hours, 8);
 }
-
-  const difficultyMultiplier = getDifficultyMultiplier(score);
-
-  let hours =
-    baseHours *
-    usageMultiplier *
-    styleMultiplier *
-    difficultyMultiplier;
 
   if (
     style === 'real' &&
