@@ -395,10 +395,10 @@ confidenceComment: confidence.comment,
         lineDifficulty: analysis.lineDifficulty,
         structureComplexity: analysis.structureComplexity,
         confidence: 0.7,
+        reason: analysis.summary,
         estimatedHoursMin: analysis.estimatedHoursMin,
 estimatedHours: analysis.estimatedHours,
 estimatedHoursMax: analysis.estimatedHoursMax,
-        reason: analysis.summary,
       },
 
       // ▼ 見積
@@ -417,6 +417,7 @@ estimatedHoursMax: analysis.estimatedHoursMax,
         quantity: input.quantity,
       },
       confidence,
+      estimateMatch,
     });
   } catch (e) {
     console.error(e);
