@@ -270,11 +270,13 @@ if (
   partDensity: analysis.partDensity,
   lineDifficulty: analysis.lineDifficulty,
   structureComplexity: analysis.structureComplexity,
-   isExplodedView: analysis.isExplodedView,
-hasLeaderLines: analysis.hasLeaderLines,
-hasPartNumbers: analysis.hasPartNumbers,
+  isExplodedView: analysis.isExplodedView,
+  hasLeaderLines: analysis.hasLeaderLines,
+  hasPartNumbers: analysis.hasPartNumbers,
   quantity: input.quantity,
-   isIndustrialProduct: analysis.isIndustrialProduct,
+  isIndustrialProduct: analysis.isIndustrialProduct,
+  description: input.notes,
+  notes: input.notes,
 });
 
 const confidence = calculateConfidence({
