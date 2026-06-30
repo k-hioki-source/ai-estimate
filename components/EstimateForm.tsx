@@ -843,29 +843,25 @@ async function handleFormalQuoteRequest() {
               </div>
             </div>
 
-            {result?.confidence ? (
+            {result?.estimateMatch ? (
   <div className="confidenceBox">
     <div className="confidenceHeader">
-      <span>AI見積り精度</span>
-      <strong>{result.confidence.score}%</strong>
+      <span>AI見積り一致度</span>
+      <strong>{result.estimateMatch.score}%</strong>
     </div>
 
     <p className="confidenceLevel">
-      精度：{result.confidence.level}
+      判定：{result.estimateMatch.level}
     </p>
 
     <p className="confidenceComment">
-      {result.confidence.comment}
+      {result.estimateMatch.comment}
     </p>
 
-    <div className="confidenceTips">
-      <strong>さらに精度を上げるには</strong>
-      <ul>
-        {result.confidence.tips.map((tip) => (
-          <li key={tip}>{tip}</li>
-        ))}
-      </ul>
-    </div>
+    <p className="confidenceComment">
+      AI予想制作時間：{result.vision.estimatedHoursMin}〜{result.vision.estimatedHoursMax}時間<br />
+      システム算出：{result.estimate.estimatedHours}時間
+    </p>
   </div>
 ) : null}
             
