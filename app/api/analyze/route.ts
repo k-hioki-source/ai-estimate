@@ -312,13 +312,13 @@ if (minimumHours > 0 && estimate.hours < minimumHours) {
   aiHours?: number;
   aiMaxHours?: number;
 }) {
-  if (!aiHours || aiHours <= 0) {
-    return {
-      score: 70,
-      level: '中',
-      comment: 'AI予想制作時間が不足しているため、概算見積りとして参考値です。',
-    };
-  }
+ if (!aiHours || aiHours <= 0) {
+  return {
+    score: 70,
+    level: '中',
+    comment: '入力内容・参考画像をもとに概算見積りを算出しています。',
+  };
+}
 
   const diffRate = Math.abs(systemHours - aiHours) / aiHours;
 
@@ -326,7 +326,8 @@ if (minimumHours > 0 && estimate.hours < minimumHours) {
   score = Math.max(40, Math.min(98, score));
 
   let level = '中';
-  let comment = 'AI予想制作時間とシステム算出時間にやや差があります。';
+let comment =
+  '入力内容・参考画像をもとに、概算見積りとして参考になる結果です。';
 
   if (
     aiMinHours &&
@@ -336,13 +337,16 @@ if (minimumHours > 0 && estimate.hours < minimumHours) {
   ) {
     score = Math.max(score, 88);
     level = '高';
-    comment = 'AI予想制作時間の範囲内に収まっており、概算見積りとして参考になる結果です。';
+    comment =
+  '入力内容・参考画像を十分に認識したうえで、概算見積りとして参考になる結果です。';
   } else if (score >= 85) {
     level = '高';
-    comment = 'AI予想制作時間とシステム算出時間が近く、概算見積りとして参考になる結果です。';
+    comment =
+  '入力内容・参考画像をもとに、概算見積りとして参考になる結果です。';
   } else if (score < 65) {
     level = '低';
-    comment = 'AI予想制作時間とシステム算出時間に差があるため、正式見積りでの確認をおすすめします。';
+    comment =
+  'AI予想制作時間とシステム算出時間に差があるため、正式見積りでの確認をおすすめします。';
   }
 
   return {
