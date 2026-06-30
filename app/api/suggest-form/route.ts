@@ -119,6 +119,17 @@ export async function POST(req: NextRequest) {
   normalizedMessage.includes('完成予想図') ||
   normalizedMessage.includes('イメージ図');
 
+    const forceRealPresentation =
+  normalizedMessage.includes('解説図') ||
+  normalizedMessage.includes('構造説明') ||
+  normalizedMessage.includes('断面図') ||
+  normalizedMessage.includes('質感') ||
+  normalizedMessage.includes('草') ||
+  normalizedMessage.includes('土') ||
+  normalizedMessage.includes('植栽') ||
+  normalizedMessage.includes('マルチング') ||
+  normalizedMessage.includes('パース');
+
     const forceIsometricIllustration =
   normalizedMessage.includes('アイソメ') ||
   normalizedMessage.includes('アイソメトリック') ||
@@ -273,21 +284,31 @@ ${normalizedMessage}`;
       usage:
   forcePartsCatalog
     ? 'parts'
-    : forceIsometricIllustration || forceBusinessIllustration || forcePonchiHomepage
-      ? 'sales'
-      : forceSales
-        ? 'sales'
-        : normalizeUsage(parsed.usage),
+    : forceRealPresentation
+    ? 'sales'
+    : forceIsometricIllustration ||
+      forceBusinessIllustration ||
+      forcePonchiHomepage
+    ? 'sales'
+    : forceSales
+    ? 'sales'
+    : normalizeUsage(parsed.usage),
 
+      
       style:
   forceLineForParts
     ? 'line'
-    : forceColor || forceIsometricIllustration || forcePonchiHomepage
-      ? 'color'
-      : forceReal
-        ? 'real'
-        : normalizeStyle(parsed.style),
-
+    : forceRealPresentation
+    ? 'real'
+    : forceImageDiagram
+    ? 'real'
+    : forceColor ||
+      forceIsometricIllustration ||
+      forcePonchiHomepage
+    ? 'color'
+    : forceReal
+    ? 'real'
+    : normalizeStyle(parsed.style),
      
       notes: finalNotes,
 
