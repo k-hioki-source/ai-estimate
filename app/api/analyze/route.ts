@@ -278,7 +278,12 @@ if (
   description: input.notes,
   notes: input.notes,
 });
-
+const estimateMatch = calculateEstimateMatch({
+  systemHours: estimate.hours,
+  aiMinHours: analysis.estimatedHoursMin,
+  aiHours: analysis.estimatedHours,
+  aiMaxHours: analysis.estimatedHoursMax,
+});
 const confidence = calculateConfidence({
   difficultyScore: analysis.difficultyScore,
   partDensity: analysis.partDensity,
@@ -294,6 +299,57 @@ if (minimumHours > 0 && estimate.hours < minimumHours) {
   estimate.hours = minimumHours;
   estimate.unitPrice = Math.round(minimumHours * 3000 / 100) * 100;
   estimate.totalPrice = estimate.unitPrice;
+}
+
+    function calculateEstimateMatch({
+  systemHours,
+  aiMinHours,
+  aiHours,
+  aiMaxHours,
+}: {
+  systemHours: number;
+  aiMinHours?: number;
+  aiHours?: number;
+  aiMaxHours?: number;
+}) {
+  if (!aiHours || aiHours <= 0) {
+    return {
+      score: 70,
+      level: '中',
+      comment: 'AI予想制作時間が不足しているため、概算見積りとして参考値です。',
+    };
+  }
+
+  const diffRate = Math.abs(systemHours - aiHours) / aiHours;
+
+  let score = Math.round(100 - diffRate * 100);
+  score = Math.max(40, Math.min(98, score));
+
+  let level = '中';
+  let comment = 'AI予想制作時間とシステム算出時間にやや差があります。';
+
+  if (
+    aiMinHours &&
+    aiMaxHours &&
+    systemHours >= aiMinHours &&
+    systemHours <= aiMaxHours
+  ) {
+    score = Math.max(score, 88);
+    level = '高';
+    comment = 'AI予想制作時間の範囲内に収まっており、概算見積りとして参考になる結果です。';
+  } else if (score >= 85) {
+    level = '高';
+    comment = 'AI予想制作時間とシステム算出時間が近く、概算見積りとして参考になる結果です。';
+  } else if (score < 65) {
+    level = '低';
+    comment = 'AI予想制作時間とシステム算出時間に差があるため、正式見積りでの確認をおすすめします。';
+  }
+
+  return {
+    score,
+    level,
+    comment,
+  };
 }
     
     // -----------------------------
@@ -328,6 +384,7 @@ confidenceComment: confidence.comment,
       // ★ フロント互換（これが無いと落ちる）
       input: {
         requestFormalQuote: input.requestFormalQuote,
+        estimateMatch,
       },
 
       // ▼ AI判定
