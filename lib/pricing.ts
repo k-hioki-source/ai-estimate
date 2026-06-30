@@ -145,6 +145,28 @@ export function calculateEstimate({
   if (style === 'color') styleMultiplier = 1.2;
   if (style === 'real') styleMultiplier = 1.5;
 
+  if (
+  usage === 'sales' &&
+  style === 'real' &&
+  (
+    notes.includes('構造') ||
+    notes.includes('解説図') ||
+    notes.includes('断面') ||
+    notes.includes('土') ||
+    notes.includes('草')
+  )
+) {
+  hours = Math.max(hours, 8);
+}
+
+  if (
+  usage === 'sales' &&
+  style === 'real' &&
+  score >= 60
+) {
+  hours = Math.max(hours, 8);
+}
+
   const difficultyMultiplier = getDifficultyMultiplier(score);
 
   let hours =
