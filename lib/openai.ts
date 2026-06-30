@@ -328,19 +328,32 @@ difficultyScore は
 迷った場合は、
 制作時間が長く掛かる方を選択してください。
 
+estimatedHoursMin / estimatedHours / estimatedHoursMax は、
+経験豊富なイラストレーターが実際に制作する場合の想定制作時間です。
+
+最小・標準・最大の3段階で返してください。
+
+例：
+簡単な写真トレース：0.8〜1.5時間
+標準的な説明図：2〜4時間
+リアルな製品説明図：6〜10時間
+複雑なリアルイラスト：10時間以上
+
 JSONのみで出力してください。
 
 {
-  "workType": "...",
+  "workType": "simple_trace" | "standard_trace" | "technical_drawing" | "realistic_illustration" | "concept_diagram",
   "difficultyScore": number,
   "partDensity": number,
   "lineDifficulty": number,
   "structureComplexity": number,
-
   "isExplodedView": boolean,
   "hasLeaderLines": boolean,
   "hasPartNumbers": boolean,
   "isIndustrialProduct": boolean,
+  "estimatedHoursMin": number,
+  "estimatedHours": number,
+  "estimatedHoursMax": number,
   "summary": string
 }
 
