@@ -30,6 +30,9 @@ function getSourceType(
 }
 
 function calculateConfidence({
+  sourceType,
+  usage,
+  style,
   difficultyScore,
   partDensity,
   lineDifficulty,
@@ -37,7 +40,11 @@ function calculateConfidence({
   summary,
   hasImage,
   hasNotes,
+  workType,
 }: {
+  sourceType: string;
+  usage: string;
+  style: string;
   difficultyScore: number;
   partDensity: number;
   lineDifficulty: number;
@@ -45,52 +52,72 @@ function calculateConfidence({
   summary?: string;
   hasImage: boolean;
   hasNotes: boolean;
+  workType: string;
 }) {
-  let score = 70;
+  let score = 50;
 
-  if (hasImage) score += 10;
+  // 画像あり
+  if (hasImage) score += 15;
+
+  // 備考あり
   if (hasNotes) score += 5;
 
-  if (summary && summary.length >= 20) score += 5;
+  // AIコメントが十分
+  if (summary && summary.length > 40) score += 5;
 
-  const spread = Math.max(
-    partDensity,
-    lineDifficulty,
-    structureComplexity
-  ) - Math.min(
-    partDensity,
-    lineDifficulty,
-    structureComplexity
-  );
+  // 写真トレースは判定しやすい
+  if (sourceType === 'photo_trace') score += 10;
 
-  if (spread <= 25) score += 5;
-  if (spread >= 50) score -= 10;
+  // 線画は判定しやすい
+  if (style === 'line') score += 10;
 
-  if (difficultyScore >= 40 && difficultyScore <= 80) score += 3;
-  if (difficultyScore >= 90) score -= 5;
+  // 単純形状
+  if (difficultyScore <= 45) score += 5;
 
-  score = Math.max(40, Math.min(95, score));
+  // 部品少
+  if (partDensity <= 40) score += 5;
+
+  // 構造単純
+  if (structureComplexity <= 40) score += 5;
+
+  //------------------------------------
+  // 難しい案件は減点
+  //------------------------------------
+
+  if (workType === 'concept_diagram') score -= 15;
+
+  if (style === 'real') score -= 8;
+
+  if (usage === 'sales') score -= 5;
+
+  if (partDensity >= 80) score -= 5;
+
+  if (structureComplexity >= 80) score -= 5;
+
+  score = Math.max(55, Math.min(98, score));
 
   let level = '中';
-  let comment = '概算見積りとして参考になる結果です。';
+  let comment =
+    '入力内容・参考画像をもとに概算見積りを算出しています。';
 
-  if (score >= 80) {
+  if (score >= 90) {
     level = '高';
-    comment = '対象物を認識できており、概算見積りとして十分参考になる結果です。';
+    comment =
+      '対象物を十分認識できており、概算見積りとして信頼できる結果です。';
+  } else if (score >= 75) {
+    level = '高';
+    comment =
+      '入力内容・参考画像をもとに概算見積りとして参考になる結果です。';
   } else if (score < 65) {
     level = '低';
-    comment = '参考情報が少ないため、正式見積りでは金額が変わる可能性があります。';
+    comment =
+      '入力内容によって金額が変わる可能性があります。正式見積りをおすすめします。';
   }
 
   return {
     score,
     level,
     comment,
-    tips: [
-      '参考画像を追加',
-      '使用用途を詳しく入力',
-      '希望する表現方法を指定',
-    ],
   };
 }
 
@@ -285,11 +312,18 @@ const estimateMatch = calculateEstimateMatch({
   aiMaxHours: analysis.estimatedHoursMax,
 });
 const confidence = calculateConfidence({
+  sourceType: input.sourceType,
+  usage: input.usage,
+  style: input.style,
+  workType: analysis.workType,
+
   difficultyScore: analysis.difficultyScore,
   partDensity: analysis.partDensity,
   lineDifficulty: analysis.lineDifficulty,
   structureComplexity: analysis.structureComplexity,
+
   summary: analysis.summary,
+
   hasImage: !!base64,
   hasNotes: !!input.notes,
 });
