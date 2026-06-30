@@ -7,16 +7,18 @@ type ApiResponse = {
     requestFormalQuote: boolean;
   };
   vision: {
-    subjectType: string;
-    complexityScore: number;
-    partDensity: number;
-    occlusion: number;
-    lineDifficulty: number;
-    realismRequirement: number;
-    structureComplexity: number;
-    confidence: number;
-    reason: string;
-  };
+  subjectType: string;
+  complexityScore: number;
+  partDensity: number;
+  lineDifficulty: number;
+  structureComplexity: number;
+  confidence: number;
+  reason: string;
+
+  estimatedHoursMin: number;
+  estimatedHours: number;
+  estimatedHoursMax: number;
+};
   estimate: {
   total: number;
   subtotal: number;
@@ -33,6 +35,11 @@ type ApiResponse = {
   comment: string;
   tips: string[];
 };
+  estimateMatch?: {
+    score: number;
+    level: string;
+    comment: string;
+  };
   error?: string;
 };
 
