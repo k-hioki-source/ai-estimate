@@ -455,7 +455,7 @@ estimatedHoursMax: analysis.estimatedHoursMax,
         quantity: input.quantity,
       },
       confidence,
-      estimateMatch,
+      
     });
   } catch (e) {
     console.error(e);
