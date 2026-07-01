@@ -114,11 +114,32 @@ function calculateConfidence({
       '入力内容によって金額が変わる可能性があります。正式見積りをおすすめします。';
   }
 
+  const points: string[] = [];
+
+if (sourceType === 'photo_trace') points.push('写真・画像トレース');
+if (sourceType === 'reference_drawing') points.push('資料から作図');
+if (sourceType === 'cad_conversion') points.push('3D CADデータ活用');
+
+if (usage === 'manual') points.push('取扱説明書向け');
+if (usage === 'parts') points.push('パーツカタログ向け');
+if (usage === 'sales') points.push('販促・WEB向け');
+
+if (style === 'line') points.push('白黒線画');
+if (style === 'color') points.push('カラーイラスト');
+if (style === 'real') points.push('リアル表現');
+
+if (partDensity >= 60) points.push('部品・要素数が多い');
+if (lineDifficulty >= 60) points.push('線の整理が必要');
+if (structureComplexity >= 60) points.push('構造理解が必要');
+if (workType === 'concept_diagram') points.push('概念図・構成図');
+if (workType === 'realistic_illustration') points.push('質感・陰影表現');
+  
   return {
-    score,
-    level,
-    comment,
-  };
+  score,
+  level,
+  comment,
+  points: points.slice(0, 5),
+};
 }
 
 export async function POST(req: NextRequest) {
