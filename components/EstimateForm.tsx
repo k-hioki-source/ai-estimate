@@ -556,9 +556,9 @@ async function handleFormalQuoteRequest() {
   value={selectedUsage}
   onChange={(e) => setSelectedUsage(e.target.value)}
 >
-                <option value="manual">取扱説明書</option>
-                <option value="parts">パーツカタログ</option>
-                <option value="sales">販促用（リアルイラスト）</option>
+                <option value="manual">取扱説明書・組立説明書・サービスマニュアル</option>
+                <option value="parts">パーツカタログ・分解図・構成図</option>
+                <option value="sales">製品説明・WEBサイト・パンフレット・販促資料</option>
               </select>
             </div>
             <div className="gridSpan2">
