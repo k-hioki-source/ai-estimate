@@ -843,19 +843,19 @@ async function handleFormalQuoteRequest() {
               </div>
             </div>
 
-            {result?.estimateMatch ? (
+           {result?.confidence ? (
   <div className="confidenceBox">
     <div className="confidenceHeader">
       <span>AI見積り信頼度</span>
-      <strong>{result.estimateMatch.score}%</strong>
+      <strong>{result.confidence.score}%</strong>
     </div>
 
     <p className="confidenceLevel">
-      判定：{result.estimateMatch.level}
+      判定：{result.confidence.level}
     </p>
 
     <p className="confidenceComment">
-      {result.estimateMatch.comment}
+      {result.confidence.comment}
     </p>
 
     <p className="confidenceComment">
