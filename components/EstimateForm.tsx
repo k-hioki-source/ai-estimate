@@ -34,6 +34,7 @@ type ApiResponse = {
   level: string;
   comment: string;
   tips: string[];
+  points?: string[];
 };
   estimateMatch?: {
     score: number;
@@ -858,6 +859,17 @@ async function handleFormalQuoteRequest() {
       {result.confidence.comment}
     </p>
 
+    {result.confidence.points && result.confidence.points.length > 0 ? (
+  <div className="confidencePoints">
+    <strong>AIが解析したポイント</strong>
+    <ul>
+      {result.confidence.points.map((point) => (
+        <li key={point}>{point}</li>
+      ))}
+    </ul>
+  </div>
+) : null}
+    
     <p className="confidenceComment">
       概算制作時間：{result.estimate.estimatedHours}時間
     </p>
