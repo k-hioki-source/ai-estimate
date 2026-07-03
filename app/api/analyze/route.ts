@@ -4,6 +4,7 @@ import { analyzeImage } from '../../../lib/openai';
 import { calculateEstimate } from '../../../lib/pricing';
 import fs from 'fs/promises';
 import path from 'path';
+import { createEstimatePdf } from '../../../lib/pdf';
 
 function getString(v: FormDataEntryValue | null): string {
   return typeof v === 'string' ? v : '';
@@ -411,6 +412,24 @@ let comment =
   };
 }
     
+const pdfBuffer = await createEstimatePdf({
+  company: getString(form.get('companyName')),
+  name: getString(form.get('customerName')),
+
+  totalPrice: estimate.totalPrice,
+  estimatedHours: estimate.hours,
+
+  confidenceScore: confidence.score,
+  confidenceLevel: confidence.level,
+
+  sourceType: input.sourceType,
+  usage: input.usage,
+  style: input.style,
+  quantity: input.quantity,
+
+  aiComment: analysis.summary || '',
+  notes: input.notes,
+});
     // -----------------------------
     // レスポンス
     // -----------------------------
@@ -437,6 +456,12 @@ confidenceComment: confidence.comment,
   imageAttachment: {
   filename: attachmentFileName,
   content: base64,
+
+  pdfAttachment: {
+  filename: 'AI概算見積り結果.pdf',
+  content: pdfBuffer.toString('base64'),
+},
+
 },
 });
     return NextResponse.json({
