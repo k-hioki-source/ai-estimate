@@ -90,7 +90,7 @@ ${payload.notes || ''}
 
 ※このメールはAI自動イラスト見積りフォームから自動送信されています。
 `,
-    attachments:
+  
   attachments: [
   ...(payload.imageAttachment
     ? [
