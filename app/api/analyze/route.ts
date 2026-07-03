@@ -456,12 +456,10 @@ confidenceComment: confidence.comment,
   imageAttachment: {
   filename: attachmentFileName,
   content: base64,
-
-  pdfAttachment: {
+},
+pdfAttachment: {
   filename: 'AI概算見積り結果.pdf',
   content: pdfBuffer.toString('base64'),
-},
-
 },
 });
     return NextResponse.json({
