@@ -502,10 +502,16 @@ estimatedHoursMax: analysis.estimatedHoursMax,
       
     });
   } catch (e) {
-    console.error(e);
-    return NextResponse.json(
-      { error: '解析中にエラーが発生しました' },
-      { status: 500 }
-    );
-  }
+  console.error('ANALYZE_ERROR:', e);
+
+  return NextResponse.json(
+    {
+      error:
+        e instanceof Error
+          ? e.message
+          : '解析中にエラーが発生しました',
+    },
+    { status: 500 }
+  );
+}
 }
