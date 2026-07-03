@@ -457,10 +457,10 @@ confidenceComment: confidence.comment,
   filename: attachmentFileName,
   content: base64,
 },
-pdfAttachment: {
-  filename: 'AI概算見積り結果.pdf',
-  content: pdfBuffer.toString('base64'),
-},
+// pdfAttachment: {
+//   filename: 'AI概算見積り結果.pdf',
+//   content: pdfBuffer.toString('base64'),
+// },
 });
     return NextResponse.json({
       // ★ フロント互換（これが無いと落ちる）
