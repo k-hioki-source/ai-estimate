@@ -27,10 +27,7 @@ estimatedHours?: number;
     content: string; // base64
   };
 
-  pdfAttachment?: {
-  filename: string;
-  content: string;
-};
+  
 };
 
 export async function sendNotificationEmail(payload: NotificationPayload) {
@@ -91,25 +88,14 @@ ${payload.notes || ''}
 ※このメールはAI自動イラスト見積りフォームから自動送信されています。
 `,
   
-  attachments: [
-  ...(payload.imageAttachment
-    ? [
-        {
-          filename: payload.imageAttachment.filename,
-          content: payload.imageAttachment.content,
-        },
-      ]
-    : []),
-
-  ...(payload.pdfAttachment
-    ? [
-        {
-          filename: payload.pdfAttachment.filename,
-          content: payload.pdfAttachment.content,
-        },
-      ]
-    : []),
-],
+  attachments: payload.imageAttachment
+  ? [
+      {
+        filename: payload.imageAttachment.filename,
+        content: payload.imageAttachment.content,
+      },
+    ]
+  : undefined,
 });
 
   // =========================
