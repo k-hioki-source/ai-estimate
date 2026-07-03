@@ -1,4 +1,5 @@
 import PDFDocument from 'pdfkit';
+import path from 'path';
 
 type EstimatePdfData = {
   company?: string;
@@ -18,6 +19,15 @@ type EstimatePdfData = {
 export function createEstimatePdf(data: EstimatePdfData): Promise<Buffer> {
   return new Promise((resolve) => {
     const doc = new PDFDocument({ size: 'A4', margin: 42 });
+    const fontPath = path.join(
+  process.cwd(),
+  'public',
+  'fonts',
+  'NotoSansJP-Regular.ttf'
+);
+
+doc.registerFont('JP', fontPath);
+doc.font('JP');
     const chunks: Buffer[] = [];
 
     doc.on('data', (chunk) => chunks.push(chunk));
