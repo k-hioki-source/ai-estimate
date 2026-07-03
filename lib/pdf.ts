@@ -25,6 +25,7 @@ export function createEstimatePdf(data: EstimatePdfData): Promise<Buffer> {
   'fonts',
   'NotoSansJP-Regular.ttf'
 );
+console.log('PDF font path:', fontPath);
 
 doc.registerFont('JP', fontPath);
 doc.font('JP');
