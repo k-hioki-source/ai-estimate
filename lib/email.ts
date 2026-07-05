@@ -16,19 +16,28 @@ export type NotificationPayload = {
   workType?: string;
   difficultyScore?: number;
   confidenceScore?: number;
-confidenceLevel?: string;
-confidenceComment?: string;
-
-aiComment?: string;
-estimatedHours?: number;
+  confidenceLevel?: string;
+  confidenceComment?: string;
+  aiComment?: string;
+  estimatedHours?: number;
 
   imageAttachment?: {
     filename: string;
     content: string; // base64
   };
-
-  
 };
+
+function createEstimateId() {
+  const now = new Date();
+
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  const d = String(now.getDate()).padStart(2, '0');
+
+  const time = String(now.getTime()).slice(-6);
+
+  return `EST-${y}${m}${d}-${time}`;
+}
 
 export async function sendNotificationEmail(payload: NotificationPayload) {
   const apiKey = process.env.RESEND_API_KEY;
@@ -44,6 +53,37 @@ export async function sendNotificationEmail(payload: NotificationPayload) {
 
   const isFormal = payload.requestFormalQuote === true;
 
+  const estimateId = createEstimateId();
+  const submittedAt = new Date().toISOString();
+
+  const difficultyScore =
+    payload.difficultyScore ?? payload.complexityScore ?? null;
+
+  const aiComment =
+    payload.aiComment || payload.aiReason || '';
+
+  const aiEstimateData = {
+    estimateId,
+    submittedAt,
+    companyName: payload.company || '',
+    contactName: payload.name || '',
+    email: payload.email || '',
+    sourceType: payload.sourceType || '',
+    usage: payload.usage || '',
+    style: payload.style || '',
+    quantity: payload.quantity || 1,
+    requestFormalQuote: isFormal,
+    workType: payload.workType || '',
+    difficultyScore,
+    estimatedHours: payload.estimatedHours ?? null,
+    estimatedPrice: payload.totalPrice ?? null,
+    confidenceScore: payload.confidenceScore ?? null,
+    confidenceLevel: payload.confidenceLevel || '',
+    confidenceComment: payload.confidenceComment || '',
+    aiComment,
+    notes: payload.notes || '',
+  };
+
   // =========================
   // ■① 管理者宛メール
   // =========================
@@ -55,6 +95,8 @@ export async function sendNotificationEmail(payload: NotificationPayload) {
       : `【AI概算見積り】${payload.totalPrice?.toLocaleString() ?? ''}円 / 新規送信`,
     text: `
 ${isFormal ? '正式見積り依頼' : 'AI概算見積りフォーム'}から送信がありました。
+
+見積ID：${estimateId}
 
 ■お客様情報
 会社名：${payload.company || ''}
@@ -70,12 +112,12 @@ ${isFormal ? '正式見積り依頼' : 'AI概算見積りフォーム'}から送
 
 ■AI判定
 作業タイプ：${payload.workType || '-'}
-難易度スコア：${payload.complexityScore ?? '-'}
+難易度スコア：${difficultyScore ?? '-'}
 想定制作時間：${payload.estimatedHours ?? '-'}時間
 概算金額：${payload.totalPrice?.toLocaleString() ?? '-'}円
 
 AI判定コメント：
-${payload.aiReason || '-'}
+${aiComment || '-'}
 
 ■AI見積り精度
 精度：${payload.confidenceScore ?? '-'}%
@@ -86,29 +128,32 @@ ${payload.aiReason || '-'}
 ${payload.notes || ''}
 
 ※このメールはAI自動イラスト見積りフォームから自動送信されています。
+
+----- AI_ESTIMATE_DATA_START -----
+${JSON.stringify(aiEstimateData, null, 2)}
+----- AI_ESTIMATE_DATA_END -----
 `,
-  
-  attachments: payload.imageAttachment
-  ? [
-      {
-        filename: payload.imageAttachment.filename,
-        content: payload.imageAttachment.content,
-      },
-    ]
-  : undefined,
-});
+    attachments: payload.imageAttachment
+      ? [
+          {
+            filename: payload.imageAttachment.filename,
+            content: payload.imageAttachment.content,
+          },
+        ]
+      : undefined,
+  });
 
   // =========================
-// ■② ユーザー自動返信
-// =========================
-if (payload.email) {
-  await resend.emails.send({
-    from,
-    to: payload.email,
-    subject: isFormal
-      ? '【自動返信】正式見積りのご依頼を受け付けました'
-      : '【自動返信】AI概算見積り結果のご案内',
-    text: `
+  // ■② ユーザー自動返信
+  // =========================
+  if (payload.email) {
+    await resend.emails.send({
+      from,
+      to: payload.email,
+      subject: isFormal
+        ? '【自動返信】正式見積りのご依頼を受け付けました'
+        : '【自動返信】AI概算見積り結果のご案内',
+      text: `
 ${payload.name || ''} 様
 
 この度は${isFormal ? '正式見積りをご依頼' : 'AI自動イラスト見積りをご利用'}いただき、誠にありがとうございます。
@@ -126,12 +171,12 @@ ${payload.name || ''} 様
 
 ■AI判定
 作業タイプ：${payload.workType || '未判定'}
-難易度スコア：${payload.difficultyScore ?? '-'}
+難易度スコア：${difficultyScore ?? '-'}
 想定制作時間：${payload.estimatedHours ?? '-'}時間
 AI概算金額：約 ${payload.totalPrice?.toLocaleString() ?? '-'} 円
 
 ■AI判定コメント
-${payload.aiComment || '画像とご入力内容をもとに概算金額を算出しました。'}
+${aiComment || '画像とご入力内容をもとに概算金額を算出しました。'}
 
 ■お客様ご入力内容
 ${payload.notes || '未入力'}
@@ -163,8 +208,8 @@ Mobile：090-2943-2763
 https://www.create-support.co.jp/
 ────────────────
 `,
-  });
-}
+    });
+  }
 
   return { ok: true };
 }
