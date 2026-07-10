@@ -183,7 +183,7 @@ export default function AiAssistant({
         .aiAssistRobot {
           display: block;
           width: 100%;
-          max-width: 235px;
+          max-width: 350px;
           max-height: 145px;
           margin: auto auto 0;
           object-fit: contain;
