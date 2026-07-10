@@ -60,8 +60,8 @@ export default function EstimateForm() {
   const [showSamplePanel, setShowSamplePanel] = useState(false);
   const [loading, setLoading] = useState(false);
   const [companyName, setCompanyName] = useState('');
-const [customerName, setCustomerName] = useState('');
-const [email, setEmail] = useState('');
+  const [customerName, setCustomerName] = useState('');
+  const [email, setEmail] = useState('');
   const [assistText, setAssistText] = useState('');
   useEffect(() => {
   const params = new URLSearchParams(window.location.search);
@@ -71,17 +71,19 @@ const [email, setEmail] = useState('');
     setAssistText(agentText);
   }
 }, []);
-const [assistLoading, setAssistLoading] = useState(false);
-const [assistReason, setAssistReason] = useState<string | null>(null);
+  const [assistLoading, setAssistLoading] = useState(false);
+  const [assistReason, setAssistReason] = useState<string | null>(null);
   const [lastFormData, setLastFormData] = useState<FormData | null>(null);
-const [formalSending, setFormalSending] = useState(false);
+  const [formalSending, setFormalSending] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
   const [result, setResult] = useState<ApiResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selectedStyle, setSelectedStyle] = useState<'line' | 'color' | 'real'>('line');
-const [notes, setNotes] = useState('');
+  const [showEstimateForm, setShowEstimateForm] = useState(false);
+  const [suggestCompleted, setSuggestCompleted] = useState(false);
+  const [notes, setNotes] = useState('');
   const [selectedSourceType, setSelectedSourceType] = useState('photo_trace');
-const [selectedUsage, setSelectedUsage] = useState('manual');
+  const [selectedUsage, setSelectedUsage] = useState('manual');
   const difficultyStars = useMemo(
     () => (result ? starText(result.vision.complexityScore) : ''),
     [result]
@@ -222,50 +224,48 @@ async function handleSuggestForm() {
       throw new Error(json.error || 'フォーム提案に失敗しました。');
     }
 
-  if (
-  json.sourceType === 'photo_trace' ||
-  json.sourceType === 'reference_drawing' ||
-  json.sourceType === 'cad_conversion'
-) {
-  setSelectedSourceType(json.sourceType);
-}
+    if (
+      json.sourceType === 'photo_trace' ||
+      json.sourceType === 'reference_drawing' ||
+      json.sourceType === 'cad_conversion'
+    ) {
+      setSelectedSourceType(json.sourceType);
+    }
 
-if (
-  json.usage === 'manual' ||
-  json.usage === 'parts' ||
-  json.usage === 'sales'
-) {
-  setSelectedUsage(json.usage);
-}
+    if (
+      json.usage === 'manual' ||
+      json.usage === 'parts' ||
+      json.usage === 'sales'
+    ) {
+      setSelectedUsage(json.usage);
+    }
 
-if (
-  json.style === 'line' ||
-  json.style === 'color' ||
-  json.style === 'real'
-) {
-  setSelectedStyle(json.style);
-}
+    if (
+      json.style === 'line' ||
+      json.style === 'color' ||
+      json.style === 'real'
+    ) {
+      setSelectedStyle(json.style);
+    }
 
-if (json.notes) {
-  setNotes(json.notes);
-}
+    if (typeof json.notes === 'string') {
+      setNotes(json.notes);
+    }
 
+    setAssistReason(
+      typeof json.reason === 'string' ? json.reason : null
+    );
+    setSuggestCompleted(true);
+    setShowEstimateForm(true);
 
-
-   if (
-  json.style === 'line' ||
-  json.style === 'color' ||
-  json.style === 'real'
-) {
-  setSelectedStyle(json.style);
-}
- 
-
-if (json.notes) {
-  setNotes(json.notes);
-}
-
-    setAssistReason(json.reason);
+    setTimeout(() => {
+      document
+        .getElementById('estimate-form-details')
+        ?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start',
+        });
+    }, 100);
   } catch (e) {
     setError(e instanceof Error ? e.message : '不明なエラーです。');
   } finally {
@@ -276,6 +276,9 @@ if (json.notes) {
 function handleClearForm() {
   setAssistText('');
   setAssistReason(null);
+  setCompanyName('');
+  setCustomerName('');
+  setEmail('');
   setSelectedSourceType('photo_trace');
   setSelectedUsage('manual');
   setSelectedStyle('line');
@@ -285,6 +288,9 @@ function handleClearForm() {
   setResult(null);
   setError(null);
   setLastFormData(null);
+  setShowEstimateForm(false);
+  setSuggestCompleted(false);
+  setShowSamplePanel(false);
 
   const imageInput = document.getElementById('image') as HTMLInputElement | null;
   if (imageInput) {
@@ -443,349 +449,499 @@ async function handleFormalQuoteRequest() {
       <section className="card stackLarge">
         <div className="sectionHeading">
           <div>
-            <div className="eyebrow">入力フォーム</div>
-            <h2 className="sectionTitle">参考画像と条件を入力してください</h2>
+            <div className="eyebrow">AI入力アシスタント</div>
+            <h2 className="sectionTitle">
+              まず、作成したいイラストの内容を文章で入力してください
+            </h2>
           </div>
           <p className="muted compactText">
-            概算のため、ざっくりした情報でも問題ありません。内容確認後に正式なお見積りをご案内できます。
+            AIが制作方法・用途・イラスト表現を提案します。提案後も内容は自由に変更できます。
           </p>
         </div>
 
-        <form
-  className="stack"
-  onSubmit={async (e) => {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    await handleSubmit(formData);
-  }}
->
+        <section className="aiFirstSection">
+          <div className="aiFirstBadge">AIが入力をサポート</div>
 
+          <h3 className="aiFirstTitle">
+            依頼内容を入力するだけで、AIが見積りフォームを自動作成します
+          </h3>
 
-          
-          <div className="grid grid-2">
-            <div>
-              <label htmlFor="companyName">会社名</label>
-             <input
-  id="companyName"
-  name="companyName"
-  placeholder="株式会社◯◯"
-  value={companyName}
-  onChange={(e) => setCompanyName(e.target.value)}
-/>
-            </div>
-            <div>
-              <label htmlFor="customerName">ご担当者名（必須）</label>
-             <input
-  id="customerName"
-  name="customerName"
-  placeholder="山田 太郎"
-  required
-  value={customerName}
-  onChange={(e) => setCustomerName(e.target.value)}
-/>
-            </div>
-            <div>
-              <label htmlFor="email">メールアドレス（必須）</label>
-              <input
-  id="email"
-  type="email"
-  name="email"
-  placeholder="sample@example.com"
-  required
-  value={email}
-  onChange={(e) => setEmail(e.target.value)}
-/>
-            </div>
-            <div>
-              <label htmlFor="quantity">点数</label>
-              <input id="quantity" name="quantity" type="number" min="1" defaultValue="1" required />
-            </div>
+          <p className="aiFirstDescription">
+            作りたいイラストの内容、使用目的、支給できる資料、希望する表現などを、
+            分かる範囲で文章にしてください。
+          </p>
+
+          <div className="aiFirstExamples">
+            <span>入力例</span>
+            <ul>
+              <li>製品写真から取扱説明書用の白黒線画を作りたい</li>
+              <li>図面と写真から製品説明用のカラー断面図を作りたい</li>
+              <li>機械製品の写真からWEB掲載用のリアルイラストを作りたい</li>
+            </ul>
           </div>
 
-                    <div className="assistBox">
-  <div className="assistHead">
-    <div>
-      <div className="eyebrow">AIが入力をサポート</div>
-      <h3 className="assistTitle">依頼内容を文章で入力するだけで、AIが見積りフォームを自動作成します</h3>
-    </div>
-  </div>
+          <textarea
+            id="assistMessage"
+            className="aiFirstTextarea"
+            value={assistText}
+            onChange={(e) => setAssistText(e.target.value)}
+            placeholder="例：図面と写真があります。パーツカタログ用の分解図を白黒線画で作りたいです。"
+          />
 
-  <textarea
-    className="assistTextarea"
-    value={assistText}
-    onChange={(e) => setAssistText(e.target.value)}
-    placeholder="例：図面と写真があります。パーツカタログ用の分解図を白黒線画で作りたいです。"
-  />
+          <button
+            type="button"
+            className="aiFirstButton"
+            onClick={handleSuggestForm}
+            disabled={assistLoading || !assistText.trim()}
+          >
+            {assistLoading
+              ? 'AIが依頼内容を解析しています...'
+              : 'AIが見積りフォームを作成する'}
+          </button>
 
-  <button
-    type="button"
-    className="secondaryButton"
-    onClick={handleSuggestForm}
-    disabled={assistLoading}
-  >
-    {assistLoading ? 'AIが提案中...' : 'AIエージェントにフォーム入力を提案してもらう'}
-  </button>
-
-  {assistReason ? (
-    <p className="assistReason">
-      AI提案理由：{assistReason}
-    </p>
-  ) : null}
-</div>
-
-          <div className="grid grid-2">
-            <div>
-  <label htmlFor="sourceType">制作方法／資料</label>
- <select
-  id="sourceType"
-  name="sourceType"
-  value={selectedSourceType}
-  onChange={(e) => setSelectedSourceType(e.target.value)}
->
-    <option value="photo_trace">写真・画像トレース</option>
-    <option value="reference_drawing">写真・図面・資料から作図</option>
-    <option value="cad_conversion">XVL・3DCADから作成</option>
-  </select>
-</div>
-            
-            <div>
-              <label htmlFor="usage">用途（必須）</label>
-              <select
-  id="usage"
-  name="usage"
-  value={selectedUsage}
-  onChange={(e) => setSelectedUsage(e.target.value)}
->
-                <option value="manual">取扱説明書・組立説明書・サービスマニュアル</option>
-                <option value="parts">パーツカタログ・分解図・構成図</option>
-                <option value="sales">製品説明・WEBサイト・パンフレット・販促資料</option>
-              </select>
+          {assistLoading ? (
+            <div className="aiAnalyzing">
+              <div className="aiAnalyzingSpinner" />
+              <div>
+                <strong>AIが依頼内容を解析しています</strong>
+                <span>制作方法・用途・イラスト表現を判定しています</span>
+              </div>
             </div>
-            <div className="gridSpan2">
-  <label>イラスト表現（必須）</label>
+          ) : null}
 
-  <div className="styleGrid">
-
-    {/* 白黒線画 */}
-    <label className="styleCard">
-      <input
-  type="radio"
-  name="style"
-  value="line"
-  checked={selectedStyle === 'line'}
-  onChange={() => setSelectedStyle('line')}
-/>
-
-      <img
-        src="/samples/line.jpg"
-        alt="白黒線画"
-      />
-
-      <div className="styleBody">
-        <strong>白黒線画</strong>
-
-        <span>
-          取扱説明書・パーツカタログ向け
-        </span>
-      </div>
-    </label>
-
-    {/* カラー */}
-    <label className="styleCard">
-      <input
-  type="radio"
-  name="style"
-  value="color"
-  checked={selectedStyle === 'color'}
-  onChange={() => setSelectedStyle('color')}
-/>
-
-      <img
-        src="/samples/color.jpg"
-        alt="カラーイラスト"
-      />
-
-      <div className="styleBody">
-        <strong>カラーイラスト</strong>
-
-        <span>
-          製品説明・WEB・プレゼン資料向け
-        </span>
-      </div>
-    </label>
-
-    {/* リアル */}
-    <label className="styleCard">
-      <input
-  type="radio"
-  name="style"
-  value="real"
-  checked={selectedStyle === 'real'}
-  onChange={() => setSelectedStyle('real')}
-/>
-
-      <img
-        src="/samples/real.jpg"
-        alt="リアルイラスト"
-      />
-
-      <div className="styleBody">
-        <strong>リアルイラスト</strong>
-
-        <span>
-          販促・広告・メインビジュアル向け
-        </span>
-      </div>
-    </label>
-
-  </div>
-</div>
-            <div>
-              <label htmlFor="size">サイズ感</label>
-              <select id="size" name="size" defaultValue="small">
-                <option value="small">小</option>
-                <option value="medium">中</option>
-                <option value="large">大</option>
-              </select>
+          {suggestCompleted ? (
+            <div className="aiSuggestionComplete">
+              <strong>AIが見積りフォームを作成しました</strong>
+              <span>
+                提案内容を確認し、必要に応じて選択を変更してください。
+              </span>
             </div>
-            <div>
-              <label htmlFor="rush">納期</label>
-              <select id="rush" name="rush" defaultValue="normal">
-                <option value="normal">通常</option>
-                <option value="rush">特急</option>
-              </select>
-            </div>
-   
-  <div className="gridSpan2">
+          ) : null}
 
-  <div className="imageSection">
-
-    <label htmlFor="image">
-      参考画像（画像、図面、写真、原稿、ポンチ絵など）
-    </label>
-
-    <input
-      id="image"
-      name="image"
-      type="file"
-      accept="image/jpeg,image/png,image/webp"
-      onChange={(e) => {
-        const file = e.target.files?.[0];
-
-        if (!file) {
-          setPreview(null);
-          return;
-        }
-
-        setPreview(URL.createObjectURL(file));
-      }}
-    />
-
-    <p className="uploadNotice">
-      <em>
-        ※アップロードいただいた画像・図面データは、お見積り算出の目的にのみ使用いたします。<br />
-        AIの学習データとして利用されることはありません。<br />
-        また、データは一定時間後に自動削除されますので、安心してご利用ください。
-      </em>
-    </p>
-
-    <label className="sampleToggleLabel">
-      <input
-        type="checkbox"
-        checked={showSamplePanel}
-        onChange={(e) => setShowSamplePanel(e.target.checked)}
-      />
-      <span>参考画像をお持ちでない方はこちら</span>
-    </label>
-
-    <p className="muted compactText">
-      参考画像をお持ちでない場合は、チェックを入れて希望に近いサンプルをお選びください。
-    </p>
-
-    {showSamplePanel && (
-      <>
-        <div className="sampleGrid">
-          {sampleImages.map((sample) => (
+          {!showEstimateForm ? (
             <button
-              key={sample.path}
               type="button"
-              className={
-                selectedSample === sample.path
-                  ? 'sampleCard selected'
-                  : 'sampleCard'
-              }
+              className="manualInputButton"
               onClick={() => {
-                setSelectedSample(sample.path);
-                setPreview(sample.path);
+                setSuggestCompleted(false);
+                setShowEstimateForm(true);
+
+                setTimeout(() => {
+                  document
+                    .getElementById('estimate-form-details')
+                    ?.scrollIntoView({
+                      behavior: 'smooth',
+                      block: 'start',
+                    });
+                }, 100);
               }}
             >
-              <img src={sample.path} alt={sample.label} />
-              <span>{sample.label}</span>
+              AIを使わず手動で入力する
             </button>
-          ))}
-        </div>
+          ) : null}
+        </section>
 
-        {selectedSample ? (
-          <input
-            type="hidden"
-            name="sampleImagePath"
-            value={selectedSample}
-          />
-        ) : null}
-      </>
-    )}
+        {showEstimateForm ? (
+          <div id="estimate-form-details" className="estimateFormReveal">
+            <div className="aiSelectedNotice">
+              <div>
+                <strong>
+                  {suggestCompleted
+                    ? 'AIが以下の内容を提案しました'
+                    : '見積り条件を入力してください'}
+                </strong>
+                <span>
+                  選択内容は固定ではありません。必要に応じて自由に変更できます。
+                </span>
+              </div>
 
-  </div>
-</div>
-</div>
-          <div>
-            <label htmlFor="notes">イラストの内容・制作条件（詳しく入力すると見積り精度が向上します）</label>
-            <textarea
-  id="notes"
-  name="notes"
-  value={notes}
-  onChange={(e) => setNotes(e.target.value)}
-  placeholder="例：
+              {suggestCompleted ? (
+                <button
+                  type="button"
+                  className="editAiRequestButton"
+                  onClick={() => {
+                    setShowEstimateForm(false);
+                    setSuggestCompleted(false);
+
+                    window.scrollTo({
+                      top: 0,
+                      behavior: 'smooth',
+                    });
+                  }}
+                >
+                  依頼内容を入力し直す
+                </button>
+              ) : null}
+            </div>
+
+            {suggestCompleted ? (
+              <div className="aiSelectionSummary">
+                <div className="aiSelectionSummaryTitle">AIの提案内容</div>
+
+                <div className="aiSelectionSummaryGrid">
+                  <div>
+                    <span>制作方法／資料</span>
+                    <strong>
+                      {selectedSourceType === 'photo_trace'
+                        ? '写真・画像トレース'
+                        : selectedSourceType === 'reference_drawing'
+                          ? '写真・図面・資料から作図'
+                          : 'XVL・3DCADから作成'}
+                    </strong>
+                  </div>
+
+                  <div>
+                    <span>用途</span>
+                    <strong>
+                      {selectedUsage === 'manual'
+                        ? '取扱説明書・組立説明書・サービスマニュアル'
+                        : selectedUsage === 'parts'
+                          ? 'パーツカタログ・分解図・構成図'
+                          : '製品説明・WEBサイト・パンフレット・販促資料'}
+                    </strong>
+                  </div>
+
+                  <div>
+                    <span>イラスト表現</span>
+                    <strong>
+                      {selectedStyle === 'line'
+                        ? '白黒線画'
+                        : selectedStyle === 'color'
+                          ? 'カラーイラスト'
+                          : 'リアルイラスト'}
+                    </strong>
+                  </div>
+                </div>
+
+                {assistReason ? (
+                  <p className="muted compactText">
+                    AI提案理由：{assistReason}
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
+
+            <form
+              className="stack"
+              onSubmit={async (e) => {
+                e.preventDefault();
+                const formData = new FormData(e.currentTarget);
+                await handleSubmit(formData);
+              }}
+            >
+              <div className="grid grid-2">
+                <div>
+                  <label htmlFor="companyName">会社名</label>
+                  <input
+                    id="companyName"
+                    name="companyName"
+                    placeholder="株式会社◯◯"
+                    value={companyName}
+                    onChange={(e) => setCompanyName(e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="customerName">ご担当者名（必須）</label>
+                  <input
+                    id="customerName"
+                    name="customerName"
+                    placeholder="山田 太郎"
+                    required
+                    value={customerName}
+                    onChange={(e) => setCustomerName(e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="email">メールアドレス（必須）</label>
+                  <input
+                    id="email"
+                    type="email"
+                    name="email"
+                    placeholder="sample@example.com"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="quantity">点数</label>
+                  <input
+                    id="quantity"
+                    name="quantity"
+                    type="number"
+                    min="1"
+                    defaultValue="1"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-2">
+                <div>
+                  <label htmlFor="sourceType">制作方法／資料</label>
+                  <select
+                    id="sourceType"
+                    name="sourceType"
+                    value={selectedSourceType}
+                    onChange={(e) => setSelectedSourceType(e.target.value)}
+                  >
+                    <option value="photo_trace">写真・画像トレース</option>
+                    <option value="reference_drawing">写真・図面・資料から作図</option>
+                    <option value="cad_conversion">XVL・3DCADから作成</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label htmlFor="usage">用途（必須）</label>
+                  <select
+                    id="usage"
+                    name="usage"
+                    value={selectedUsage}
+                    onChange={(e) => setSelectedUsage(e.target.value)}
+                  >
+                    <option value="manual">
+                      取扱説明書・組立説明書・サービスマニュアル
+                    </option>
+                    <option value="parts">
+                      パーツカタログ・分解図・構成図
+                    </option>
+                    <option value="sales">
+                      製品説明・WEBサイト・パンフレット・販促資料
+                    </option>
+                  </select>
+                </div>
+
+                <div className="gridSpan2">
+                  <label>イラスト表現（必須）</label>
+
+                  <div className="styleGrid">
+                    <label className="styleCard">
+                      <input
+                        type="radio"
+                        name="style"
+                        value="line"
+                        checked={selectedStyle === 'line'}
+                        onChange={() => setSelectedStyle('line')}
+                      />
+                      <img src="/samples/line.jpg" alt="白黒線画" />
+                      <div className="styleBody">
+                        <strong>白黒線画</strong>
+                        <span>取扱説明書・パーツカタログ向け</span>
+                      </div>
+                    </label>
+
+                    <label className="styleCard">
+                      <input
+                        type="radio"
+                        name="style"
+                        value="color"
+                        checked={selectedStyle === 'color'}
+                        onChange={() => setSelectedStyle('color')}
+                      />
+                      <img src="/samples/color.jpg" alt="カラーイラスト" />
+                      <div className="styleBody">
+                        <strong>カラーイラスト</strong>
+                        <span>製品説明・WEB・プレゼン資料向け</span>
+                      </div>
+                    </label>
+
+                    <label className="styleCard">
+                      <input
+                        type="radio"
+                        name="style"
+                        value="real"
+                        checked={selectedStyle === 'real'}
+                        onChange={() => setSelectedStyle('real')}
+                      />
+                      <img src="/samples/real.jpg" alt="リアルイラスト" />
+                      <div className="styleBody">
+                        <strong>リアルイラスト</strong>
+                        <span>販促・広告・メインビジュアル向け</span>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+
+                <div>
+                  <label htmlFor="size">サイズ感</label>
+                  <select id="size" name="size" defaultValue="small">
+                    <option value="small">小</option>
+                    <option value="medium">中</option>
+                    <option value="large">大</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label htmlFor="rush">納期</label>
+                  <select id="rush" name="rush" defaultValue="normal">
+                    <option value="normal">通常</option>
+                    <option value="rush">特急</option>
+                  </select>
+                </div>
+
+                <div className="gridSpan2">
+                  <div className="imageSection">
+                    <label htmlFor="image">
+                      参考画像（画像、図面、写真、原稿、ポンチ絵など）
+                    </label>
+
+                    <input
+                      id="image"
+                      name="image"
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+
+                        if (!file) {
+                          setPreview(null);
+                          return;
+                        }
+
+                        setSelectedSample(null);
+                        setPreview(URL.createObjectURL(file));
+                      }}
+                    />
+
+                    <p className="uploadNotice">
+                      <em>
+                        ※アップロードいただいた画像・図面データは、お見積り算出の目的にのみ使用いたします。<br />
+                        AIの学習データとして利用されることはありません。<br />
+                        また、データは一定時間後に自動削除されますので、安心してご利用ください。
+                      </em>
+                    </p>
+
+                    <label className="sampleToggleLabel">
+                      <input
+                        type="checkbox"
+                        checked={showSamplePanel}
+                        onChange={(e) => {
+                          const checked = e.target.checked;
+                          setShowSamplePanel(checked);
+
+                          if (!checked) {
+                            setSelectedSample(null);
+                          }
+                        }}
+                      />
+                      <span>参考画像をお持ちでない方はこちら</span>
+                    </label>
+
+                    <p className="muted compactText">
+                      チェックを入れると、希望に近いサンプル画像を選択できます。
+                    </p>
+
+                    {showSamplePanel ? (
+                      <>
+                        <div className="sampleGrid">
+                          {sampleImages.map((sample) => (
+                            <button
+                              key={sample.path}
+                              type="button"
+                              className={
+                                selectedSample === sample.path
+                                  ? 'sampleCard selected'
+                                  : 'sampleCard'
+                              }
+                              onClick={() => {
+                                setSelectedSample(sample.path);
+                                setPreview(sample.path);
+
+                                const imageInput = document.getElementById(
+                                  'image'
+                                ) as HTMLInputElement | null;
+
+                                if (imageInput) {
+                                  imageInput.value = '';
+                                }
+                              }}
+                            >
+                              <img src={sample.path} alt={sample.label} />
+                              <span>{sample.label}</span>
+                            </button>
+                          ))}
+                        </div>
+
+                        {selectedSample ? (
+                          <input
+                            type="hidden"
+                            name="sampleImagePath"
+                            value={selectedSample}
+                          />
+                        ) : null}
+                      </>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label htmlFor="notes">
+                  イラストの内容・制作条件（詳しく入力すると見積り精度が向上します）
+                </label>
+                <textarea
+                  id="notes"
+                  name="notes"
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder={`例：
 ・分解図
 ・部品点数20点
 ・支給：写真、2D図面、組図
 ・AI納品希望
 ・WEB掲載用
-・リアルタッチ希望"
-/>
+・リアルタッチ希望`}
+                />
+              </div>
+
+              <label className="checkRow">
+                <input
+                  type="checkbox"
+                  name="requestFormalQuote"
+                  value="yes"
+                />
+                <span>概算確認後、そのまま正式見積りも希望する</span>
+              </label>
+
+              {preview ? (
+                <img src={preview} alt="選択中の参考画像" className="preview" />
+              ) : null}
+
+              <div className="formActions">
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="primaryButton"
+                >
+                  {loading
+                    ? 'AIが画像を解析しています...'
+                    : '概算金額を表示する'}
+                </button>
+
+                <button
+                  type="button"
+                  className="clearButton"
+                  onClick={handleClearForm}
+                  disabled={loading}
+                >
+                  入力内容をクリア
+                </button>
+              </div>
+            </form>
+
+            <div className="trustBox">
+              <h3 className="trustTitle">対応実績</h3>
+              <ul className="trustList">
+                <li>自動車・バイク・重機の取扱説明書イラスト</li>
+                <li>パーツカタログ用の分解図・構成図</li>
+                <li>機械部品や設備のリアルイラスト</li>
+              </ul>
+            </div>
           </div>
-
-          <label className="checkRow">
-            <input type="checkbox" name="requestFormalQuote" value="yes" />
-            <span>概算確認後、そのまま正式見積りも希望する</span>
-          </label>
-
-          {preview ? <img src={preview} alt="preview" className="preview" /> : null}
-
-          <div className="formActions">
-  <button type="submit" disabled={loading} className="primaryButton">
-    {loading ? 'AIが画像を解析しています...' : '概算金額を表示する'}
-  </button>
-
-  <button
-    type="button"
-    className="clearButton"
-    onClick={handleClearForm}
-    disabled={loading}
-  >
-    入力内容をクリア
-  </button>
-</div>
-        </form>
-
-        <div className="trustBox">
-          <h3 className="trustTitle">対応実績</h3>
-          <ul className="trustList">
-            <li>自動車・バイク・重機の取扱説明書イラスト</li>
-            <li>パーツカタログ用の分解図・構成図</li>
-            <li>機械部品や設備のリアルイラスト</li>
-          </ul>
-        </div>
+        ) : null}
       </section>
 {loading && (
   <div className="loadingCard">
@@ -834,12 +990,14 @@ async function handleFormalQuoteRequest() {
                   <strong>{result.vision.subjectType}</strong>
                 </div>
                 <div className="summaryItem">
-  <span>難易度スコア</span>
-  <strong>{result.vision.complexityScore}</strong>
-</div>
+                  <span>難易度スコア</span>
+                  <strong>{result.vision.complexityScore}</strong>
+                </div>
                 <div className="summaryItem">
                   <span>難易度</span>
-                  <strong>{difficultyLabel(result.vision.complexityScore)}</strong>
+                  <strong>
+                    {difficultyLabel(result.vision.complexityScore)}
+                  </strong>
                 </div>
               </div>
             </div>
