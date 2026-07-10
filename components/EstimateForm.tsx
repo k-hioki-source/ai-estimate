@@ -144,7 +144,55 @@ async function compressImage(file: File): Promise<File> {
   });
 }
   
+function validateCustomerInfo(): boolean {
+  const customerNameInput = document.getElementById(
+    'customerName'
+  ) as HTMLInputElement | null;
+  const emailInput = document.getElementById(
+    'email'
+  ) as HTMLInputElement | null;
+
+  if (!customerName.trim()) {
+    setError('ご担当者名を入力してください。');
+    customerNameInput?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'center',
+    });
+    customerNameInput?.focus();
+    customerNameInput?.reportValidity();
+    return false;
+  }
+
+  if (!email.trim()) {
+    setError('メールアドレスを入力してください。');
+    emailInput?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'center',
+    });
+    emailInput?.focus();
+    emailInput?.reportValidity();
+    return false;
+  }
+
+  if (emailInput && !emailInput.checkValidity()) {
+    setError('正しい形式のメールアドレスを入力してください。');
+    emailInput.scrollIntoView({
+      behavior: 'smooth',
+      block: 'center',
+    });
+    emailInput.focus();
+    emailInput.reportValidity();
+    return false;
+  }
+
+  return true;
+}
+
 async function handleSubmit(formData: FormData) {
+  if (!validateCustomerInfo()) {
+    return;
+  }
+
   formData.set('companyName', companyName);
   formData.set('customerName', customerName);
   formData.set('email', email);
@@ -206,6 +254,10 @@ if (
 }
 
 async function handleSuggestForm() {
+  if (!validateCustomerInfo()) {
+    return;
+  }
+
   if (!assistText.trim()) {
     setError('依頼内容を入力してください。');
     return;
@@ -470,6 +522,10 @@ async function handleFormalQuoteRequest() {
           onAssistTextChange={setAssistText}
           onSuggest={handleSuggestForm}
           onManualInput={() => {
+            if (!validateCustomerInfo()) {
+              return;
+            }
+
             setSuggestCompleted(false);
             setShowEstimateForm(true);
             setTimeout(() => {
