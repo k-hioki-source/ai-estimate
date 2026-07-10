@@ -334,9 +334,6 @@ async function handleSuggestForm() {
 function handleClearForm() {
   setAssistText('');
   setAssistReason(null);
-  setCompanyName('');
-  setCustomerName('');
-  setEmail('');
   setSelectedSourceType('photo_trace');
   setSelectedUsage('manual');
   setSelectedStyle('line');
