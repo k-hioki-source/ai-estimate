@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import HeaderLinks from "./HeaderLinks";
+import CustomerInfo from "./estimate/CustomerInfo";
+import AiAssistant from "./estimate/AiAssistant";
 type ApiResponse = {
   input: {
     requestFormalQuote: boolean;
@@ -143,6 +145,10 @@ async function compressImage(file: File): Promise<File> {
 }
   
 async function handleSubmit(formData: FormData) {
+  formData.set('companyName', companyName);
+  formData.set('customerName', customerName);
+  formData.set('email', email);
+
 
   const image = formData.get('image');
 const sampleImagePath = formData.get('sampleImagePath');
@@ -447,99 +453,33 @@ async function handleFormalQuoteRequest() {
 </section>
     
       <section className="card stackLarge">
-        <div className="sectionHeading">
-          <div>
-            <div className="eyebrow">AI入力アシスタント</div>
-            <h2 className="sectionTitle">
-              まず、作成したいイラストの内容を文章で入力してください
-            </h2>
-          </div>
-          <p className="muted compactText">
-            AIが制作方法・用途・イラスト表現を提案します。提案後も内容は自由に変更できます。
-          </p>
-        </div>
+        <CustomerInfo
+          companyName={companyName}
+          customerName={customerName}
+          email={email}
+          onCompanyNameChange={setCompanyName}
+          onCustomerNameChange={setCustomerName}
+          onEmailChange={setEmail}
+        />
 
-        <section className="aiFirstSection">
-          <div className="aiFirstBadge">AIが入力をサポート</div>
-
-          <h3 className="aiFirstTitle">
-            依頼内容を入力するだけで、AIが見積りフォームを自動作成します
-          </h3>
-
-          <p className="aiFirstDescription">
-            作りたいイラストの内容、使用目的、支給できる資料、希望する表現などを、
-            分かる範囲で文章にしてください。
-          </p>
-
-          <div className="aiFirstExamples">
-            <span>入力例</span>
-            <ul>
-              <li>製品写真から取扱説明書用の白黒線画を作りたい</li>
-              <li>図面と写真から製品説明用のカラー断面図を作りたい</li>
-              <li>機械製品の写真からWEB掲載用のリアルイラストを作りたい</li>
-            </ul>
-          </div>
-
-          <textarea
-            id="assistMessage"
-            className="aiFirstTextarea"
-            value={assistText}
-            onChange={(e) => setAssistText(e.target.value)}
-            placeholder="例：図面と写真があります。パーツカタログ用の分解図を白黒線画で作りたいです。"
-          />
-
-          <button
-            type="button"
-            className="aiFirstButton"
-            onClick={handleSuggestForm}
-            disabled={assistLoading || !assistText.trim()}
-          >
-            {assistLoading
-              ? 'AIが依頼内容を解析しています...'
-              : 'AIが見積りフォームを作成する'}
-          </button>
-
-          {assistLoading ? (
-            <div className="aiAnalyzing">
-              <div className="aiAnalyzingSpinner" />
-              <div>
-                <strong>AIが依頼内容を解析しています</strong>
-                <span>制作方法・用途・イラスト表現を判定しています</span>
-              </div>
-            </div>
-          ) : null}
-
-          {suggestCompleted ? (
-            <div className="aiSuggestionComplete">
-              <strong>AIが見積りフォームを作成しました</strong>
-              <span>
-                提案内容を確認し、必要に応じて選択を変更してください。
-              </span>
-            </div>
-          ) : null}
-
-          {!showEstimateForm ? (
-            <button
-              type="button"
-              className="manualInputButton"
-              onClick={() => {
-                setSuggestCompleted(false);
-                setShowEstimateForm(true);
-
-                setTimeout(() => {
-                  document
-                    .getElementById('estimate-form-details')
-                    ?.scrollIntoView({
-                      behavior: 'smooth',
-                      block: 'start',
-                    });
-                }, 100);
-              }}
-            >
-              AIを使わず手動で入力する
-            </button>
-          ) : null}
-        </section>
+        <AiAssistant
+          assistText={assistText}
+          assistLoading={assistLoading}
+          suggestCompleted={suggestCompleted}
+          showEstimateForm={showEstimateForm}
+          onAssistTextChange={setAssistText}
+          onSuggest={handleSuggestForm}
+          onManualInput={() => {
+            setSuggestCompleted(false);
+            setShowEstimateForm(true);
+            setTimeout(() => {
+              document.getElementById('estimate-form-details')?.scrollIntoView({
+                behavior: 'smooth',
+                block: 'start',
+              });
+            }, 100);
+          }}
+        />
 
         {showEstimateForm ? (
           <div id="estimate-form-details" className="estimateFormReveal">
@@ -630,42 +570,6 @@ async function handleFormalQuoteRequest() {
               }}
             >
               <div className="grid grid-2">
-                <div>
-                  <label htmlFor="companyName">会社名</label>
-                  <input
-                    id="companyName"
-                    name="companyName"
-                    placeholder="株式会社◯◯"
-                    value={companyName}
-                    onChange={(e) => setCompanyName(e.target.value)}
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="customerName">ご担当者名（必須）</label>
-                  <input
-                    id="customerName"
-                    name="customerName"
-                    placeholder="山田 太郎"
-                    required
-                    value={customerName}
-                    onChange={(e) => setCustomerName(e.target.value)}
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="email">メールアドレス（必須）</label>
-                  <input
-                    id="email"
-                    type="email"
-                    name="email"
-                    placeholder="sample@example.com"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                  />
-                </div>
-
                 <div>
                   <label htmlFor="quantity">点数</label>
                   <input
