@@ -184,7 +184,7 @@ export default function AiAssistant({
           display: block;
           width: 100%;
           max-width: 350px;
-          max-height: 145px;
+          
           margin: auto auto 0;
           object-fit: contain;
           object-position: center bottom;
