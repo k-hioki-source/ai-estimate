@@ -114,8 +114,8 @@ export default function AiAssistant({
           <div className="aiAssistStatus completed">
             <div aria-hidden="true">✓</div>
             <div>
-              <strong>見積りフォームを作成しました</strong>
-              <span>AIの提案内容は、次の画面で自由に変更できます。</span>
+              <strong>AIが見積り条件を設定しました</strong>
+              <span>下に表示された提案内容を確認し、必要に応じて変更してください。</span>
             </div>
           </div>
         ) : null}

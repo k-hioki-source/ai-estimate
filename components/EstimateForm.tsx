@@ -514,6 +514,7 @@ async function handleFormalQuoteRequest() {
           onEmailChange={setEmail}
         />
 
+        <div id="ai-assistant-section">
         <AiAssistant
           assistText={assistText}
           assistLoading={assistLoading}
@@ -536,14 +537,15 @@ async function handleFormalQuoteRequest() {
             }, 100);
           }}
         />
+        </div>
 
         {showEstimateForm ? (
           <div id="estimate-form-details" className="estimateFormReveal">
-            <div className="aiSelectedNotice">
+            <div className="aiSelectedNotice aiSelectedNoticeCard">
               <div>
                 <strong>
                   {suggestCompleted
-                    ? 'AIが以下の内容を提案しました'
+                    ? 'AIが見積り条件を提案しました'
                     : '見積り条件を入力してください'}
                 </strong>
                 <span>
@@ -554,14 +556,14 @@ async function handleFormalQuoteRequest() {
               {suggestCompleted ? (
                 <button
                   type="button"
-                  className="editAiRequestButton"
+                  className="editAiRequestButton editAiRequestButtonPrimary"
                   onClick={() => {
                     setShowEstimateForm(false);
                     setSuggestCompleted(false);
 
-                    window.scrollTo({
-                      top: 0,
+                    document.getElementById('ai-assistant-section')?.scrollIntoView({
                       behavior: 'smooth',
+                      block: 'start',
                     });
                   }}
                 >
@@ -571,11 +573,17 @@ async function handleFormalQuoteRequest() {
             </div>
 
             {suggestCompleted ? (
-              <div className="aiSelectionSummary">
-                <div className="aiSelectionSummaryTitle">AIの提案内容</div>
-
-                <div className="aiSelectionSummaryGrid">
+              <section className="aiProposalCard" aria-labelledby="ai-proposal-title">
+                <div className="aiProposalHeader">
                   <div>
+                    <span className="aiProposalEyebrow">AI SUGGESTION</span>
+                    <h3 id="ai-proposal-title">AIの提案内容</h3>
+                  </div>
+                  <span className="aiProposalStatus">3項目を自動設定</span>
+                </div>
+
+                <div className="aiProposalGrid">
+                  <div className="aiProposalItem">
                     <span>制作方法／資料</span>
                     <strong>
                       {selectedSourceType === 'photo_trace'
@@ -586,7 +594,7 @@ async function handleFormalQuoteRequest() {
                     </strong>
                   </div>
 
-                  <div>
+                  <div className="aiProposalItem">
                     <span>用途</span>
                     <strong>
                       {selectedUsage === 'manual'
@@ -597,7 +605,7 @@ async function handleFormalQuoteRequest() {
                     </strong>
                   </div>
 
-                  <div>
+                  <div className="aiProposalItem">
                     <span>イラスト表現</span>
                     <strong>
                       {selectedStyle === 'line'
@@ -610,12 +618,170 @@ async function handleFormalQuoteRequest() {
                 </div>
 
                 {assistReason ? (
-                  <p className="muted compactText">
-                    AI提案理由：{assistReason}
-                  </p>
+                  <div className="aiProposalReason">
+                    <span className="aiProposalReasonIcon" aria-hidden="true">✦</span>
+                    <div>
+                      <strong>AIの判断理由</strong>
+                      <p>{assistReason}</p>
+                    </div>
+                  </div>
                 ) : null}
-              </div>
+              </section>
             ) : null}
+
+            <style jsx>{`
+              .aiSelectedNoticeCard {
+                margin-bottom: 16px;
+                padding: 16px 18px;
+                border: 1px solid #c8ddf7;
+                border-radius: 16px;
+                background: #f4f8ff;
+              }
+
+              .editAiRequestButtonPrimary {
+                min-height: 42px;
+                padding: 9px 18px;
+                border: 1px solid #1676df;
+                border-radius: 10px;
+                background: #ffffff;
+                color: #1261b8;
+                font-weight: 800;
+                cursor: pointer;
+                transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
+              }
+
+              .editAiRequestButtonPrimary:hover {
+                background: #1676df;
+                color: #ffffff;
+                transform: translateY(-1px);
+              }
+
+              .aiProposalCard {
+                margin-bottom: 22px;
+                padding: 22px;
+                border: 1px solid #cfe0f4;
+                border-radius: 18px;
+                background: linear-gradient(135deg, #f7fbff 0%, #ffffff 72%);
+                box-shadow: 0 10px 28px rgba(34, 79, 130, 0.07);
+              }
+
+              .aiProposalHeader {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 16px;
+                margin-bottom: 16px;
+              }
+
+              .aiProposalEyebrow {
+                display: block;
+                margin-bottom: 4px;
+                color: #1473d4;
+                font-size: 11px;
+                font-weight: 900;
+                letter-spacing: 0.14em;
+              }
+
+              .aiProposalHeader h3 {
+                margin: 0;
+                color: #102f54;
+                font-size: 20px;
+                line-height: 1.4;
+              }
+
+              .aiProposalStatus {
+                flex: 0 0 auto;
+                padding: 7px 11px;
+                border-radius: 999px;
+                background: #e8f3ff;
+                color: #1261b8;
+                font-size: 12px;
+                font-weight: 800;
+              }
+
+              .aiProposalGrid {
+                display: grid;
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+                gap: 12px;
+              }
+
+              .aiProposalItem {
+                min-width: 0;
+                padding: 15px;
+                border: 1px solid #e0e8f2;
+                border-radius: 13px;
+                background: #ffffff;
+              }
+
+              .aiProposalItem span,
+              .aiProposalItem strong {
+                display: block;
+              }
+
+              .aiProposalItem span {
+                margin-bottom: 6px;
+                color: #687b91;
+                font-size: 12px;
+                font-weight: 700;
+              }
+
+              .aiProposalItem strong {
+                color: #132f51;
+                font-size: 14px;
+                line-height: 1.6;
+                overflow-wrap: anywhere;
+              }
+
+              .aiProposalReason {
+                display: flex;
+                gap: 11px;
+                margin-top: 14px;
+                padding: 14px 15px;
+                border-left: 4px solid #1ba9e5;
+                border-radius: 10px;
+                background: #eef9ff;
+              }
+
+              .aiProposalReasonIcon {
+                color: #098ac7;
+                font-size: 18px;
+                line-height: 1.2;
+              }
+
+              .aiProposalReason strong {
+                display: block;
+                margin-bottom: 3px;
+                color: #0e5c90;
+                font-size: 13px;
+              }
+
+              .aiProposalReason p {
+                margin: 0;
+                color: #425d75;
+                font-size: 13px;
+                line-height: 1.75;
+              }
+
+              @media (max-width: 760px) {
+                .aiSelectedNoticeCard,
+                .aiProposalHeader {
+                  align-items: stretch;
+                  flex-direction: column;
+                }
+
+                .editAiRequestButtonPrimary {
+                  width: 100%;
+                }
+
+                .aiProposalGrid {
+                  grid-template-columns: 1fr;
+                }
+
+                .aiProposalStatus {
+                  align-self: flex-start;
+                }
+              }
+            `}</style>
 
             <form
               className="stack"
