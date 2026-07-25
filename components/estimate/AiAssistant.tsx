@@ -35,7 +35,7 @@ export default function AiAssistant({
   return (
     <section className="aiAssistCompact">
       <div className="aiAssistIntro">
-        <div className="aiAssistBadge">STEP 2｜AIに依頼内容を伝える</div>
+        <div className="aiAssistBadge">STEP 1｜AIに依頼内容を伝える</div>
 
         <div className="aiAssistIntroBody">
           <div className="aiAssistCopy">
