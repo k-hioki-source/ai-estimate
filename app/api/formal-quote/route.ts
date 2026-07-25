@@ -59,7 +59,17 @@ export async function POST(req: NextRequest) {
     });
 
     if (!result.ok) {
-      throw new Error('メール送信設定を確認してください。');
+      console.error('正式見積りメール送信エラー', {
+        estimateId: result.estimateId,
+        failedAt: result.failedAt,
+        error: result.error,
+      });
+
+      throw new Error(
+        result.failedAt === 'admin'
+          ? '管理者宛てメールの送信に失敗しました。'
+          : 'お客様宛てメールの送信に失敗しました。'
+      );
     }
 
     return NextResponse.json({

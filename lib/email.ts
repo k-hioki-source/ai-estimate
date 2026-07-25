@@ -88,7 +88,7 @@ export async function sendNotificationEmail(payload: NotificationPayload) {
   // =========================
   // ■① 管理者宛メール
   // =========================
-  await resend.emails.send({
+  const adminResult = await resend.emails.send({
     from,
     to: toAdmin,
     subject: isFormal
@@ -144,11 +144,91 @@ ${JSON.stringify(aiEstimateData, null, 2)}
       : undefined,
   });
 
+  let finalAdminResult = adminResult;
+
+  // 添付ファイルが原因で失敗した場合に備えて、本文のみで1回再送します。
+  if (adminResult.error && payload.imageAttachment) {
+    console.error('管理者宛てメール送信に失敗したため、添付なしで再送します。', {
+      estimateId,
+      toAdmin,
+      error: adminResult.error,
+    });
+
+    finalAdminResult = await resend.emails.send({
+      from,
+      to: toAdmin,
+      subject: isFormal
+        ? `【正式見積り依頼】${payload.totalPrice?.toLocaleString() ?? ''}円 / 新規送信`
+        : `【AI概算見積り】${payload.totalPrice?.toLocaleString() ?? ''}円 / 新規送信`,
+      text: `
+${isFormal ? '正式見積り依頼' : 'AI概算見積りフォーム'}から送信がありました。
+
+見積ID：${estimateId}
+
+■お客様情報
+会社名：${payload.company || ''}
+お名前：${payload.name || ''}
+メール：${payload.email || ''}
+
+■見積り条件
+制作方法：${payload.sourceType || ''}
+用途：${payload.usage || ''}
+表現：${payload.style || ''}
+点数：${payload.quantity || 1}
+正式見積り希望：${payload.requestFormalQuote ? 'あり' : 'なし'}
+
+■AI判定
+作業タイプ：${payload.workType || '-'}
+難易度スコア：${difficultyScore ?? '-'}
+想定制作時間：${payload.estimatedHours ?? '-'}時間
+概算金額：${payload.totalPrice?.toLocaleString() ?? '-'}円
+
+AI判定コメント：
+${aiComment || '-'}
+
+■AI見積り精度
+精度：${payload.confidenceScore ?? '-'}%
+判定：${payload.confidenceLevel || '-'}
+コメント：${payload.confidenceComment || '-'}
+
+■備考
+${payload.notes || ''}
+
+※添付ファイルの送信に失敗したため、本文のみ送信しています。
+
+----- AI_ESTIMATE_DATA_START -----
+${JSON.stringify(aiEstimateData, null, 2)}
+----- AI_ESTIMATE_DATA_END -----
+`,
+    });
+  }
+
+  if (finalAdminResult.error) {
+    console.error('管理者宛てメール送信に失敗しました。', {
+      estimateId,
+      toAdmin,
+      error: finalAdminResult.error,
+    });
+
+    return {
+      ok: false,
+      estimateId,
+      error: finalAdminResult.error,
+      failedAt: 'admin',
+    };
+  }
+
+  console.log('管理者宛てメール送信成功', {
+    estimateId,
+    emailId: finalAdminResult.data?.id,
+    toAdmin,
+  });
+
   // =========================
   // ■② ユーザー自動返信
   // =========================
   if (payload.email) {
-    await resend.emails.send({
+    const customerResult = await resend.emails.send({
       from,
       to: payload.email,
       subject: isFormal
@@ -209,6 +289,26 @@ Mobile：090-2943-2763
 https://www.create-support.co.jp/
 ────────────────
 `,
+    });
+
+    if (customerResult.error) {
+      console.error('お客様宛てメール送信に失敗しました。', {
+        estimateId,
+        customerEmail: payload.email,
+        error: customerResult.error,
+      });
+
+      return {
+        ok: false,
+        estimateId,
+        error: customerResult.error,
+        failedAt: 'customer',
+      };
+    }
+
+    console.log('お客様宛てメール送信成功', {
+      estimateId,
+      emailId: customerResult.data?.id,
     });
   }
 
