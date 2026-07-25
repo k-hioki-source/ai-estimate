@@ -4,23 +4,25 @@ import { useEffect, useMemo, useState } from 'react';
 import HeaderLinks from "./HeaderLinks";
 import AiAssistant from "./estimate/AiAssistant";
 type ApiResponse = {
-  estimateId?: string;
+  estimateId: string;
+
   input: {
     requestFormalQuote: boolean;
   };
-  vision: {
-  subjectType: string;
-  complexityScore: number;
-  partDensity: number;
-  lineDifficulty: number;
-  structureComplexity: number;
-  confidence: number;
-  reason: string;
 
-  estimatedHoursMin: number;
-  estimatedHours: number;
-  estimatedHoursMax: number;
-};
+  vision: {
+    subjectType: string;
+    complexityScore: number;
+    partDensity: number;
+    lineDifficulty: number;
+    structureComplexity: number;
+    confidence: number;
+    reason: string;
+
+    estimatedHoursMin: number;
+    estimatedHours: number;
+    estimatedHoursMax: number;
+  };
   estimate: {
   total: number;
   subtotal: number;
@@ -388,6 +390,7 @@ async function handleFormalQuoteRequest() {
     formData.set('customerName', customerName);
     formData.set('email', email);
     formData.set('requestFormalQuote', 'yes');
+    formData.set('fixedEstimateId', result.estimateId);
     formData.set('fixedEstimateTotal', String(result.estimate.total));
     formData.set('fixedEstimatedHours', String(result.estimate.estimatedHours));
     formData.set('fixedDifficultyScore', String(result.vision.complexityScore));
