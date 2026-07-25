@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import HeaderLinks from "./HeaderLinks";
 import AiAssistant from "./estimate/AiAssistant";
 type ApiResponse = {
+  estimateId?: string;
   input: {
     requestFormalQuote: boolean;
   };
@@ -392,6 +393,38 @@ async function handleFormalQuoteRequest() {
     formData.set('fixedDifficultyScore', String(result.vision.complexityScore));
     formData.set('fixedSubjectType', result.vision.subjectType);
     formData.set('fixedReason', result.vision.reason);
+
+    if (result.estimateId) {
+      formData.set('estimateId', result.estimateId);
+    }
+
+    formData.set('fixedSourceType', selectedSourceType);
+    formData.set('fixedUsage', selectedUsage);
+    formData.set('fixedStyle', selectedStyle);
+    formData.set('fixedQuantity', String(result.estimate.quantity));
+    formData.set('fixedHourlyRate', String(result.estimate.hourlyRate));
+    formData.set('fixedSubtotal', String(result.estimate.subtotal));
+    formData.set('fixedDeliveryDays', result.estimate.deliveryDays);
+    formData.set('fixedPartDensity', String(result.vision.partDensity));
+    formData.set('fixedLineDifficulty', String(result.vision.lineDifficulty));
+    formData.set('fixedStructureComplexity', String(result.vision.structureComplexity));
+    formData.set('fixedVisionConfidence', String(result.vision.confidence));
+
+    if (result.confidence) {
+      formData.set('fixedConfidenceScore', String(result.confidence.score));
+      formData.set('fixedConfidenceLevel', result.confidence.level);
+      formData.set('fixedConfidenceComment', result.confidence.comment);
+      formData.set(
+        'fixedConfidencePoints',
+        JSON.stringify(result.confidence.points || result.confidence.tips || [])
+      );
+    }
+
+    if (result.estimateMatch) {
+      formData.set('fixedEstimateMatchScore', String(result.estimateMatch.score));
+      formData.set('fixedEstimateMatchLevel', result.estimateMatch.level);
+      formData.set('fixedEstimateMatchComment', result.estimateMatch.comment);
+    }
 
     const res = await fetch('/api/formal-quote', {
       method: 'POST',
