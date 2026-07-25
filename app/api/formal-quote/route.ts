@@ -1,4 +1,3 @@
-
 import { NextRequest, NextResponse } from 'next/server';
 import { sendNotificationEmail } from '../../../lib/email';
 
@@ -11,42 +10,46 @@ export async function POST(req: NextRequest) {
     const form = await req.formData();
 
     const file = form.get('image') as File | null;
-    const base64 = file ? Buffer.from(await file.arrayBuffer()).toString('base64') : '';
-
-    const companyName = getString(form.get('companyName'));
-    const customerName = getString(form.get('customerName')).trim();
-    const email = getString(form.get('email')).trim();
-
-    if (!customerName || !email) {
-      return NextResponse.json(
-        { error: 'ご担当者名とメールアドレスを入力してください。' },
-        { status: 400 }
-      );
-    }
+    const base64 = file
+      ? Buffer.from(await file.arrayBuffer()).toString('base64')
+      : '';
 
     const totalPrice = Number(getString(form.get('fixedEstimateTotal')) || '0');
-    const complexityScore = Number(getString(form.get('fixedDifficultyScore')) || '0');
+    const difficultyScore = Number(
+      getString(form.get('fixedDifficultyScore')) || '0'
+    );
+    const estimatedHours = Number(
+      getString(form.get('fixedEstimatedHours')) || '0'
+    );
+    const confidenceScoreText = getString(
+      form.get('fixedConfidenceScore')
+    );
 
-    await sendNotificationEmail({
-      company: companyName,
-      name: customerName,
-      email,
+    const result = await sendNotificationEmail({
+      estimateId: getString(form.get('fixedEstimateId')) || undefined,
+      company: getString(form.get('companyName')),
+      name: getString(form.get('customerName')),
+      email: getString(form.get('email')),
+      sourceType: getString(form.get('sourceType')),
       usage: getString(form.get('usage')),
       style: getString(form.get('style')),
       quantity: Number(getString(form.get('quantity')) || '1'),
-      notes:
-        getString(form.get('notes')) +
-        `
-
-【固定された概算結果】
-作業内容：${getString(form.get('fixedSubjectType'))}
-概算金額：${totalPrice.toLocaleString()}円
-想定制作時間：${getString(form.get('fixedEstimatedHours'))}時間
-難易度スコア：${complexityScore}
-判定理由：${getString(form.get('fixedReason'))}`,
-      complexityScore,
+      notes: getString(form.get('notes')),
+      complexityScore: difficultyScore,
+      difficultyScore,
       totalPrice,
+      estimatedHours,
       requestFormalQuote: true,
+      workType:
+        getString(form.get('fixedWorkType')) ||
+        getString(form.get('fixedSubjectType')),
+      aiReason: getString(form.get('fixedReason')),
+      aiComment: getString(form.get('fixedReason')),
+      confidenceScore: confidenceScoreText
+        ? Number(confidenceScoreText)
+        : undefined,
+      confidenceLevel: getString(form.get('fixedConfidenceLevel')),
+      confidenceComment: getString(form.get('fixedConfidenceComment')),
       imageAttachment: file
         ? {
             filename: file.name || 'image.jpg',
@@ -55,8 +58,13 @@ export async function POST(req: NextRequest) {
         : undefined,
     });
 
+    if (!result.ok) {
+      throw new Error('メール送信設定を確認してください。');
+    }
+
     return NextResponse.json({
       ok: true,
+      estimateId: result.estimateId,
       message: '正式見積り依頼を送信しました。',
     });
   } catch (e) {

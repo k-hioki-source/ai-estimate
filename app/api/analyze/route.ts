@@ -416,7 +416,7 @@ let comment =
     // -----------------------------
     // レスポンス
     // -----------------------------
-    await sendNotificationEmail({
+    const notificationResult = await sendNotificationEmail({
   company: getString(form.get('companyName')),
   name: getString(form.get('customerName')),
   email: getString(form.get('email')),
@@ -444,6 +444,8 @@ confidenceComment: confidence.comment,
 });
     return NextResponse.json({
       // ★ フロント互換（これが無いと落ちる）
+      estimateId: notificationResult.estimateId,
+
       input: {
         requestFormalQuote: input.requestFormalQuote,
         estimateMatch,

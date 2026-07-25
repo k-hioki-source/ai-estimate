@@ -20,6 +20,7 @@ export type NotificationPayload = {
   confidenceComment?: string;
   aiComment?: string;
   estimatedHours?: number;
+  estimateId?: string;
 
   imageAttachment?: {
     filename: string;
@@ -53,7 +54,7 @@ export async function sendNotificationEmail(payload: NotificationPayload) {
 
   const isFormal = payload.requestFormalQuote === true;
 
-  const estimateId = createEstimateId();
+  const estimateId = payload.estimateId || createEstimateId();
   const submittedAt = new Date().toISOString();
 
   const difficultyScore =
@@ -211,5 +212,5 @@ https://www.create-support.co.jp/
     });
   }
 
-  return { ok: true };
+  return { ok: true, estimateId };
 }
