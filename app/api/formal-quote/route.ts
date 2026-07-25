@@ -13,13 +13,24 @@ export async function POST(req: NextRequest) {
     const file = form.get('image') as File | null;
     const base64 = file ? Buffer.from(await file.arrayBuffer()).toString('base64') : '';
 
+    const companyName = getString(form.get('companyName'));
+    const customerName = getString(form.get('customerName')).trim();
+    const email = getString(form.get('email')).trim();
+
+    if (!customerName || !email) {
+      return NextResponse.json(
+        { error: 'ご担当者名とメールアドレスを入力してください。' },
+        { status: 400 }
+      );
+    }
+
     const totalPrice = Number(getString(form.get('fixedEstimateTotal')) || '0');
     const complexityScore = Number(getString(form.get('fixedDifficultyScore')) || '0');
 
     await sendNotificationEmail({
-      company: getString(form.get('companyName')),
-      name: getString(form.get('customerName')),
-      email: getString(form.get('email')),
+      company: companyName,
+      name: customerName,
+      email,
       usage: getString(form.get('usage')),
       style: getString(form.get('style')),
       quantity: Number(getString(form.get('quantity')) || '1'),

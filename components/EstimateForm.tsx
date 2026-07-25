@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import HeaderLinks from "./HeaderLinks";
-import CustomerInfo from "./estimate/CustomerInfo";
 import AiAssistant from "./estimate/AiAssistant";
 type ApiResponse = {
   input: {
@@ -189,14 +188,6 @@ function validateCustomerInfo(): boolean {
 }
 
 async function handleSubmit(formData: FormData) {
-  if (!validateCustomerInfo()) {
-    return;
-  }
-
-  formData.set('companyName', companyName);
-  formData.set('customerName', customerName);
-  formData.set('email', email);
-
 
   const image = formData.get('image');
 const sampleImagePath = formData.get('sampleImagePath');
@@ -254,10 +245,6 @@ if (
 }
 
 async function handleSuggestForm() {
-  if (!validateCustomerInfo()) {
-    return;
-  }
-
   if (!assistText.trim()) {
     setError('依頼内容を入力してください。');
     return;
@@ -377,6 +364,10 @@ function handleClearForm() {
 }
   
 async function handleFormalQuoteRequest() {
+  if (!validateCustomerInfo()) {
+    return;
+  }
+
   if (!lastFormData || !result) {
     setError('送信内容が見つかりません。もう一度概算見積りを実行してください。');
     return;
@@ -392,6 +383,9 @@ async function handleFormalQuoteRequest() {
       formData.append(key, value);
     });
 
+    formData.set('companyName', companyName);
+    formData.set('customerName', customerName);
+    formData.set('email', email);
     formData.set('requestFormalQuote', 'yes');
     formData.set('fixedEstimateTotal', String(result.estimate.total));
     formData.set('fixedEstimatedHours', String(result.estimate.estimatedHours));
@@ -502,14 +496,10 @@ async function handleFormalQuoteRequest() {
 </section>
     
       <section className="card stackLarge">
-        <CustomerInfo
-          companyName={companyName}
-          customerName={customerName}
-          email={email}
-          onCompanyNameChange={setCompanyName}
-          onCustomerNameChange={setCustomerName}
-          onEmailChange={setEmail}
-        />
+        <div className="privacyCollectionNotice">
+          <strong>個人情報の入力なしで、すぐに概算見積りを試せます。</strong>
+          <span>見積り条件・参考画像・AI算出結果は、サービス改善と正式見積り対応のため運営者が収集・確認します。</span>
+        </div>
 
         <div id="ai-assistant-section">
         <AiAssistant
@@ -520,10 +510,6 @@ async function handleFormalQuoteRequest() {
           onAssistTextChange={setAssistText}
           onSuggest={handleSuggestForm}
           onManualInput={() => {
-            if (!validateCustomerInfo()) {
-              return;
-            }
-
             setSuggestCompleted(false);
             setShowEstimateForm(true);
             setTimeout(() => {
@@ -1020,15 +1006,6 @@ async function handleFormalQuoteRequest() {
                 />
               </div>
 
-              <label className="checkRow">
-                <input
-                  type="checkbox"
-                  name="requestFormalQuote"
-                  value="yes"
-                />
-                <span>概算確認後、そのまま正式見積りも希望する</span>
-              </label>
-
               {preview ? (
                 <img src={preview} alt="選択中の参考画像" className="preview" />
               ) : null}
@@ -1203,32 +1180,64 @@ async function handleFormalQuoteRequest() {
 
           <div className="ctaCard card">
             <div>
-              <div className="eyebrow">次のアクション</div>
-              <h3 className="ctaTitle">この内容で正式見積りをご希望の場合</h3>
+              <div className="eyebrow">正式見積り・メール送付</div>
+              <h3 className="ctaTitle">見積り結果をメールで受け取るには、正式見積りをご依頼ください</h3>
               <p className="muted compactText">
-                入力内容はすでに送信されています。内容確認後、通常1営業日以内を目安にご案内できます。
+                会社名・ご担当者名・メールアドレスをご入力いただくと、今回の概算結果をメールでお送りし、同時に正式見積り依頼として受け付けます。
               </p>
             </div>
 
-            <div className="ctaActions">
-              {result.input.requestFormalQuote ? (
-  <div className="ctaButtonLike">
-    正式見積り希望として受付済みです
-  </div>
-) : (
-  <button
-    type="button"
-    className="primaryButton"
-    onClick={handleFormalQuoteRequest}
-    disabled={formalSending}
-  >
-    {formalSending ? '正式見積り依頼を送信中...' : 'この内容で正式見積りを依頼する'}
-  </button>
-)}
-              <p className="footerNote">
-                正式見積り希望にチェックを入れて送信した場合は、参考画像も管理者宛に送信されます。
-              </p>
-            </div>
+            {result.input.requestFormalQuote ? (
+              <div className="ctaButtonLike">
+                正式見積り依頼を受け付けました。概算結果をメールで送信しています。
+              </div>
+            ) : (
+              <div className="formalQuoteForm">
+                <div className="grid grid-2">
+                  <div>
+                    <label htmlFor="formalCompanyName">会社名</label>
+                    <input
+                      id="formalCompanyName"
+                      value={companyName}
+                      onChange={(e) => setCompanyName(e.target.value)}
+                      placeholder="株式会社◯◯"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="customerName">ご担当者名（必須）</label>
+                    <input
+                      id="customerName"
+                      value={customerName}
+                      onChange={(e) => setCustomerName(e.target.value)}
+                      placeholder="山田 太郎"
+                      required
+                    />
+                  </div>
+                  <div className="gridSpan2">
+                    <label htmlFor="email">メールアドレス（必須）</label>
+                    <input
+                      id="email"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="sample@example.com"
+                      required
+                    />
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="primaryButton"
+                  onClick={handleFormalQuoteRequest}
+                  disabled={formalSending}
+                >
+                  {formalSending ? '正式見積り依頼を送信中...' : '概算結果をメールで受け取り、正式見積りを依頼する'}
+                </button>
+                <p className="footerNote">
+                  ※この操作により、入力情報・参考画像・見積り結果が株式会社クリエイトサポートへ送信されます。
+                </p>
+              </div>
+            )}
           </div>
         </section>
       ) : null}
