@@ -220,76 +220,7 @@ const analysis = {
 // 備考による補正（ここ追加）
 // ------------------------
 
-const analysisText = `
-  ${notes ?? ''}
-  ${vision.reason ?? ''}
-  ${vision.aiComment ?? ''}
-`.toLowerCase();
 
-const hasCharacter =
-  analysisText.includes('キャラ') ||
-  analysisText.includes('人物') ||
-  analysisText.includes('女性');
-
-const hasModification =
-  analysisText.includes('改変') ||
-  analysisText.includes('変更') ||
-  analysisText.includes('調整') ||
-  analysisText.includes('描き直し') ||
-  analysisText.includes('ポーズ') ||
-  analysisText.includes('表情') ||
-  analysisText.includes('服装') ||
-  analysisText.includes('髪型');
-
-const hasCharacterModification =
-  hasCharacter && hasModification;
-
-const isComplexColorTrace =
-  sourceType === 'photo_trace' &&
-  usage === 'sales' &&
-  style === 'color' &&
-  vision.complexityScore >= 65;
-
-// 高密度なカラー販促画像トレースの最低工数
-if (isComplexColorTrace) {
-  vision.estimatedHours = Math.max(
-    vision.estimatedHours,
-    18
-  );
-
-  vision.estimatedHoursMin = Math.max(
-    vision.estimatedHoursMin,
-    15
-  );
-
-  vision.estimatedHoursMax = Math.max(
-    vision.estimatedHoursMax,
-    22
-  );
-}
-
-// 人物・キャラクター改変を伴う場合
-if (isComplexColorTrace && hasCharacterModification) {
-  vision.estimatedHours = Math.max(
-    vision.estimatedHours,
-    33
-  );
-
-  vision.estimatedHoursMin = Math.max(
-    vision.estimatedHoursMin,
-    28
-  );
-
-  vision.estimatedHoursMax = Math.max(
-    vision.estimatedHoursMax,
-    38
-  );
-
-  vision.reason =
-    `${vision.reason ?? ''} ` +
-    '既存のカラー画像全体のトレースに加えて人物キャラクターの改変が必要なため、' +
-    '背景、文字、アイコン、レイアウト、人物修正を含む高密度案件として工数を補正しました。';
-}
 
 if (
   input.notes.includes('分解') ||
@@ -369,14 +300,65 @@ if (
 
 const reasonText = analysis.summary || '';
 
+const analysisText = `
+  ${input.notes || ''}
+  ${analysis.summary || ''}
+`.toLowerCase();
+
 let minimumHours = 0;
 
+// オートバイ・自転車などの最低工数
 if (
   reasonText.includes('オートバイ') ||
   reasonText.includes('バイク') ||
   reasonText.includes('自転車')
 ) {
-  minimumHours = 2.5;
+  minimumHours = Math.max(minimumHours, 2.5);
+}
+
+// 人物・キャラクターが含まれるか
+const hasCharacter =
+  analysisText.includes('キャラ') ||
+  analysisText.includes('人物') ||
+  analysisText.includes('女性') ||
+  analysisText.includes('男性');
+
+// キャラクターなどの改変指示があるか
+const hasModification =
+  analysisText.includes('改変') ||
+  analysisText.includes('変更') ||
+  analysisText.includes('修正') ||
+  analysisText.includes('描き直し') ||
+  analysisText.includes('表情') ||
+  analysisText.includes('ポーズ') ||
+  analysisText.includes('髪型') ||
+  analysisText.includes('服装');
+
+// 高密度なカラー画像トレース
+const isComplexColorTrace =
+  input.sourceType === 'photo_trace' &&
+  input.usage === 'sales' &&
+  input.style === 'color' &&
+  analysis.difficultyScore >= 65;
+
+// 高密度カラー画像は最低18時間
+if (isComplexColorTrace) {
+  minimumHours = Math.max(minimumHours, 18);
+}
+
+// キャラクター改変を含む場合は最低33時間
+// 33時間 × 3,000円 ＝ 99,000円
+if (
+  isComplexColorTrace &&
+  hasCharacter &&
+  hasModification
+) {
+  minimumHours = Math.max(minimumHours, 33);
+
+  analysis.summary =
+    `${analysis.summary || ''} ` +
+    '既存のカラー画像全体のトレースに加えて、人物・キャラクターの改変、' +
+    '背景、文字、アイコン、レイアウトの再現が必要な高密度案件として工数を補正しました。';
 }
     
     // -----------------------------
@@ -397,6 +379,46 @@ if (
   isIndustrialProduct: analysis.isIndustrialProduct,
   description: input.notes,
   notes: input.notes,
+});
+// -----------------------------
+// 応急処置：最低工数補正
+// -----------------------------
+if (minimumHours > 0 && estimate.hours < minimumHours) {
+  estimate.hours = minimumHours;
+
+  estimate.unitPrice =
+    Math.round(
+      (minimumHours * estimate.hourlyRate) / 100
+    ) * 100;
+
+  estimate.totalPrice =
+    estimate.unitPrice * input.quantity;
+}
+
+const estimateMatch = calculateEstimateMatch({
+  systemHours: estimate.hours,
+  aiMinHours: analysis.estimatedHoursMin,
+  aiHours: analysis.estimatedHours,
+  aiMaxHours: analysis.estimatedHoursMax,
+});
+
+const confidence = calculateConfidence({
+  sourceType: input.sourceType,
+  usage: input.usage,
+  style: input.style,
+
+  // analysis.workTypeではなく補正後のworkTypeを使用
+  workType,
+
+  difficultyScore: analysis.difficultyScore,
+  partDensity: analysis.partDensity,
+  lineDifficulty: analysis.lineDifficulty,
+  structureComplexity: analysis.structureComplexity,
+
+  summary: analysis.summary,
+
+  hasImage: !!base64,
+  hasNotes: !!input.notes,
 });
 const estimateMatch = calculateEstimateMatch({
   systemHours: estimate.hours,
@@ -422,11 +444,7 @@ const confidence = calculateConfidence({
 });
 
 
-if (minimumHours > 0 && estimate.hours < minimumHours) {
-  estimate.hours = minimumHours;
-  estimate.unitPrice = Math.round(minimumHours * 3000 / 100) * 100;
-  estimate.totalPrice = estimate.unitPrice;
-}
+
 
     function calculateEstimateMatch({
   systemHours,
