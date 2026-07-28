@@ -395,6 +395,7 @@ if (minimumHours > 0 && estimate.hours < minimumHours) {
     estimate.unitPrice * input.quantity;
 }
 
+// estimateMatchはここで1回だけ
 const estimateMatch = calculateEstimateMatch({
   systemHours: estimate.hours,
   aiMinHours: analysis.estimatedHoursMin,
@@ -402,35 +403,12 @@ const estimateMatch = calculateEstimateMatch({
   aiMaxHours: analysis.estimatedHoursMax,
 });
 
+// confidenceも1回だけ
 const confidence = calculateConfidence({
   sourceType: input.sourceType,
   usage: input.usage,
   style: input.style,
-
-  // analysis.workTypeではなく補正後のworkTypeを使用
   workType,
-
-  difficultyScore: analysis.difficultyScore,
-  partDensity: analysis.partDensity,
-  lineDifficulty: analysis.lineDifficulty,
-  structureComplexity: analysis.structureComplexity,
-
-  summary: analysis.summary,
-
-  hasImage: !!base64,
-  hasNotes: !!input.notes,
-});
-const estimateMatch = calculateEstimateMatch({
-  systemHours: estimate.hours,
-  aiMinHours: analysis.estimatedHoursMin,
-  aiHours: analysis.estimatedHours,
-  aiMaxHours: analysis.estimatedHoursMax,
-});
-const confidence = calculateConfidence({
-  sourceType: input.sourceType,
-  usage: input.usage,
-  style: input.style,
-  workType: analysis.workType,
 
   difficultyScore: analysis.difficultyScore,
   partDensity: analysis.partDensity,
