@@ -220,6 +220,77 @@ const analysis = {
 // 備考による補正（ここ追加）
 // ------------------------
 
+const analysisText = `
+  ${notes ?? ''}
+  ${vision.reason ?? ''}
+  ${vision.aiComment ?? ''}
+`.toLowerCase();
+
+const hasCharacter =
+  analysisText.includes('キャラ') ||
+  analysisText.includes('人物') ||
+  analysisText.includes('女性');
+
+const hasModification =
+  analysisText.includes('改変') ||
+  analysisText.includes('変更') ||
+  analysisText.includes('調整') ||
+  analysisText.includes('描き直し') ||
+  analysisText.includes('ポーズ') ||
+  analysisText.includes('表情') ||
+  analysisText.includes('服装') ||
+  analysisText.includes('髪型');
+
+const hasCharacterModification =
+  hasCharacter && hasModification;
+
+const isComplexColorTrace =
+  sourceType === 'photo_trace' &&
+  usage === 'sales' &&
+  style === 'color' &&
+  vision.complexityScore >= 65;
+
+// 高密度なカラー販促画像トレースの最低工数
+if (isComplexColorTrace) {
+  vision.estimatedHours = Math.max(
+    vision.estimatedHours,
+    18
+  );
+
+  vision.estimatedHoursMin = Math.max(
+    vision.estimatedHoursMin,
+    15
+  );
+
+  vision.estimatedHoursMax = Math.max(
+    vision.estimatedHoursMax,
+    22
+  );
+}
+
+// 人物・キャラクター改変を伴う場合
+if (isComplexColorTrace && hasCharacterModification) {
+  vision.estimatedHours = Math.max(
+    vision.estimatedHours,
+    33
+  );
+
+  vision.estimatedHoursMin = Math.max(
+    vision.estimatedHoursMin,
+    28
+  );
+
+  vision.estimatedHoursMax = Math.max(
+    vision.estimatedHoursMax,
+    38
+  );
+
+  vision.reason =
+    `${vision.reason ?? ''} ` +
+    '既存のカラー画像全体のトレースに加えて人物キャラクターの改変が必要なため、' +
+    '背景、文字、アイコン、レイアウト、人物修正を含む高密度案件として工数を補正しました。';
+}
+
 if (
   input.notes.includes('分解') ||
   input.notes.includes('断面') ||
