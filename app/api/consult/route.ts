@@ -5,7 +5,6 @@ import { Resend } from 'resend';
 
 export const runtime = 'nodejs';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
 
 type ConsultRequest = {
   estimateId?: string;
@@ -71,6 +70,21 @@ function displayValue(value: unknown, fallback = '未入力'): string {
 
 export async function POST(request: Request) {
   try {
+
+    const apiKey = process.env.RESEND_API_KEY;
+
+    if (!apiKey) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'RESEND_API_KEY が設定されていません。',
+        },
+        { status: 500 }
+      );
+    }
+
+    const resend = new Resend(apiKey);
+
     const body = (await request.json()) as ConsultRequest;
 
     const estimateId = body.estimateId?.trim() || '見積IDなし';
