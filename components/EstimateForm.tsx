@@ -79,6 +79,9 @@ export default function EstimateForm() {
   const [assistReason, setAssistReason] = useState<string | null>(null);
   const [lastFormData, setLastFormData] = useState<FormData | null>(null);
   const [formalSending, setFormalSending] = useState(false);
+  const [consultationMessage, setConsultationMessage] = useState('');
+  const [consultSending, setConsultSending] = useState(false);
+  const [consultSent, setConsultSent] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
   const [result, setResult] = useState<ApiResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -333,6 +336,8 @@ function handleClearForm() {
   setResult(null);
   setError(null);
   setLastFormData(null);
+  setConsultationMessage('');
+  setConsultSent(false);
   setShowEstimateForm(false);
   setSuggestCompleted(false);
   setShowSamplePanel(false);
@@ -366,6 +371,82 @@ function handleClearForm() {
   }
 }
   
+async function handleConsultRequest() {
+  if (!validateCustomerInfo()) {
+    return;
+  }
+
+  if (!result) {
+    setError('見積り結果が見つかりません。もう一度概算見積りを実行してください。');
+    return;
+  }
+
+  if (!consultationMessage.trim()) {
+    setError('相談内容を入力してください。');
+    document.getElementById('consultationMessage')?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'center',
+    });
+    document.getElementById('consultationMessage')?.focus();
+    return;
+  }
+
+  setConsultSending(true);
+  setError(null);
+
+  try {
+    const res = await fetch('/api/consult', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        estimateId: result.estimateId,
+        company: companyName,
+        name: customerName,
+        email,
+        consultationMessage: consultationMessage.trim(),
+        productionMethod: selectedSourceType,
+        usage: selectedUsage,
+        style: selectedStyle,
+        quantity: result.estimate.quantity,
+        sourceType: selectedSourceType,
+        notes,
+        workType: result.vision.subjectType,
+        difficultyScore: result.vision.complexityScore,
+        estimatedHours: result.estimate.estimatedHours,
+        estimatedHoursMin: result.vision.estimatedHoursMin,
+        estimatedHoursMax: result.vision.estimatedHoursMax,
+        totalPrice: result.estimate.total,
+        confidenceScore: result.confidence?.score,
+        confidenceLevel: result.confidence?.level,
+        confidenceComment: result.confidence?.comment,
+        aiReason: result.vision.reason,
+        imageFilename: selectedSample || undefined,
+      }),
+    });
+
+    const text = await res.text();
+    let json: { success?: boolean; error?: string; message?: string };
+
+    try {
+      json = JSON.parse(text);
+    } catch {
+      throw new Error(text || '相談内容の送信に失敗しました。');
+    }
+
+    if (!res.ok) {
+      throw new Error(json.error || '相談内容の送信に失敗しました。');
+    }
+
+    setConsultSent(true);
+  } catch (e) {
+    setError(e instanceof Error ? e.message : '不明なエラーです。');
+  } finally {
+    setConsultSending(false);
+  }
+}
+
 async function handleFormalQuoteRequest() {
   if (!validateCustomerInfo()) {
     return;
@@ -1265,13 +1346,96 @@ async function handleFormalQuoteRequest() {
                   type="button"
                   className="primaryButton"
                   onClick={handleFormalQuoteRequest}
-                  disabled={formalSending}
+                  disabled={formalSending || consultSending}
                 >
                   {formalSending ? '正式見積り依頼を送信中...' : '概算結果をメールで受け取り、正式見積りを依頼する'}
                 </button>
+
+                <div className="consultDivider" aria-hidden="true">
+                  <span>または</span>
+                </div>
+
+                {consultSent ? (
+                  <div className="ctaButtonLike">
+                    制作相談を受け付けました。確認メールを送信しています。
+                  </div>
+                ) : (
+                  <div className="consultForm">
+                    <label htmlFor="consultationMessage">
+                      相談内容（必須）
+                    </label>
+                    <textarea
+                      id="consultationMessage"
+                      value={consultationMessage}
+                      onChange={(e) => setConsultationMessage(e.target.value)}
+                      placeholder="例：この内容で制作可能か、正式見積りの前に相談したいです。納期や制作方法についても教えてください。"
+                    />
+                    <button
+                      type="button"
+                      className="consultButton"
+                      onClick={handleConsultRequest}
+                      disabled={consultSending || formalSending}
+                    >
+                      {consultSending ? '相談内容を送信中...' : 'この見積り内容について相談する'}
+                    </button>
+                  </div>
+                )}
+
                 <p className="footerNote">
                   ※この操作により、入力情報・参考画像・見積り結果が株式会社クリエイトサポートへ送信されます。
                 </p>
+
+                <style jsx>{`
+                  .consultDivider {
+                    display: flex;
+                    align-items: center;
+                    gap: 12px;
+                    margin: 18px 0;
+                    color: #718096;
+                    font-size: 13px;
+                    font-weight: 700;
+                  }
+
+                  .consultDivider::before,
+                  .consultDivider::after {
+                    content: '';
+                    flex: 1;
+                    height: 1px;
+                    background: #d9e2ec;
+                  }
+
+                  .consultForm {
+                    display: grid;
+                    gap: 10px;
+                  }
+
+                  .consultForm textarea {
+                    min-height: 120px;
+                    resize: vertical;
+                  }
+
+                  .consultButton {
+                    width: 100%;
+                    min-height: 48px;
+                    padding: 12px 18px;
+                    border: 1px solid #1676df;
+                    border-radius: 10px;
+                    background: #ffffff;
+                    color: #1261b8;
+                    font-size: 15px;
+                    font-weight: 800;
+                    cursor: pointer;
+                  }
+
+                  .consultButton:hover:not(:disabled) {
+                    background: #eef6ff;
+                  }
+
+                  .consultButton:disabled {
+                    cursor: not-allowed;
+                    opacity: 0.65;
+                  }
+                `}</style>
               </div>
             )}
           </div>
