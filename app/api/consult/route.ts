@@ -61,7 +61,7 @@ function formatNumber(value: unknown): string {
   return number.toLocaleString('ja-JP');
 }
 
-function displayValue(value: unknown, fallback = '$FFFD$FFFD$FFFD$FFFD$FFFD$FFFD'): string {
+function displayValue(value: unknown, fallback = '未入力'): string {
   if (value === undefined || value === null || value === '') {
     return fallback;
   }
@@ -73,7 +73,7 @@ export async function POST(request: Request) {
   try {
     const body = (await request.json()) as ConsultRequest;
 
-    const estimateId = body.estimateId?.trim() || '$FFFD$FFFD$FFFD$FFFDID$FFFD$0202$FFFD';
+    const estimateId = body.estimateId?.trim() || '見積IDなし';
     const company = body.company?.trim() || '';
     const name = body.name?.trim() || '';
     const email = body.email?.trim() || '';
@@ -84,7 +84,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           success: false,
-          error: '$FFFD$FFFD$FFFD[$FFFD$FFFD$FFFDA$FFFDh$FFFD$FFFD$FFFDX$FFFD$FFFD$FFFD$FFFD$0342$FFFD$FFFD$0102$FFFD$FFFD$FFFD$FFFD$FFFD$FFFD$FFFD$FFFDB',
+          error: 'メールアドレスを入力してください。',
         },
         { status: 400 }
       );
@@ -94,7 +94,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           success: false,
-          error: '$FFFD$FFFD$FFFDk$FFFD$FFFDe$FFFD$FFFD$FFFD$FFFD$0342$FFFD$FFFD$0102$FFFD$FFFD$FFFD$FFFD$FFFD$FFFD$FFFD$FFFDB',
+          error: '相談内容を入力してください。',
         },
         { status: 400 }
       );
@@ -107,32 +107,32 @@ export async function POST(request: Request) {
 
     const fromEmail =
       process.env.RESEND_FROM_EMAIL ||
-      'AI$FFFD$FFFD$FFFD$FFFD$FFFD$FFFD$FFFD$03C2$FFFD <noreply@estimate.create-support.co.jp>';
+      'AI自動見積り <noreply@estimate.create-support.co.jp>';
 
     const totalPriceText =
       body.totalPrice !== undefined && body.totalPrice !== null
-        ? `${formatNumber(body.totalPrice)}$FFFD~`
-        : '$FFFD$FFFD$FFFDZ$FFFDo';
+        ? `${formatNumber(body.totalPrice)}円`
+        : '未算出';
 
     const estimatedHoursText =
       body.estimatedHours !== undefined && body.estimatedHours !== null
-        ? `${formatNumber(body.estimatedHours)}$FFFD$FFFD$FFFD$FFFD`
-        : '$FFFD$FFFD$FFFDZ$FFFDo';
+        ? `${formatNumber(body.estimatedHours)}時間`
+        : '未算出';
 
     const estimatedRangeText =
       body.estimatedHoursMin !== undefined ||
       body.estimatedHoursMax !== undefined
-        ? `${formatNumber(body.estimatedHoursMin)}$FFFD`${formatNumber(
+        ? `${formatNumber(body.estimatedHoursMin)}～${formatNumber(
             body.estimatedHoursMax
-          )}$FFFD$FFFD$FFFD$FFFD`
-        : '$FFFD$FFFD$FFFDZ$FFFDo';
+          )}時間`
+        : '未算出';
 
     const adminHtml = `
       <div style="font-family: Arial, Helvetica, sans-serif; line-height: 1.7; color: #222;">
-        <h2 style="margin-bottom: 20px;">AI$FFFDT$FFFDZ$FFFD$FFFD$FFFD$03C2肩$FFFD$744A$FFFDk$FFFD$FFFD$FFFD$FFFD$FFFD$FFFD$0702$FFFD$FFFD$FFFD</h2>
+        <h2 style="margin-bottom: 20px;">AI概算見積りから相談がありました</h2>
 
         <h3 style="border-bottom: 1px solid #ddd; padding-bottom: 8px;">
-          $FFFD$FFFD$FFFDk$FFFD$FFFDe
+          相談内容
         </h3>
 
         <p style="white-space: pre-wrap; background: #f7f7f7; padding: 16px; border-radius: 6px;">
@@ -140,82 +140,82 @@ export async function POST(request: Request) {
         </p>
 
         <h3 style="border-bottom: 1px solid #ddd; padding-bottom: 8px;">
-          $FFFD$FFFD$FFFDq$FFFDl$FFFD$FFFD$FFFD
+          お客様情報
         </h3>
 
         <table style="border-collapse: collapse; width: 100%; max-width: 720px;">
           <tbody>
             <tr>
-              <th style="text-align: left; padding: 8px; border: 1px solid #ddd; width: 180px;">$FFFD$FFFDЖ$FFFD</th>
+              <th style="text-align: left; padding: 8px; border: 1px solid #ddd; width: 180px;">会社名</th>
               <td style="padding: 8px; border: 1px solid #ddd;">${displayValue(company)}</td>
             </tr>
             <tr>
-              <th style="text-align: left; padding: 8px; border: 1px solid #ddd;">$FFFD$FFFD$FFFD$FFFD$FFFDO</th>
+              <th style="text-align: left; padding: 8px; border: 1px solid #ddd;">お名前</th>
               <td style="padding: 8px; border: 1px solid #ddd;">${displayValue(name)}</td>
             </tr>
             <tr>
-              <th style="text-align: left; padding: 8px; border: 1px solid #ddd;">$FFFD$FFFD$FFFD[$FFFD$FFFD</th>
+              <th style="text-align: left; padding: 8px; border: 1px solid #ddd;">メール</th>
               <td style="padding: 8px; border: 1px solid #ddd;">${escapeHtml(email)}</td>
             </tr>
             <tr>
-              <th style="text-align: left; padding: 8px; border: 1px solid #ddd;">$FFFDd$FFFDb$FFFD$050D$FFFD</th>
+              <th style="text-align: left; padding: 8px; border: 1px solid #ddd;">電話番号</th>
               <td style="padding: 8px; border: 1px solid #ddd;">${displayValue(phone)}</td>
             </tr>
           </tbody>
         </table>
 
         <h3 style="border-bottom: 1px solid #ddd; padding-bottom: 8px; margin-top: 28px;">
-          AI$FFFD$FFFD$FFFD$03C2$FFFD$FFFD$FFFD
+          AI見積り情報
         </h3>
 
         <table style="border-collapse: collapse; width: 100%; max-width: 720px;">
           <tbody>
             <tr>
-              <th style="text-align: left; padding: 8px; border: 1px solid #ddd; width: 180px;">$FFFD$FFFD$FFFD$FFFDID</th>
+              <th style="text-align: left; padding: 8px; border: 1px solid #ddd; width: 180px;">見積ID</th>
               <td style="padding: 8px; border: 1px solid #ddd;">${escapeHtml(estimateId)}</td>
             </tr>
             <tr>
-              <th style="text-align: left; padding: 8px; border: 1px solid #ddd;">$FFFD$FFFD$FFFD$FFFD$FFFD$FFFD@</th>
+              <th style="text-align: left; padding: 8px; border: 1px solid #ddd;">制作方法</th>
               <td style="padding: 8px; border: 1px solid #ddd;">${displayValue(body.productionMethod)}</td>
             </tr>
             <tr>
-              <th style="text-align: left; padding: 8px; border: 1px solid #ddd;">$FFFDp$FFFDr</th>
+              <th style="text-align: left; padding: 8px; border: 1px solid #ddd;">用途</th>
               <td style="padding: 8px; border: 1px solid #ddd;">${displayValue(body.usage)}</td>
             </tr>
             <tr>
-              <th style="text-align: left; padding: 8px; border: 1px solid #ddd;">$FFFD\$FFFD$FFFD</th>
+              <th style="text-align: left; padding: 8px; border: 1px solid #ddd;">表現</th>
               <td style="padding: 8px; border: 1px solid #ddd;">${displayValue(body.style)}</td>
             </tr>
             <tr>
-              <th style="text-align: left; padding: 8px; border: 1px solid #ddd;">$FFFD_$FFFD$FFFD</th>
+              <th style="text-align: left; padding: 8px; border: 1px solid #ddd;">点数</th>
               <td style="padding: 8px; border: 1px solid #ddd;">${displayValue(body.quantity)}</td>
             </tr>
             <tr>
-              <th style="text-align: left; padding: 8px; border: 1px solid #ddd;">$FFFD$FFFD$FFFD$FFFD$FFFD$FFFD$FFFD</th>
+              <th style="text-align: left; padding: 8px; border: 1px solid #ddd;">資料種別</th>
               <td style="padding: 8px; border: 1px solid #ddd;">${displayValue(body.sourceType)}</td>
             </tr>
             <tr>
-              <th style="text-align: left; padding: 8px; border: 1px solid #ddd;">$FFFD$FFFD$0183^$FFFDC$FFFDv</th>
+              <th style="text-align: left; padding: 8px; border: 1px solid #ddd;">作業タイプ</th>
               <td style="padding: 8px; border: 1px solid #ddd;">${displayValue(body.workType)}</td>
             </tr>
             <tr>
-              <th style="text-align: left; padding: 8px; border: 1px solid #ddd;">$FFFD$FFFD$0553x$FFFDX$FFFDR$FFFDA</th>
+              <th style="text-align: left; padding: 8px; border: 1px solid #ddd;">難易度スコア</th>
               <td style="padding: 8px; border: 1px solid #ddd;">${displayValue(body.difficultyScore)}</td>
             </tr>
             <tr>
-              <th style="text-align: left; padding: 8px; border: 1px solid #ddd;">$FFFDz$FFFD$8427$FFFD$C39E$FFFD$FFFD</th>
+              <th style="text-align: left; padding: 8px; border: 1px solid #ddd;">想定制作時間</th>
               <td style="padding: 8px; border: 1px solid #ddd;">${escapeHtml(estimatedHoursText)}</td>
             </tr>
             <tr>
-              <th style="text-align: left; padding: 8px; border: 1px solid #ddd;">$FFFDz$FFFD莞$FFFD$0514$0348$FFFD</th>
+              <th style="text-align: left; padding: 8px; border: 1px solid #ddd;">想定時間範囲</th>
               <td style="padding: 8px; border: 1px solid #ddd;">${escapeHtml(estimatedRangeText)}</td>
             </tr>
             <tr>
-              <th style="text-align: left; padding: 8px; border: 1px solid #ddd;">$FFFDT$FFFDZ$FFFD$FFFDz</th>
+              <th style="text-align: left; padding: 8px; border: 1px solid #ddd;">概算金額</th>
               <td style="padding: 8px; border: 1px solid #ddd;">${escapeHtml(totalPriceText)}</td>
             </tr>
             <tr>
-              <th style="text-align: left; padding: 8px; border: 1px solid #ddd;">AI$FFFD$FFFD$FFFD$03C2萸$FFFDx</th>
+              <th style="text-align: left; padding: 8px; border: 1px solid #ddd;">AI見積り精度</th>
               <td style="padding: 8px; border: 1px solid #ddd;">
                 ${displayValue(body.confidenceScore)}
                 ${
@@ -224,14 +224,14 @@ export async function POST(request: Request) {
                     ? '%'
                     : ''
                 }
-                ${body.confidenceLevel ? `$FFFDi${escapeHtml(body.confidenceLevel)}$FFFDj` : ''}
+                ${body.confidenceLevel ? `（${escapeHtml(body.confidenceLevel)}）` : ''}
               </td>
             </tr>
           </tbody>
         </table>
 
         <h3 style="border-bottom: 1px solid #ddd; padding-bottom: 8px; margin-top: 28px;">
-          AI$FFFD$FFFD$FFFD$FFFDR$FFFD$FFFD$FFFD$FFFD$FFFDg
+          AI判定コメント
         </h3>
 
         <p style="white-space: pre-wrap;">
@@ -239,7 +239,7 @@ export async function POST(request: Request) {
         </p>
 
         <h3 style="border-bottom: 1px solid #ddd; padding-bottom: 8px; margin-top: 28px;">
-          AI$FFFDR$FFFD$FFFD$FFFD$FFFD$FFFDg
+          AIコメント
         </h3>
 
         <p style="white-space: pre-wrap;">
@@ -247,7 +247,7 @@ export async function POST(request: Request) {
         </p>
 
         <h3 style="border-bottom: 1px solid #ddd; padding-bottom: 8px; margin-top: 28px;">
-          $FFFD$FFFD$FFFDx$FFFDR$FFFD$FFFD$FFFD$FFFD$FFFDg
+          精度コメント
         </h3>
 
         <p style="white-space: pre-wrap;">
@@ -255,7 +255,7 @@ export async function POST(request: Request) {
         </p>
 
         <h3 style="border-bottom: 1px solid #ddd; padding-bottom: 8px; margin-top: 28px;">
-          $FFFD$FFFD$FFFDq$FFFDl$FFFD$FFFD$FFFD$0353$FFFDe
+          お客様入力内容
         </h3>
 
         <p style="white-space: pre-wrap;">
@@ -266,11 +266,11 @@ export async function POST(request: Request) {
           body.imageUrl
             ? `
               <h3 style="border-bottom: 1px solid #ddd; padding-bottom: 8px; margin-top: 28px;">
-                $FFFDQ$FFFDl$FFFD$645C
+                参考画像
               </h3>
               <p>
                 <a href="${escapeHtml(body.imageUrl)}" target="_blank" rel="noopener noreferrer">
-                  ${escapeHtml(body.imageFilename || '$FFFDQ$FFFDl$FFFD$645C$FFFD$FFFDJ$FFFD$FFFD')}
+                  ${escapeHtml(body.imageFilename || '参考画像を開く')}
                 </a>
               </p>
             `
@@ -281,20 +281,20 @@ export async function POST(request: Request) {
 
     const customerHtml = `
       <div style="font-family: Arial, Helvetica, sans-serif; line-height: 1.8; color: #222;">
-        <p>${escapeHtml(name || '$FFFD$FFFD$FFFDq$FFFDl')}</p>
+        <p>${escapeHtml(name || 'お客様')}</p>
 
         <p>
-          $FFFD$FFFD$FFFD$0302$FFFD$FFFDт$0341A$FFFD$FFFD$FFFD$FFFD$FFFD$FFFD$0403N$FFFD$FFFD$FFFDG$FFFDC$FFFDg$FFFDT$FFFD|$FFFD[$FFFDg$FFFD$FFFDAI$FFFDT$FFFDZ$FFFD$FFFD$FFFD$03C2$FFFD$FFFD$FFFD$FFFD$FFFD$FFFDp$FFFD$FFFD$FFFD$FFFD$FFFD$FFFD$FFFD$FFFD$FFFDA
-          $FFFD$FFFD$FFFD肪$FFFD$0182$FFFD$FFFD$FFFD$FFFD$FFFD$FFFD$FFFD$FFFD$0702$FFFD$FFFDB
+          このたびは、株式会社クリエイトサポートのAI概算見積りをご利用いただき、
+          ありがとうございます。
         </p>
 
         <p>
-          $FFFD$0209$FFFD$FFFD$0313$FFFDe$FFFD$0150$FFFD$FFFD$C44A$FFFDk$FFFD$FFFD$DACA$DFD5t$FFFD$FFFD$FFFD$0702$FFFD$FFFD$FFFD$FFFDB
-          $FFFD$FFFDe$FFFD$FFFDm$FFFDF$FFFD$FFFDA$FFFDS$FFFD$FFFD$FFFD$0482$FFFD育$FFFDA$FFFD$FFFD$FFFD$FFFD$FFFD$FFFD$FFFD$FFFD$FFFD$0702$FFFD$FFFDB
+          以下の内容で制作相談を受け付けました。
+          内容を確認後、担当者よりご連絡いたします。
         </p>
 
         <h3 style="border-bottom: 1px solid #ddd; padding-bottom: 8px;">
-          $FFFD$FFFD$FFFDk$FFFD$FFFDe
+          相談内容
         </h3>
 
         <p style="white-space: pre-wrap; background: #f7f7f7; padding: 16px; border-radius: 6px;">
@@ -302,21 +302,21 @@ export async function POST(request: Request) {
         </p>
 
         <h3 style="border-bottom: 1px solid #ddd; padding-bottom: 8px;">
-          AI$FFFDT$FFFDZ$FFFD$FFFD$FFFD$03C2$FFFD
+          AI概算見積り
         </h3>
 
-        <p>$FFFD$FFFD$FFFD$FFFDID$FFFDF${escapeHtml(estimateId)}</p>
-        <p>$FFFDT$FFFDZ$FFFD$FFFDz$FFFDF${escapeHtml(totalPriceText)}</p>
-        <p>$FFFDz$FFFD$8427$FFFD$C39E$FFFD$0501F${escapeHtml(estimatedHoursText)}</p>
+        <p>見積ID：${escapeHtml(estimateId)}</p>
+        <p>概算金額：${escapeHtml(totalPriceText)}</p>
+        <p>想定制作時間：${escapeHtml(estimatedHoursText)}</p>
 
         <p style="margin-top: 28px;">
-          AI$FFFD$0242$FFFD$FFFDT$FFFDZ$FFFD$FFFD$FFFD$03C2$FFFD$0341A$FFFDQ$FFFDl$FFFD$645C$FFFD$FFFD$FFFD$FFFD$0353$FFFDe$FFFD$FFFD$FFFD$0182$024EZ$FFFDo$FFFD$FFFD$FFFD$FFFD$FFFD$0688$FFFD$FFFD$0142$FFFD$FFFDB
-          $FFFD$FFFD$FFFD$FFFD$FFFD$020B$FFFDz$FFFD$FFFD[$FFFD$FFFD$FFFD$0341A$FFFD$FFFD$FFFD$FFFD$FFFDe$FFFD$FFFDm$FFFDF$FFFD$FFFD$FFFD$FFFD$FFFD$FFFD$FFFD$FFFD$FFFD$0142$FFFD$FFFD$0113$FFFD$FFFD$FFFD$FFFD$FFFD$FFFD$FFFD$0702$FFFD$FFFDB
+          AIによる概算見積りは、参考画像や入力内容をもとに算出した目安です。
+          正式な金額や納期は、制作内容を確認したうえでご案内いたします。
         </p>
 
         <p>
-          $FFFD$FFFD$FFFD$FFFD$FFFD$FFFD$0403N$FFFD$FFFD$FFFDG$FFFDC$FFFDg$FFFDT$FFFD|$FFFD[$FFFDg<br />
-          AI$FFFD$FFFD$FFFD$FFFD$FFFDC$FFFD$FFFD$FFFDX$FFFDg$FFFD$FFFD$FFFD$03C2$FFFD
+          株式会社クリエイトサポート<br />
+          AI自動イラスト見積り
         </p>
       </div>
     `;
@@ -325,17 +325,17 @@ export async function POST(request: Request) {
       from: fromEmail,
       to: adminEmail,
       replyTo: email,
-      subject: `$FFFDyAI$FFFD$FFFD$FFFD$03C2$844A$FFFDk$FFFDz${estimateId} ${company || name || ''}`.trim(),
+      subject: `【AI見積り相談】${estimateId} ${company || name || ''}`.trim(),
       html: adminHtml,
     });
 
     if (adminResult.error) {
-      console.error('$FFFD$FFFD$FFFDk$FFFD$01D7$FFFD$FFFD$0483$FFFD$FFFD[$FFFD$FFFD$FFFD$FFFD$FFFDM$FFFDG$FFFD$FFFD$FFFD[:', adminResult.error);
+      console.error('相談管理者メール送信エラー:', adminResult.error);
 
       return NextResponse.json(
         {
           success: false,
-          error: '$FFFD$FFFD$FFFDk$FFFD$FFFD$FFFD[$FFFD$FFFD$FFFD$0311$FFFD$FFFDM$FFFD$024E$FFFD$FFFDs$FFFD$FFFD$FFFD$0702$FFFD$FFFD$FFFD$FFFDB',
+          error: '相談メールの送信に失敗しました。',
         },
         { status: 500 }
       );
@@ -345,27 +345,27 @@ export async function POST(request: Request) {
       from: fromEmail,
       to: email,
       replyTo: adminEmail,
-      subject: `$FFFDy$FFFD$FFFD$FFFD$FFFD$FFFD$FFFD$0403N$FFFD$FFFD$FFFDG$FFFDC$FFFDg$FFFDT$FFFD|$FFFD[$FFFDg$FFFDz$FFFD$FFFD$FFFD$C44A$FFFDk$FFFD$FFFD$DACA$DFD5t$FFFD$FFFD$FFFD$0702$FFFD$FFFD$FFFD`,
+      subject: '【株式会社クリエイトサポート】制作相談を受け付けました',
       html: customerHtml,
     });
 
     if (customerResult.error) {
-      console.error('$FFFD$FFFD$FFFDk$FFFD$FFFD$FFFD$FFFD$FFFD$0510M$FFFD$FFFD$FFFD[$FFFD$FFFD$FFFD$FFFD$FFFDM$FFFDG$FFFD$FFFD$FFFD[:', customerResult.error);
+      console.error('相談自動返信メール送信エラー:', customerResult.error);
     }
 
     return NextResponse.json({
       success: true,
-      message: '$FFFD$FFFD$FFFD$C44A$FFFDk$FFFD$FFFD$DACA$DFD5t$FFFD$FFFD$FFFD$0702$FFFD$FFFD$FFFD$FFFDB',
+      message: '制作相談を受け付けました。',
       adminEmailId: adminResult.data?.id,
       customerEmailId: customerResult.data?.id,
     });
   } catch (error) {
-    console.error('$FFFD$FFFD$FFFDkAPI$FFFDG$FFFD$FFFD$FFFD[:', error);
+    console.error('相談APIエラー:', error);
 
     return NextResponse.json(
       {
         success: false,
-        error: '$FFFD$FFFD$FFFDk$FFFD$FFFDe$FFFD$0311$FFFD$FFFDM$FFFD$FFFD$FFFD$0243G$FFFD$FFFD$FFFD[$FFFD$FFFD$FFFD$FFFD$FFFD$FFFD$FFFD$FFFD$FFFD$0702$FFFD$FFFD$FFFD$FFFDB',
+        error: '相談内容の送信中にエラーが発生しました。',
       },
       { status: 500 }
     );
