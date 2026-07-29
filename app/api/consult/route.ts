@@ -61,7 +61,7 @@ function formatNumber(value: unknown): string {
   return number.toLocaleString('ja-JP');
 }
 
-function displayValue(value: unknown, fallback = '–¢“ü—Í'): string {
+function displayValue(value: unknown, fallback = '$FFFD$FFFD$FFFD$FFFD$FFFD$FFFD'): string {
   if (value === undefined || value === null || value === '') {
     return fallback;
   }
@@ -73,7 +73,7 @@ export async function POST(request: Request) {
   try {
     const body = (await request.json()) as ConsultRequest;
 
-    const estimateId = body.estimateId?.trim() || 'Œ©ÏID‚È‚µ';
+    const estimateId = body.estimateId?.trim() || '$FFFD$FFFD$FFFD$FFFDID$FFFD$0202$FFFD';
     const company = body.company?.trim() || '';
     const name = body.name?.trim() || '';
     const email = body.email?.trim() || '';
@@ -84,7 +84,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           success: false,
-          error: 'ƒ[ƒ‹ƒAƒhƒŒƒX‚ğ“ü—Í‚µ‚Ä‚­‚¾‚³‚¢B',
+          error: '$FFFD$FFFD$FFFD[$FFFD$FFFD$FFFDA$FFFDh$FFFD$FFFD$FFFDX$FFFD$FFFD$FFFD$FFFD$0342$FFFD$FFFD$0102$FFFD$FFFD$FFFD$FFFD$FFFD$FFFD$FFFD$FFFDB',
         },
         { status: 400 }
       );
@@ -94,7 +94,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           success: false,
-          error: '‘Š’k“à—e‚ğ“ü—Í‚µ‚Ä‚­‚¾‚³‚¢B',
+          error: '$FFFD$FFFD$FFFDk$FFFD$FFFDe$FFFD$FFFD$FFFD$FFFD$0342$FFFD$FFFD$0102$FFFD$FFFD$FFFD$FFFD$FFFD$FFFD$FFFD$FFFDB',
         },
         { status: 400 }
       );
@@ -107,32 +107,32 @@ export async function POST(request: Request) {
 
     const fromEmail =
       process.env.RESEND_FROM_EMAIL ||
-      'AI©“®Œ©Ï‚è <noreply@estimate.create-support.co.jp>';
+      'AI$FFFD$FFFD$FFFD$FFFD$FFFD$FFFD$FFFD$03C2$FFFD <noreply@estimate.create-support.co.jp>';
 
     const totalPriceText =
       body.totalPrice !== undefined && body.totalPrice !== null
-        ? `${formatNumber(body.totalPrice)}‰~`
-        : '–¢Zo';
+        ? `${formatNumber(body.totalPrice)}$FFFD~`
+        : '$FFFD$FFFD$FFFDZ$FFFDo';
 
     const estimatedHoursText =
       body.estimatedHours !== undefined && body.estimatedHours !== null
-        ? `${formatNumber(body.estimatedHours)}ŠÔ`
-        : '–¢Zo';
+        ? `${formatNumber(body.estimatedHours)}$FFFD$FFFD$FFFD$FFFD`
+        : '$FFFD$FFFD$FFFDZ$FFFDo';
 
     const estimatedRangeText =
       body.estimatedHoursMin !== undefined ||
       body.estimatedHoursMax !== undefined
-        ? `${formatNumber(body.estimatedHoursMin)}`${formatNumber(
+        ? `${formatNumber(body.estimatedHoursMin)}$FFFD`${formatNumber(
             body.estimatedHoursMax
-          )}ŠÔ`
-        : '–¢Zo';
+          )}$FFFD$FFFD$FFFD$FFFD`
+        : '$FFFD$FFFD$FFFDZ$FFFDo';
 
     const adminHtml = `
       <div style="font-family: Arial, Helvetica, sans-serif; line-height: 1.7; color: #222;">
-        <h2 style="margin-bottom: 20px;">AIŠTZŒ©Ï‚è‚©‚ç‘Š’k‚ª‚ ‚è‚Ü‚µ‚½</h2>
+        <h2 style="margin-bottom: 20px;">AI$FFFDT$FFFDZ$FFFD$FFFD$FFFD$03C2è‚©$FFFD$744A$FFFDk$FFFD$FFFD$FFFD$FFFD$FFFD$FFFD$0702$FFFD$FFFD$FFFD</h2>
 
         <h3 style="border-bottom: 1px solid #ddd; padding-bottom: 8px;">
-          ‘Š’k“à—e
+          $FFFD$FFFD$FFFDk$FFFD$FFFDe
         </h3>
 
         <p style="white-space: pre-wrap; background: #f7f7f7; padding: 16px; border-radius: 6px;">
@@ -140,82 +140,82 @@ export async function POST(request: Request) {
         </p>
 
         <h3 style="border-bottom: 1px solid #ddd; padding-bottom: 8px;">
-          ‚¨‹q—lî•ñ
+          $FFFD$FFFD$FFFDq$FFFDl$FFFD$FFFD$FFFD
         </h3>
 
         <table style="border-collapse: collapse; width: 100%; max-width: 720px;">
           <tbody>
             <tr>
-              <th style="text-align: left; padding: 8px; border: 1px solid #ddd; width: 180px;">‰ïĞ–¼</th>
+              <th style="text-align: left; padding: 8px; border: 1px solid #ddd; width: 180px;">$FFFD$FFFDĞ–$FFFD</th>
               <td style="padding: 8px; border: 1px solid #ddd;">${displayValue(company)}</td>
             </tr>
             <tr>
-              <th style="text-align: left; padding: 8px; border: 1px solid #ddd;">‚¨–¼‘O</th>
+              <th style="text-align: left; padding: 8px; border: 1px solid #ddd;">$FFFD$FFFD$FFFD$FFFD$FFFDO</th>
               <td style="padding: 8px; border: 1px solid #ddd;">${displayValue(name)}</td>
             </tr>
             <tr>
-              <th style="text-align: left; padding: 8px; border: 1px solid #ddd;">ƒ[ƒ‹</th>
+              <th style="text-align: left; padding: 8px; border: 1px solid #ddd;">$FFFD$FFFD$FFFD[$FFFD$FFFD</th>
               <td style="padding: 8px; border: 1px solid #ddd;">${escapeHtml(email)}</td>
             </tr>
             <tr>
-              <th style="text-align: left; padding: 8px; border: 1px solid #ddd;">“d˜b”Ô†</th>
+              <th style="text-align: left; padding: 8px; border: 1px solid #ddd;">$FFFDd$FFFDb$FFFD$050D$FFFD</th>
               <td style="padding: 8px; border: 1px solid #ddd;">${displayValue(phone)}</td>
             </tr>
           </tbody>
         </table>
 
         <h3 style="border-bottom: 1px solid #ddd; padding-bottom: 8px; margin-top: 28px;">
-          AIŒ©Ï‚èî•ñ
+          AI$FFFD$FFFD$FFFD$03C2$FFFD$FFFD$FFFD
         </h3>
 
         <table style="border-collapse: collapse; width: 100%; max-width: 720px;">
           <tbody>
             <tr>
-              <th style="text-align: left; padding: 8px; border: 1px solid #ddd; width: 180px;">Œ©ÏID</th>
+              <th style="text-align: left; padding: 8px; border: 1px solid #ddd; width: 180px;">$FFFD$FFFD$FFFD$FFFDID</th>
               <td style="padding: 8px; border: 1px solid #ddd;">${escapeHtml(estimateId)}</td>
             </tr>
             <tr>
-              <th style="text-align: left; padding: 8px; border: 1px solid #ddd;">§ì•û–@</th>
+              <th style="text-align: left; padding: 8px; border: 1px solid #ddd;">$FFFD$FFFD$FFFD$FFFD$FFFD$FFFD@</th>
               <td style="padding: 8px; border: 1px solid #ddd;">${displayValue(body.productionMethod)}</td>
             </tr>
             <tr>
-              <th style="text-align: left; padding: 8px; border: 1px solid #ddd;">—p“r</th>
+              <th style="text-align: left; padding: 8px; border: 1px solid #ddd;">$FFFDp$FFFDr</th>
               <td style="padding: 8px; border: 1px solid #ddd;">${displayValue(body.usage)}</td>
             </tr>
             <tr>
-              <th style="text-align: left; padding: 8px; border: 1px solid #ddd;">•\Œ»</th>
+              <th style="text-align: left; padding: 8px; border: 1px solid #ddd;">$FFFD\$FFFD$FFFD</th>
               <td style="padding: 8px; border: 1px solid #ddd;">${displayValue(body.style)}</td>
             </tr>
             <tr>
-              <th style="text-align: left; padding: 8px; border: 1px solid #ddd;">“_”</th>
+              <th style="text-align: left; padding: 8px; border: 1px solid #ddd;">$FFFD_$FFFD$FFFD</th>
               <td style="padding: 8px; border: 1px solid #ddd;">${displayValue(body.quantity)}</td>
             </tr>
             <tr>
-              <th style="text-align: left; padding: 8px; border: 1px solid #ddd;">‘—¿í•Ê</th>
+              <th style="text-align: left; padding: 8px; border: 1px solid #ddd;">$FFFD$FFFD$FFFD$FFFD$FFFD$FFFD$FFFD</th>
               <td style="padding: 8px; border: 1px solid #ddd;">${displayValue(body.sourceType)}</td>
             </tr>
             <tr>
-              <th style="text-align: left; padding: 8px; border: 1px solid #ddd;">ì‹Æƒ^ƒCƒv</th>
+              <th style="text-align: left; padding: 8px; border: 1px solid #ddd;">$FFFD$FFFD$0183^$FFFDC$FFFDv</th>
               <td style="padding: 8px; border: 1px solid #ddd;">${displayValue(body.workType)}</td>
             </tr>
             <tr>
-              <th style="text-align: left; padding: 8px; border: 1px solid #ddd;">“ïˆÕ“xƒXƒRƒA</th>
+              <th style="text-align: left; padding: 8px; border: 1px solid #ddd;">$FFFD$FFFD$0553x$FFFDX$FFFDR$FFFDA</th>
               <td style="padding: 8px; border: 1px solid #ddd;">${displayValue(body.difficultyScore)}</td>
             </tr>
             <tr>
-              <th style="text-align: left; padding: 8px; border: 1px solid #ddd;">‘z’è§ìŠÔ</th>
+              <th style="text-align: left; padding: 8px; border: 1px solid #ddd;">$FFFDz$FFFD$8427$FFFD$C39E$FFFD$FFFD</th>
               <td style="padding: 8px; border: 1px solid #ddd;">${escapeHtml(estimatedHoursText)}</td>
             </tr>
             <tr>
-              <th style="text-align: left; padding: 8px; border: 1px solid #ddd;">‘z’èŠÔ”ÍˆÍ</th>
+              <th style="text-align: left; padding: 8px; border: 1px solid #ddd;">$FFFDz$FFFDè$FFFD$0514$0348$FFFD</th>
               <td style="padding: 8px; border: 1px solid #ddd;">${escapeHtml(estimatedRangeText)}</td>
             </tr>
             <tr>
-              <th style="text-align: left; padding: 8px; border: 1px solid #ddd;">ŠTZ‹àŠz</th>
+              <th style="text-align: left; padding: 8px; border: 1px solid #ddd;">$FFFDT$FFFDZ$FFFD$FFFDz</th>
               <td style="padding: 8px; border: 1px solid #ddd;">${escapeHtml(totalPriceText)}</td>
             </tr>
             <tr>
-              <th style="text-align: left; padding: 8px; border: 1px solid #ddd;">AIŒ©Ï‚è¸“x</th>
+              <th style="text-align: left; padding: 8px; border: 1px solid #ddd;">AI$FFFD$FFFD$FFFD$03C2è¸$FFFDx</th>
               <td style="padding: 8px; border: 1px solid #ddd;">
                 ${displayValue(body.confidenceScore)}
                 ${
@@ -224,14 +224,14 @@ export async function POST(request: Request) {
                     ? '%'
                     : ''
                 }
-                ${body.confidenceLevel ? `i${escapeHtml(body.confidenceLevel)}j` : ''}
+                ${body.confidenceLevel ? `$FFFDi${escapeHtml(body.confidenceLevel)}$FFFDj` : ''}
               </td>
             </tr>
           </tbody>
         </table>
 
         <h3 style="border-bottom: 1px solid #ddd; padding-bottom: 8px; margin-top: 28px;">
-          AI”»’èƒRƒƒ“ƒg
+          AI$FFFD$FFFD$FFFD$FFFDR$FFFD$FFFD$FFFD$FFFD$FFFDg
         </h3>
 
         <p style="white-space: pre-wrap;">
@@ -239,7 +239,7 @@ export async function POST(request: Request) {
         </p>
 
         <h3 style="border-bottom: 1px solid #ddd; padding-bottom: 8px; margin-top: 28px;">
-          AIƒRƒƒ“ƒg
+          AI$FFFDR$FFFD$FFFD$FFFD$FFFD$FFFDg
         </h3>
 
         <p style="white-space: pre-wrap;">
@@ -247,7 +247,7 @@ export async function POST(request: Request) {
         </p>
 
         <h3 style="border-bottom: 1px solid #ddd; padding-bottom: 8px; margin-top: 28px;">
-          ¸“xƒRƒƒ“ƒg
+          $FFFD$FFFD$FFFDx$FFFDR$FFFD$FFFD$FFFD$FFFD$FFFDg
         </h3>
 
         <p style="white-space: pre-wrap;">
@@ -255,7 +255,7 @@ export async function POST(request: Request) {
         </p>
 
         <h3 style="border-bottom: 1px solid #ddd; padding-bottom: 8px; margin-top: 28px;">
-          ‚¨‹q—l“ü—Í“à—e
+          $FFFD$FFFD$FFFDq$FFFDl$FFFD$FFFD$FFFD$0353$FFFDe
         </h3>
 
         <p style="white-space: pre-wrap;">
@@ -266,11 +266,11 @@ export async function POST(request: Request) {
           body.imageUrl
             ? `
               <h3 style="border-bottom: 1px solid #ddd; padding-bottom: 8px; margin-top: 28px;">
-                Ql‰æ‘œ
+                $FFFDQ$FFFDl$FFFD$645C
               </h3>
               <p>
                 <a href="${escapeHtml(body.imageUrl)}" target="_blank" rel="noopener noreferrer">
-                  ${escapeHtml(body.imageFilename || 'Ql‰æ‘œ‚ğŠJ‚­')}
+                  ${escapeHtml(body.imageFilename || '$FFFDQ$FFFDl$FFFD$645C$FFFD$FFFDJ$FFFD$FFFD')}
                 </a>
               </p>
             `
@@ -281,20 +281,20 @@ export async function POST(request: Request) {
 
     const customerHtml = `
       <div style="font-family: Arial, Helvetica, sans-serif; line-height: 1.8; color: #222;">
-        <p>${escapeHtml(name || '‚¨‹q—l')}</p>
+        <p>${escapeHtml(name || '$FFFD$FFFD$FFFDq$FFFDl')}</p>
 
         <p>
-          ‚±‚Ì‚½‚Ñ‚ÍAŠ”®‰ïĞƒNƒŠƒGƒCƒgƒTƒ|[ƒg‚ÌAIŠTZŒ©Ï‚è‚ğ‚²—˜—p‚¢‚½‚¾‚«A
-          ‚ ‚è‚ª‚Æ‚¤‚²‚´‚¢‚Ü‚·B
+          $FFFD$FFFD$FFFD$0302$FFFD$FFFDÑ‚$0341A$FFFD$FFFD$FFFD$FFFD$FFFD$FFFD$0403N$FFFD$FFFD$FFFDG$FFFDC$FFFDg$FFFDT$FFFD|$FFFD[$FFFDg$FFFD$FFFDAI$FFFDT$FFFDZ$FFFD$FFFD$FFFD$03C2$FFFD$FFFD$FFFD$FFFD$FFFD$FFFDp$FFFD$FFFD$FFFD$FFFD$FFFD$FFFD$FFFD$FFFD$FFFDA
+          $FFFD$FFFD$FFFDè‚ª$FFFD$0182$FFFD$FFFD$FFFD$FFFD$FFFD$FFFD$FFFD$FFFD$0702$FFFD$FFFDB
         </p>
 
         <p>
-          ˆÈ‰º‚Ì“à—e‚Å§ì‘Š’k‚ğó‚¯•t‚¯‚Ü‚µ‚½B
-          “à—e‚ğŠm”FŒãA’S“–Ò‚æ‚è‚²˜A—‚¢‚½‚µ‚Ü‚·B
+          $FFFD$0209$FFFD$FFFD$0313$FFFDe$FFFD$0150$FFFD$FFFD$C44A$FFFDk$FFFD$FFFD$DACA$DFD5t$FFFD$FFFD$FFFD$0702$FFFD$FFFD$FFFD$FFFDB
+          $FFFD$FFFDe$FFFD$FFFDm$FFFDF$FFFD$FFFDA$FFFDS$FFFD$FFFD$FFFD$0482$FFFDè‚²$FFFDA$FFFD$FFFD$FFFD$FFFD$FFFD$FFFD$FFFD$FFFD$FFFD$0702$FFFD$FFFDB
         </p>
 
         <h3 style="border-bottom: 1px solid #ddd; padding-bottom: 8px;">
-          ‘Š’k“à—e
+          $FFFD$FFFD$FFFDk$FFFD$FFFDe
         </h3>
 
         <p style="white-space: pre-wrap; background: #f7f7f7; padding: 16px; border-radius: 6px;">
@@ -302,21 +302,21 @@ export async function POST(request: Request) {
         </p>
 
         <h3 style="border-bottom: 1px solid #ddd; padding-bottom: 8px;">
-          AIŠTZŒ©Ï‚è
+          AI$FFFDT$FFFDZ$FFFD$FFFD$FFFD$03C2$FFFD
         </h3>
 
-        <p>Œ©ÏIDF${escapeHtml(estimateId)}</p>
-        <p>ŠTZ‹àŠzF${escapeHtml(totalPriceText)}</p>
-        <p>‘z’è§ìŠÔF${escapeHtml(estimatedHoursText)}</p>
+        <p>$FFFD$FFFD$FFFD$FFFDID$FFFDF${escapeHtml(estimateId)}</p>
+        <p>$FFFDT$FFFDZ$FFFD$FFFDz$FFFDF${escapeHtml(totalPriceText)}</p>
+        <p>$FFFDz$FFFD$8427$FFFD$C39E$FFFD$0501F${escapeHtml(estimatedHoursText)}</p>
 
         <p style="margin-top: 28px;">
-          AI‚É‚æ‚éŠTZŒ©Ï‚è‚ÍAQl‰æ‘œ‚â“ü—Í“à—e‚ğ‚à‚Æ‚ÉZo‚µ‚½–ÚˆÀ‚Å‚·B
-          ³®‚È‹àŠz‚â”[Šú‚ÍA§ì“à—e‚ğŠm”F‚µ‚½‚¤‚¦‚Å‚²ˆÄ“à‚¢‚½‚µ‚Ü‚·B
+          AI$FFFD$0242$FFFD$FFFDT$FFFDZ$FFFD$FFFD$FFFD$03C2$FFFD$0341A$FFFDQ$FFFDl$FFFD$645C$FFFD$FFFD$FFFD$FFFD$0353$FFFDe$FFFD$FFFD$FFFD$0182$024EZ$FFFDo$FFFD$FFFD$FFFD$FFFD$FFFD$0688$FFFD$FFFD$0142$FFFD$FFFDB
+          $FFFD$FFFD$FFFD$FFFD$FFFD$020B$FFFDz$FFFD$FFFD[$FFFD$FFFD$FFFD$0341A$FFFD$FFFD$FFFD$FFFD$FFFDe$FFFD$FFFDm$FFFDF$FFFD$FFFD$FFFD$FFFD$FFFD$FFFD$FFFD$FFFD$FFFD$0142$FFFD$FFFD$0113$FFFD$FFFD$FFFD$FFFD$FFFD$FFFD$FFFD$0702$FFFD$FFFDB
         </p>
 
         <p>
-          Š”®‰ïĞƒNƒŠƒGƒCƒgƒTƒ|[ƒg<br />
-          AI©“®ƒCƒ‰ƒXƒgŒ©Ï‚è
+          $FFFD$FFFD$FFFD$FFFD$FFFD$FFFD$0403N$FFFD$FFFD$FFFDG$FFFDC$FFFDg$FFFDT$FFFD|$FFFD[$FFFDg<br />
+          AI$FFFD$FFFD$FFFD$FFFD$FFFDC$FFFD$FFFD$FFFDX$FFFDg$FFFD$FFFD$FFFD$03C2$FFFD
         </p>
       </div>
     `;
@@ -325,17 +325,17 @@ export async function POST(request: Request) {
       from: fromEmail,
       to: adminEmail,
       replyTo: email,
-      subject: `yAIŒ©Ï‚è‘Š’kz${estimateId} ${company || name || ''}`.trim(),
+      subject: `$FFFDyAI$FFFD$FFFD$FFFD$03C2$844A$FFFDk$FFFDz${estimateId} ${company || name || ''}`.trim(),
       html: adminHtml,
     });
 
     if (adminResult.error) {
-      console.error('‘Š’kŠÇ—Òƒ[ƒ‹‘—MƒGƒ‰[:', adminResult.error);
+      console.error('$FFFD$FFFD$FFFDk$FFFD$01D7$FFFD$FFFD$0483$FFFD$FFFD[$FFFD$FFFD$FFFD$FFFD$FFFDM$FFFDG$FFFD$FFFD$FFFD[:', adminResult.error);
 
       return NextResponse.json(
         {
           success: false,
-          error: '‘Š’kƒ[ƒ‹‚Ì‘—M‚É¸”s‚µ‚Ü‚µ‚½B',
+          error: '$FFFD$FFFD$FFFDk$FFFD$FFFD$FFFD[$FFFD$FFFD$FFFD$0311$FFFD$FFFDM$FFFD$024E$FFFD$FFFDs$FFFD$FFFD$FFFD$0702$FFFD$FFFD$FFFD$FFFDB',
         },
         { status: 500 }
       );
@@ -345,27 +345,27 @@ export async function POST(request: Request) {
       from: fromEmail,
       to: email,
       replyTo: adminEmail,
-      subject: `yŠ”®‰ïĞƒNƒŠƒGƒCƒgƒTƒ|[ƒgz§ì‘Š’k‚ğó‚¯•t‚¯‚Ü‚µ‚½`,
+      subject: `$FFFDy$FFFD$FFFD$FFFD$FFFD$FFFD$FFFD$0403N$FFFD$FFFD$FFFDG$FFFDC$FFFDg$FFFDT$FFFD|$FFFD[$FFFDg$FFFDz$FFFD$FFFD$FFFD$C44A$FFFDk$FFFD$FFFD$DACA$DFD5t$FFFD$FFFD$FFFD$0702$FFFD$FFFD$FFFD`,
       html: customerHtml,
     });
 
     if (customerResult.error) {
-      console.error('‘Š’k©“®•ÔMƒ[ƒ‹‘—MƒGƒ‰[:', customerResult.error);
+      console.error('$FFFD$FFFD$FFFDk$FFFD$FFFD$FFFD$FFFD$FFFD$0510M$FFFD$FFFD$FFFD[$FFFD$FFFD$FFFD$FFFD$FFFDM$FFFDG$FFFD$FFFD$FFFD[:', customerResult.error);
     }
 
     return NextResponse.json({
       success: true,
-      message: '§ì‘Š’k‚ğó‚¯•t‚¯‚Ü‚µ‚½B',
+      message: '$FFFD$FFFD$FFFD$C44A$FFFDk$FFFD$FFFD$DACA$DFD5t$FFFD$FFFD$FFFD$0702$FFFD$FFFD$FFFD$FFFDB',
       adminEmailId: adminResult.data?.id,
       customerEmailId: customerResult.data?.id,
     });
   } catch (error) {
-    console.error('‘Š’kAPIƒGƒ‰[:', error);
+    console.error('$FFFD$FFFD$FFFDkAPI$FFFDG$FFFD$FFFD$FFFD[:', error);
 
     return NextResponse.json(
       {
         success: false,
-        error: '‘Š’k“à—e‚Ì‘—M’†‚ÉƒGƒ‰[‚ª”­¶‚µ‚Ü‚µ‚½B',
+        error: '$FFFD$FFFD$FFFDk$FFFD$FFFDe$FFFD$0311$FFFD$FFFDM$FFFD$FFFD$FFFD$0243G$FFFD$FFFD$FFFD[$FFFD$FFFD$FFFD$FFFD$FFFD$FFFD$FFFD$FFFD$FFFD$0702$FFFD$FFFD$FFFD$FFFDB',
       },
       { status: 500 }
     );
