@@ -107,7 +107,7 @@ export async function POST(request: Request) {
 
     const fromEmail =
       process.env.RESEND_FROM_EMAIL ||
-      'AI自動見積り <noreply@create-support.co.jp>';
+      'AI自動見積り <onboarding@resend.dev>';
 
     const totalPriceText =
       body.totalPrice !== undefined && body.totalPrice !== null
