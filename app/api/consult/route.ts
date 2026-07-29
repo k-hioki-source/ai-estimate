@@ -103,7 +103,7 @@ export async function POST(request: Request) {
     const adminEmail =
       process.env.ADMIN_EMAIL ||
       process.env.CONTACT_EMAIL ||
-      'info@create-support.co.jp';
+      'k-hioki@create-support.co.jp';
 
     const fromEmail =
       process.env.RESEND_FROM_EMAIL ||
