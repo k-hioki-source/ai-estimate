@@ -96,9 +96,56 @@ export function calculateEstimate({
     text.includes('アウトライン前のai') ||
     text.includes('アウトライン後のai');
 
+  // 支給画像・AI生成画像を元にした、小規模なロゴ／切文字データ調整。
+  // 「AI生成」＋「アウトライン」だけで完全ベクター化案件に昇格させない。
+  const hasSimpleLogoWork =
+    text.includes('ロゴ') ||
+    text.includes('屋号') ||
+    text.includes('マーク') ||
+    text.includes('切文字') ||
+    text.includes('ステッカー') ||
+    text.includes('フォント化');
+
+  const hasLimitedColor =
+    text.includes('単色') ||
+    text.includes('1色') ||
+    text.includes('１色') ||
+    text.includes('2色') ||
+    text.includes('２色');
+
+  const hasNewDesignWork =
+    text.includes('新規デザイン') ||
+    text.includes('デザイン提案') ||
+    text.includes('複数案') ||
+    text.includes('コンセプト') ||
+    text.includes('ロゴ制作') ||
+    text.includes('ロゴ作成');
+
+  const hasComplexLogoWork =
+    text.includes('キャラクター') ||
+    text.includes('細かい装飾') ||
+    text.includes('不鮮明') ||
+    text.includes('入稿代行') ||
+    text.includes('複数サイズ') ||
+    text.includes('複数仕様');
+
+  const isSimpleLogoVectorization =
+    sourceType === 'photo_trace' &&
+    score <= 40 &&
+    hasVectorKeyword &&
+    hasSimpleLogoWork &&
+    (hasAiGenerated || text.includes('支給')) &&
+    (hasLimitedColor || style === 'line') &&
+    !hasFullPath &&
+    !noImageAllowed &&
+    !hasSignboard &&
+    !hasNewDesignWork &&
+    !hasComplexLogoWork;
+
   // AI生成画像・完全ベクター化案件を自動判定
   if (
     sourceType === 'photo_trace' &&
+    !isSimpleLogoVectorization &&
     hasVectorKeyword &&
     (hasAiGenerated || hasFullPath || noImageAllowed || hasSignboard)
   ) {
@@ -297,8 +344,15 @@ export function calculateEstimate({
     if (structure >= 75) hours += 1;
   }
 
+  // 小規模なロゴ・切文字案件は、アウトライン整理と出力用データ調整を
+  // 含む標準工数として5時間にする（新規デザインや完全パス化は対象外）。
+  if (isSimpleLogoVectorization) {
+    hours = 5;
+  }
+
   // 簡単な取説用写真トレースは1hに抑える
   if (
+    !isSimpleLogoVectorization &&
     sourceType === 'photo_trace' &&
     usage === 'manual' &&
     style === 'line' &&
