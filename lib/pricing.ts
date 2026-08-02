@@ -368,6 +368,21 @@ export function calculateEstimate({
     if (structure >= 75) hours += 1;
   }
 
+  // 販促・WEB掲載用のリアルな機械製品は、形状の再現だけでなく、
+  // 金属・樹脂・ゴムなどの質感、曲面の陰影、細かな段差や継ぎ目の
+  // 描き分けに時間がかかるため、最低15時間を確保する。
+  // 単純な工業部品まで一律に引き上げないよう、難易度60以上に限定する。
+  if (
+    sourceType === 'photo_trace' &&
+    usage === 'sales' &&
+    style === 'real' &&
+    isIndustrialProduct &&
+    score >= 60
+  ) {
+    hours = Math.max(hours, 15);
+    score = Math.max(score, 70);
+  }
+
   // 小規模なロゴ・切文字案件は、アウトライン整理と出力用データ調整を
   // 含む標準工数として5時間にする（新規デザインや完全パス化は対象外）。
   if (isSimpleLogoVectorization) {
