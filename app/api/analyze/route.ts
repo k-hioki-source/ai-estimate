@@ -285,6 +285,13 @@ const analysis = {
 
 const consultation = detectConsultationRequest(input.notes, rawAnalysis);
 
+// 要相談案件でも、PowerPoint・音声・動画などに使用する
+// イラスト制作部分を切り分けられる場合は参考価格を案内する。
+// 3DCGモデリングそのものが中心の案件は、誤解を避けるため表示しない。
+const showIllustrationReferencePrice =
+  consultation.required &&
+  consultation.category !== '3dcg_modeling';
+
 // ------------------------
 // 備考による補正（ここ追加）
 // ------------------------
@@ -586,6 +593,10 @@ confidenceComment: confidence.comment,
       requiresConsultation: consultation.required,
       consultationCategory: consultation.category,
       consultationMessage: consultation.message,
+      showIllustrationReferencePrice,
+      illustrationReferencePrice: showIllustrationReferencePrice
+        ? estimate.totalPrice
+        : null,
 
       input: {
         requestFormalQuote: input.requestFormalQuote,

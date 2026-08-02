@@ -8,6 +8,8 @@ type ApiResponse = {
   requiresConsultation?: boolean;
   consultationCategory?: string | null;
   consultationMessage?: string;
+  showIllustrationReferencePrice?: boolean;
+  illustrationReferencePrice?: number | null;
 
   input: {
     requestFormalQuote: boolean;
@@ -1207,10 +1209,26 @@ async function handleFormalQuoteRequest() {
                     : `${result.estimate.total.toLocaleString()}円`}
                 </h2>
                 {result.requiresConsultation ? (
-                  <p className="muted">
-                    {result.consultationMessage ||
-                      '対応可能な内容ですが、詳しい仕様を確認のうえお見積りいたします。'}
-                  </p>
+                  <>
+                    <p className="muted">
+                      {result.consultationMessage ||
+                        '対応可能な内容ですが、詳しい仕様を確認のうえお見積りいたします。'}
+                    </p>
+                    {result.showIllustrationReferencePrice &&
+                    result.illustrationReferencePrice != null ? (
+                      <div className="illustrationReferencePrice">
+                        <span>イラスト制作部分の参考価格</span>
+                        <strong>
+                          {result.illustrationReferencePrice.toLocaleString()}円〜
+                        </strong>
+                        <p>
+                          ※イラスト制作のみの参考価格です。PowerPoint制作、
+                          ナレーション・音声編集、3DCG・アニメーション、
+                          動画編集、インタラクティブ制作などの費用は含まれていません。
+                        </p>
+                      </div>
+                    ) : null}
+                  </>
                 ) : (
                   <p className="muted">納期目安: {result.estimate.deliveryDays}</p>
                 )}
@@ -1270,7 +1288,7 @@ async function handleFormalQuoteRequest() {
             
             <p className="noticeText">
               {result.requiresConsultation
-                ? '※制作内容には対応可能です。「この内容について相談する」から詳細をお送りください。'
+                ? '※参考価格は制作全体の総額ではありません。「この内容について相談する」から詳細をお送りください。'
                 : '※この金額は参考画像と入力条件から算出した概算です。正式なお見積りは、内容確認後にご案内いたします。'}
             </p>
           </div>
@@ -1417,6 +1435,36 @@ async function handleFormalQuoteRequest() {
                 </p>
 
                 <style jsx>{`
+                  .illustrationReferencePrice {
+                    margin-top: 18px;
+                    padding: 16px 18px;
+                    border: 1px solid #b9dbea;
+                    border-radius: 12px;
+                    background: #f3fbff;
+                  }
+
+                  .illustrationReferencePrice span {
+                    display: block;
+                    color: #365568;
+                    font-size: 14px;
+                    font-weight: 700;
+                  }
+
+                  .illustrationReferencePrice strong {
+                    display: block;
+                    margin-top: 4px;
+                    color: #0876a3;
+                    font-size: 26px;
+                    line-height: 1.35;
+                  }
+
+                  .illustrationReferencePrice p {
+                    margin: 8px 0 0;
+                    color: #526675;
+                    font-size: 13px;
+                    line-height: 1.65;
+                  }
+
                   .consultDivider {
                     display: flex;
                     align-items: center;
