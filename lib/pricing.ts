@@ -47,6 +47,30 @@ export function calculateEstimate({
 
   const text = `${description} ${notes}`.toLowerCase();
 
+  // フォームの制作方法と依頼文が食い違う場合の補正。
+  // 写真と同じ角度・内容を線画化する案件は photo_trace として計算する。
+  // 別角度や見えない部分の描き起こしは reference_drawing のまま扱う。
+  const isPhotoBasedTrace =
+    text.includes('支給資料：写真') ||
+    text.includes('支給資料:写真') ||
+    text.includes('製品写真から') ||
+    text.includes('写真から');
+
+  const requiresDrawingFromReference =
+    text.includes('別角度') ||
+    text.includes('角度変更') ||
+    text.includes('見えない部分') ||
+    text.includes('推測して') ||
+    text.includes('描き起こし');
+
+  if (
+    sourceType === 'reference_drawing' &&
+    isPhotoBasedTrace &&
+    !requiresDrawingFromReference
+  ) {
+    sourceType = 'photo_trace';
+  }
+
   const hasVectorKeyword =
     text.includes('パス') ||
     text.includes('ベクター') ||
