@@ -53,7 +53,6 @@ export async function analyzeImage({
 AIは「難易度スコア」と「作業タイプ」だけを判定します。
 見た目の単純さではなく、制作工程の複雑さで判断してください。
 
-
 【入力条件】
 - 制作方法: ${sourceType}
 - 用途: ${usage}
