@@ -5,6 +5,9 @@ import HeaderLinks from "./HeaderLinks";
 import AiAssistant from "./estimate/AiAssistant";
 type ApiResponse = {
   estimateId: string;
+  requiresConsultation?: boolean;
+  consultationCategory?: string | null;
+  consultationMessage?: string;
 
   input: {
     requestFormalQuote: boolean;
@@ -243,6 +246,9 @@ if (
     }
 
     setResult(json);
+    if (json.requiresConsultation) {
+      setConsultationMessage('詳しい内容を確認のうえ、個別見積りを希望します。');
+    }
   } catch (e) {
     setError(e instanceof Error ? e.message : '不明なエラーです。');
   } finally {
@@ -1192,11 +1198,22 @@ async function handleFormalQuoteRequest() {
 
             <div className="resultTopGrid">
               <div>
-                <p className="resultAmountLabel">概算金額</p>
+                <p className="resultAmountLabel">
+                  {result.requiresConsultation ? 'お見積り方法' : '概算金額'}
+                </p>
                 <h2 className="resultAmount">
-                  {result.estimate.total.toLocaleString()}円
+                  {result.requiresConsultation
+                    ? '個別見積り（要相談）'
+                    : `${result.estimate.total.toLocaleString()}円`}
                 </h2>
-                <p className="muted">納期目安: {result.estimate.deliveryDays}</p>
+                {result.requiresConsultation ? (
+                  <p className="muted">
+                    {result.consultationMessage ||
+                      '対応可能な内容ですが、詳しい仕様を確認のうえお見積りいたします。'}
+                  </p>
+                ) : (
+                  <p className="muted">納期目安: {result.estimate.deliveryDays}</p>
+                )}
               </div>
 
               
@@ -1219,7 +1236,7 @@ async function handleFormalQuoteRequest() {
               </div>
             </div>
 
-           {result?.confidence ? (
+           {!result.requiresConsultation && result?.confidence ? (
   <div className="confidenceBox">
     <div className="confidenceHeader">
       <span>AI見積り信頼度</span>
@@ -1252,11 +1269,13 @@ async function handleFormalQuoteRequest() {
 ) : null}
             
             <p className="noticeText">
-              ※この金額は参考画像と入力条件から算出した概算です。正式なお見積りは、内容確認後にご案内いたします。
+              {result.requiresConsultation
+                ? '※制作内容には対応可能です。「この内容について相談する」から詳細をお送りください。'
+                : '※この金額は参考画像と入力条件から算出した概算です。正式なお見積りは、内容確認後にご案内いたします。'}
             </p>
           </div>
 
-          <div className="grid grid-2">
+          {!result.requiresConsultation ? <div className="grid grid-2">
             <div className="resultBox">
               <div className="badge">AI判定</div>
               <ul className="list cleanList">
@@ -1293,14 +1312,22 @@ async function handleFormalQuoteRequest() {
                 </li>
               </ul>
             </div>
-          </div>
+          </div> : null}
 
           <div className="ctaCard card">
             <div>
-              <div className="eyebrow">正式見積り・メール送付</div>
-              <h3 className="ctaTitle">見積り結果をメールで受け取るには、正式見積りをご依頼ください</h3>
+              <div className="eyebrow">
+                {result.requiresConsultation ? '個別見積りのご相談' : '正式見積り・メール送付'}
+              </div>
+              <h3 className="ctaTitle">
+                {result.requiresConsultation
+                  ? '詳しい内容を確認して、個別にお見積りいたします'
+                  : '見積り結果をメールで受け取るには、正式見積りをご依頼ください'}
+              </h3>
               <p className="muted compactText">
-                会社名・ご担当者名・メールアドレスをご入力いただくと、今回の概算結果をメールでお送りし、同時に正式見積り依頼として受け付けます。
+                {result.requiresConsultation
+                  ? '会社名・ご担当者名・メールアドレスと、ご希望の仕様をご入力ください。担当者よりご連絡いたします。'
+                  : '会社名・ご担当者名・メールアドレスをご入力いただくと、今回の概算結果をメールでお送りし、同時に正式見積り依頼として受け付けます。'}
               </p>
             </div>
 
@@ -1342,18 +1369,18 @@ async function handleFormalQuoteRequest() {
                     />
                   </div>
                 </div>
-                <button
+                {!result.requiresConsultation ? <button
                   type="button"
                   className="primaryButton"
                   onClick={handleFormalQuoteRequest}
                   disabled={formalSending || consultSending}
                 >
                   {formalSending ? '正式見積り依頼を送信中...' : '概算結果をメールで受け取り、正式見積りを依頼する'}
-                </button>
+                </button> : null}
 
-                <div className="consultDivider" aria-hidden="true">
+                {!result.requiresConsultation ? <div className="consultDivider" aria-hidden="true">
                   <span>または</span>
-                </div>
+                </div> : null}
 
                 {consultSent ? (
                   <div className="ctaButtonLike">
@@ -1376,7 +1403,11 @@ async function handleFormalQuoteRequest() {
                       onClick={handleConsultRequest}
                       disabled={consultSending || formalSending}
                     >
-                      {consultSending ? '相談内容を送信中...' : 'この見積り内容について相談する'}
+                      {consultSending
+                        ? '相談内容を送信中...'
+                        : result.requiresConsultation
+                          ? 'この内容について相談する'
+                          : 'この見積り内容について相談する'}
                     </button>
                   </div>
                 )}

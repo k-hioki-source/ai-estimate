@@ -16,6 +16,16 @@ export type WorkType =
   | 'realistic_illustration'
   | 'concept_diagram';
 
+export type ConsultationCategory =
+  | 'powerpoint'
+  | 'audio'
+  | '3dcg_modeling'
+  | 'animation'
+  | 'video_editing'
+  | 'interactive_content'
+  | 'combined_production'
+  | null;
+
 export async function analyzeImage({
   imageBase64,
   mimeType,
@@ -49,6 +59,25 @@ AIは「難易度スコア」と「作業タイプ」だけを判定します。
 - 用途: ${usage}
 - 表現: ${style}
 - 備考: ${notes || 'なし'}
+
+【個別見積り（要相談）の判定】
+通常のイラスト制作だけではなく、次の制作工程を実際の依頼内容として含む場合は
+requiresConsultation を true にしてください。
+
+・PowerPoint資料、スライド、スライドショー全体の構成・デザイン制作
+・ナレーション、セリフ、音声収録、音声生成、音声編集
+・新規の3DCGモデリング、3Dモデル制作
+・2D/3Dアニメーション、モーション制作
+・動画編集、映像制作
+・インタラクティブアニメーション、WebGL、操作可能な3Dコンテンツ
+・上記を複数組み合わせた制作
+
+単語が参考用途として書かれているだけの場合は要相談にしないでください。
+例：「納品イラストをPowerPointで使用する」「3DCG風の静止画」は通常見積りです。
+例：「PowerPointスライド全体を制作」「3Dモデリングして回転アニメーションを制作」は要相談です。
+
+要相談の場合は consultationCategory を最も近い分類にし、
+consultationReason に、対応可能だが仕様確認が必要な理由を日本語で簡潔に書いてください。
 
 【制作方法の意味】
 photo_trace：
@@ -400,6 +429,9 @@ JSONのみで出力してください。
   "estimatedHoursMin": number,
   "estimatedHours": number,
   "estimatedHoursMax": number,
+  "requiresConsultation": boolean,
+  "consultationCategory": "powerpoint" | "audio" | "3dcg_modeling" | "animation" | "video_editing" | "interactive_content" | "combined_production" | null,
+  "consultationReason": string,
   "summary": string
 }
 
@@ -438,7 +470,16 @@ summaryは日本語で簡潔に書いてください。
     structureComplexity: clampNumber(parsed.structureComplexity, 50, 0, 100),
     estimatedHoursMin: Number(parsed.estimatedHoursMin || 0),
 estimatedHours: Number(parsed.estimatedHours || 0),
-estimatedHoursMax: Number(parsed.estimatedHoursMax || 0),
+    estimatedHoursMax: Number(parsed.estimatedHoursMax || 0),
+    requiresConsultation: parsed.requiresConsultation === true,
+    consultationCategory:
+      typeof parsed.consultationCategory === 'string'
+        ? (parsed.consultationCategory as ConsultationCategory)
+        : null,
+    consultationReason:
+      typeof parsed.consultationReason === 'string'
+        ? parsed.consultationReason
+        : '',
     isExplodedView: parsed.isExplodedView ?? false,
 hasLeaderLines: parsed.hasLeaderLines ?? false,
 hasPartNumbers: parsed.hasPartNumbers ?? false,

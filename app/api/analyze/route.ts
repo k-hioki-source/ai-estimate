@@ -30,6 +30,73 @@ function getSourceType(
   return 'photo_trace';
 }
 
+type ConsultationCategory =
+  | 'powerpoint'
+  | 'audio'
+  | '3dcg_modeling'
+  | 'animation'
+  | 'video_editing'
+  | 'interactive_content'
+  | 'combined_production'
+  | null;
+
+function detectConsultationRequest(
+  notes: string,
+  aiDecision?: {
+    requiresConsultation?: boolean;
+    consultationCategory?: ConsultationCategory;
+    consultationReason?: string;
+  }
+) {
+  const text = notes.toLowerCase();
+  const has = (...words: string[]) => words.some((word) => text.includes(word));
+
+  const matches: Array<{ category: Exclude<ConsultationCategory, null>; matched: boolean }> = [
+    {
+      category: 'powerpoint',
+      matched:
+        has('powerpoint', 'パワーポイント', 'スライドショー') &&
+        has('作りたい', '作成', '制作', 'デザイン', '構成'),
+    },
+    {
+      category: 'audio',
+      matched: has('ナレーション', 'セリフ', '音声収録', '音声編集', '音声を付け', '音声付き'),
+    },
+    {
+      category: '3dcg_modeling',
+      matched: has('3dcgモデリング', '3dモデリング', 'モデリングして', '3dモデル制作', '3dcgモデル制作'),
+    },
+    {
+      category: 'animation',
+      matched: has('3dcgアニメーション', '3dアニメーション', '2dアニメーション', '回転アニメーション', 'モーション制作', 'アニメーション制作'),
+    },
+    {
+      category: 'video_editing',
+      matched: has('動画編集', '映像制作', 'ビデオ編集', '動画制作'),
+    },
+    {
+      category: 'interactive_content',
+      matched: has('インタラクティブ', 'webgl', '操作可能な3d', '操作できる3d', 'ブラウザで回転'),
+    },
+  ];
+
+  const matched = matches.filter((item) => item.matched);
+  const required = matched.length > 0 || aiDecision?.requiresConsultation === true;
+  const category: ConsultationCategory =
+    matched.length >= 2
+      ? 'combined_production'
+      : matched[0]?.category || aiDecision?.consultationCategory || null;
+
+  return {
+    required,
+    category,
+    message: required
+      ? aiDecision?.consultationReason ||
+        '対応可能な内容ですが、制作範囲・点数・尺・音声・納品形式などによって費用が大きく変わるため、詳しい仕様を確認のうえ個別にお見積りいたします。'
+      : '',
+  };
+}
+
 function calculateConfidence({
   sourceType,
   usage,
@@ -216,6 +283,8 @@ const analysis = {
   ...rawAnalysis,
 };
 
+const consultation = detectConsultationRequest(input.notes, rawAnalysis);
+
 // ------------------------
 // 備考による補正（ここ追加）
 // ------------------------
@@ -378,7 +447,9 @@ if (
   quantity: input.quantity,
   isIndustrialProduct: analysis.isIndustrialProduct,
   description: input.notes,
-  notes: input.notes,
+  notes: consultation.required
+    ? `【個別見積り対象】\n${consultation.message}\n\n${input.notes}`
+    : input.notes,
 });
 // -----------------------------
 // 応急処置：最低工数補正
@@ -512,6 +583,9 @@ confidenceComment: confidence.comment,
     return NextResponse.json({
       // ★ フロント互換（これが無いと落ちる）
       estimateId: notificationResult.estimateId,
+      requiresConsultation: consultation.required,
+      consultationCategory: consultation.category,
+      consultationMessage: consultation.message,
 
       input: {
         requestFormalQuote: input.requestFormalQuote,
