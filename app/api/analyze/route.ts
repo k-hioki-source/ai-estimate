@@ -418,6 +418,69 @@ const analysisText = `
 
 let minimumHours = 0;
 
+// ------------------------
+// 複数の車両・機械製品を並べるカラー案件の補正
+// 例：3列車を横並び、3両の鉄道車両、複数の自動車を同一構図で制作
+// ------------------------
+const normalizedAnalysisText = analysisText
+  .replace(/[０-９]/g, (char) =>
+    String.fromCharCode(char.charCodeAt(0) - 0xfee0)
+  );
+
+const hasVehicleSubject =
+  normalizedAnalysisText.includes('列車') ||
+  normalizedAnalysisText.includes('鉄道車両') ||
+  normalizedAnalysisText.includes('電車') ||
+  normalizedAnalysisText.includes('車両') ||
+  normalizedAnalysisText.includes('自動車') ||
+  normalizedAnalysisText.includes('トラック') ||
+  normalizedAnalysisText.includes('バス') ||
+  normalizedAnalysisText.includes('重機');
+
+const hasMultipleVehicles =
+  /[2-9](?:台|両|列車|車両|種類|点)/.test(normalizedAnalysisText) ||
+  /(?:二|三|四|五|六|七|八|九)(?:台|両|列車|車両|種類|点)/.test(
+    normalizedAnalysisText
+  ) ||
+  normalizedAnalysisText.includes('複数車両') ||
+  normalizedAnalysisText.includes('複数の車両') ||
+  normalizedAnalysisText.includes('横並び');
+
+const isMultiVehicleIllustration =
+  hasVehicleSubject &&
+  hasMultipleVehicles &&
+  input.sourceType === 'reference_drawing' &&
+  input.usage === 'sales' &&
+  (input.style === 'color' || input.style === 'real');
+
+if (isMultiVehicleIllustration) {
+  workType = 'realistic_illustration';
+  analysis.difficultyScore = Math.max(analysis.difficultyScore, 82);
+  analysis.partDensity = Math.max(analysis.partDensity, 80);
+  analysis.lineDifficulty = Math.max(analysis.lineDifficulty, 80);
+  analysis.structureComplexity = Math.max(
+    analysis.structureComplexity,
+    75
+  );
+  analysis.estimatedHoursMin = Math.max(
+    analysis.estimatedHoursMin || 0,
+    22
+  );
+  analysis.estimatedHours = Math.max(
+    analysis.estimatedHours || 0,
+    24
+  );
+  analysis.estimatedHoursMax = Math.max(
+    analysis.estimatedHoursMax || 0,
+    28
+  );
+  minimumHours = Math.max(minimumHours, 24);
+
+  analysis.summary =
+    '複数の車両をそれぞれの写真資料から描き起こし、同じ構図・角度・縮尺に調整して横並びにするカラーイラストです。' +
+    '各車両の正確な形状、窓、ライト、連結器、台車などを個別に確認し、パース調整、質感、陰影、全体構図を統一する必要があるため、24時間前後の制作工数を見込みます。';
+}
+
 // オートバイ・自転車などの最低工数
 if (
   reasonText.includes('オートバイ') ||
