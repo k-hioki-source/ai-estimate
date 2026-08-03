@@ -14,7 +14,8 @@ export type WorkType =
   | 'standard_trace'
   | 'technical_drawing'
   | 'realistic_illustration'
-  | 'concept_diagram';
+  | 'concept_diagram'
+  | '3d_conversion';
 
 export type ConsultationCategory =
   | 'powerpoint'
@@ -65,7 +66,7 @@ requiresConsultation を true にしてください。
 
 ・PowerPoint資料、スライド、スライドショー全体の構成・デザイン制作
 ・ナレーション、セリフ、音声収録、音声生成、音声編集
-・新規の3DCGモデリング、3Dモデル制作
+・仕様が未確定の大規模な3DCGモデリング、複数モデル制作、レンダリングまで含む制作
 ・2D/3Dアニメーション、モーション制作
 ・動画編集、映像制作
 ・インタラクティブアニメーション、WebGL、操作可能な3Dコンテンツ
@@ -74,6 +75,7 @@ requiresConsultation を true にしてください。
 単語が参考用途として書かれているだけの場合は要相談にしないでください。
 例：「納品イラストをPowerPointで使用する」「3DCG風の静止画」は通常見積りです。
 例：「PowerPointスライド全体を制作」「3Dモデリングして回転アニメーションを制作」は要相談です。
+ただし、2D図面・PDF図面から取扱説明書用の静止した3D組立図、3D部品図、立体図、または単体の3Dモデルを作成する案件は、3d_conversion として通常見積りしてください。
 
 要相談の場合は consultationCategory を最も近い分類にし、
 consultationReason に、対応可能だが仕様確認が必要な理由を日本語で簡潔に書いてください。
@@ -109,6 +111,11 @@ concept_diagram：
 複数要素を組み合わせ、全体の仕組み・流れ・概念を説明する図。
 地形、設備、配管、矢印、流れ、システム全体、レイアウト設計を含むもの。
 
+3d_conversion：
+2D図面・PDF図面・組立図・部品図を読み取り、立体構造を再構築する作業。
+取扱説明書用の3D組立図、3D部品図、立体図、アイソメ図、斜視図、または単体の3Dモデル作成を含む。
+単純な線画トレースではなく、図面読解、部品形状の立体化、組立関係の確認が必要。
+
 【作業タイプの判断材料の追加】
 
 ■ standard_trace
@@ -120,6 +127,10 @@ concept_diagram：
 ■ concept_diagram
 構造や仕組みを説明するための概念図。
 配管・矢印・説明ラベル・情報整理を含む図。
+
+■ 3d_conversion
+2D図面やPDF図面から、3D組立図・3D部品図・立体図・3Dモデルを新規作成する作業。
+『2D図面から』『PDF図面から』『3D組立図』『3D部品図』『立体図』『アイソメ図』『斜視図』『3Dモデル』が依頼内容に含まれる場合は、technical_drawing より 3d_conversion を優先する。
 
 リアルイラストとは
 
@@ -248,6 +259,23 @@ NC旋盤
 
 は最低でも
 難易度65以上を基準とする。
+
+【2D図面から3D化する案件の特別ルール】
+
+次の内容を含む場合は、workType を 3d_conversion としてください。
+
+・2D図面またはPDF図面から3D組立図を作成
+・2D図面またはPDF図面から各3D部品図を作成
+・組立図・部品図から立体図、アイソメ図、斜視図を新規作成
+・2D図面から単体の3Dモデルを作成
+
+この作業は通常の technical_drawing よりも、図面読解、立体構造の再構築、部品形状の推定、組立関係の確認に時間がかかります。
+difficultyScore は原則80以上、structureComplexity は原則80以上を目安にしてください。
+estimatedHours は20時間前後を基準とし、簡単な単品でも18時間未満にしないでください。
+複雑な設備機械、部品点数が多い組立、複数の部品図を含む場合は20〜30時間を目安にしてください。
+
+「3D」という単語だけで判定せず、支給された3DCADを利用するだけの場合は cad_conversion、
+2D図面から新たに立体を起こす場合は 3d_conversion と区別してください。
 
 【AI予想制作時間】
 
@@ -436,7 +464,7 @@ estimatedHoursMin / estimatedHours / estimatedHoursMax は、
 JSONのみで出力してください。
 
 {
-  "workType": "simple_trace" | "standard_trace" | "technical_drawing" | "realistic_illustration" | "concept_diagram",
+  "workType": "simple_trace" | "standard_trace" | "technical_drawing" | "realistic_illustration" | "concept_diagram" | "3d_conversion",
   "difficultyScore": number,
   "partDensity": number,
   "lineDifficulty": number,
@@ -516,6 +544,7 @@ function normalizeWorkType(value: string): WorkType {
   if (value === 'technical_drawing') return 'technical_drawing';
   if (value === 'realistic_illustration') return 'realistic_illustration';
   if (value === 'concept_diagram') return 'concept_diagram';
+  if (value === '3d_conversion') return '3d_conversion';
   return 'standard_trace';
 }
 

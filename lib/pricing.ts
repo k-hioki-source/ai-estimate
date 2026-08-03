@@ -6,6 +6,13 @@ type SourceType =
 
 type Usage = 'manual' | 'parts' | 'sales';
 type Style = 'line' | 'color' | 'real';
+type WorkType =
+  | 'simple_trace'
+  | 'standard_trace'
+  | 'technical_drawing'
+  | 'realistic_illustration'
+  | 'concept_diagram'
+  | '3d_conversion';
 
 
 export function calculateEstimate({
@@ -23,6 +30,7 @@ export function calculateEstimate({
   quantity,
   description = '',
   notes = '',
+  workType,
 }: {
   sourceType: SourceType;
   usage: Usage;
@@ -38,6 +46,7 @@ export function calculateEstimate({
   quantity: number;
   description?: string;
   notes?: string;
+  workType?: WorkType;
 }) {
   const hourlyRate = 3000;
 
@@ -382,6 +391,18 @@ export function calculateEstimate({
   ) {
     hours = Math.max(hours, 15);
     score = Math.max(score, 70);
+  }
+
+  // -----------------------------
+  // 2D図面から3D化する案件
+  // -----------------------------
+  // PDF・2D組立図・部品図から立体構造を新規に起こす場合は、
+  // 通常の technical_drawing より図面読解と構造再構築の工数が大きい。
+  // 3D組立図、3D部品図、立体図、アイソメ図、単体3Dモデルのいずれも
+  // 最低20時間を基準とする。
+  if (workType === '3d_conversion') {
+    hours = Math.max(hours, 20);
+    score = Math.max(score, 85);
   }
 
   // 小規模なロゴ・切文字案件は、アウトライン整理と出力用データ調整を

@@ -153,6 +153,7 @@ function calculateConfidence({
   //------------------------------------
 
   if (workType === 'concept_diagram') score -= 15;
+  if (workType === '3d_conversion') score -= 10;
 
   if (style === 'real') score -= 8;
 
@@ -201,6 +202,7 @@ if (lineDifficulty >= 60) points.push('線の整理が必要');
 if (structureComplexity >= 60) points.push('構造理解が必要');
 if (workType === 'concept_diagram') points.push('概念図・構成図');
 if (workType === 'realistic_illustration') points.push('質感・陰影表現');
+if (workType === '3d_conversion') points.push('2D図面から立体化');
   
   return {
   score,
@@ -323,13 +325,45 @@ if (partMatch) {
     // ★ここ追加
 let workType = analysis.workType;
 
+const normalizedNotes = input.notes
+  .toLowerCase()
+  .replace(/[３]/g, '3')
+  .replace(/[２]/g, '2')
+  .replace(/ｄ/g, 'd')
+  .replace(/Ｄ/g, 'd');
+
+const is3DConversionRequest =
+  normalizedNotes.includes('2d図面から') ||
+  normalizedNotes.includes('pdf図面から') ||
+  normalizedNotes.includes('図面から3d') ||
+  normalizedNotes.includes('3d組立図') ||
+  normalizedNotes.includes('3d部品図') ||
+  normalizedNotes.includes('立体図') ||
+  normalizedNotes.includes('アイソメ図') ||
+  normalizedNotes.includes('斜視図') ||
+  normalizedNotes.includes('3dモデル');
+
+if (is3DConversionRequest) {
+  workType = '3d_conversion';
+  analysis.difficultyScore = Math.max(analysis.difficultyScore, 85);
+  analysis.structureComplexity = Math.max(analysis.structureComplexity, 85);
+  analysis.lineDifficulty = Math.max(analysis.lineDifficulty, 70);
+  analysis.estimatedHoursMin = Math.max(analysis.estimatedHoursMin || 0, 18);
+  analysis.estimatedHours = Math.max(analysis.estimatedHours || 0, 20);
+  analysis.estimatedHoursMax = Math.max(analysis.estimatedHoursMax || 0, 24);
+
+  analysis.summary =
+    '2D・PDF図面から立体構造を再構築し、3D組立図および各3D部品図を作成する案件です。' +
+    '図面読解、部品形状の立体化、組立関係の確認が必要なため、通常のテクニカルイラストより工数が大きくなります。';
+}
+
     const conceptWords = ['概念図', 'システム図', '構成図', '製品説明図', '説明図', 'フロー図'];
 
 const isConceptRequest =
   conceptWords.some((word) => input.notes.includes(word)) ||
   (input.usage === 'sales' && input.style === 'real' && analysis.partDensity >= 60);
 
-if (isConceptRequest) {
+if (isConceptRequest && workType !== '3d_conversion') {
   workType = 'concept_diagram';
   analysis.difficultyScore = Math.max(analysis.difficultyScore, 85);
   analysis.partDensity = Math.max(analysis.partDensity, 70);
@@ -338,9 +372,10 @@ if (isConceptRequest) {
 }
 
 if (
-  input.notes.includes('概念') ||
+  workType !== '3d_conversion' &&
+  (input.notes.includes('概念') ||
   input.notes.includes('フロー') ||
-  input.notes.includes('全体')
+  input.notes.includes('全体'))
 ) {
   workType = 'concept_diagram';
 }
@@ -457,6 +492,7 @@ if (
   notes: consultation.required
     ? `【個別見積り対象】\n${consultation.message}\n\n${input.notes}`
     : input.notes,
+  workType,
 });
 // -----------------------------
 // 応急処置：最低工数補正
