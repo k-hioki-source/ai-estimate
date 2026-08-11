@@ -408,6 +408,7 @@ if (isConceptRequest && workType !== '3d_conversion') {
   analysis.structureComplexity = Math.max(analysis.structureComplexity, 80);
 }
 
+
 if (
   workType !== '3d_conversion' &&
   (input.notes.includes('概念') ||
