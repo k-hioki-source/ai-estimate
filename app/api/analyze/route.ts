@@ -394,6 +394,64 @@ if (is3DConversionRequest) {
     '図面読解、部品形状の立体化、組立関係の確認が必要なため、通常のテクニカルイラストより工数が大きくなります。';
 }
 
+// ------------------------
+// 写真・図面から新規に断面図を作図する案件の補正
+// ------------------------
+const isReferenceSectionDrawing =
+  input.sourceType === 'reference_drawing' &&
+  (
+    normalizedNotes.includes('断面図') ||
+    normalizedNotes.includes('断面イラスト') ||
+    normalizedNotes.includes('断面を作成') ||
+    normalizedNotes.includes('断面を作図') ||
+    (normalizedNotes.includes('断面') && normalizedNotes.includes('図面'))
+  );
+
+if (isReferenceSectionDrawing && workType !== '3d_conversion') {
+  workType = 'technical_drawing';
+  analysis.difficultyScore = Math.max(analysis.difficultyScore, 65);
+  analysis.structureComplexity = Math.max(analysis.structureComplexity, 65);
+  analysis.lineDifficulty = Math.max(analysis.lineDifficulty, 60);
+
+  const sectionHours =
+    input.style === 'real' ? 12 : input.style === 'color' ? 8 : 6;
+
+  const hasHighComplexitySection =
+    normalizedNotes.includes('複数断面') ||
+    normalizedNotes.includes('複数の断面') ||
+    normalizedNotes.includes('多数の部品') ||
+    normalizedNotes.includes('部品点数が多い') ||
+    normalizedNotes.includes('複雑な内部') ||
+    normalizedNotes.includes('複雑な構造') ||
+    normalizedNotes.includes('精密機構') ||
+    normalizedNotes.includes('引出し線') ||
+    normalizedNotes.includes('部品番号');
+
+  const sectionMinHours =
+    input.style === 'real' ? 10 : input.style === 'color' ? 6 : 5;
+  const sectionMaxHours =
+    input.style === 'real' ? 16 : input.style === 'color' ? 12 : 9;
+
+  if (hasHighComplexitySection) {
+    analysis.estimatedHoursMin = Math.max(analysis.estimatedHoursMin || 0, sectionMinHours);
+    analysis.estimatedHours = Math.max(analysis.estimatedHours || 0, sectionHours);
+    analysis.estimatedHoursMax = Math.max(analysis.estimatedHoursMax || 0, sectionMaxHours);
+  } else {
+    analysis.estimatedHoursMin = sectionMinHours;
+    analysis.estimatedHours = sectionHours;
+    analysis.estimatedHoursMax = sectionMaxHours;
+  }
+
+  analysis.summary =
+    '写真・図面を参考に、製品内部の構造と部品位置を読み取って断面を新規作図する案件です。' +
+    '単純な写真トレースではなく、内部構造の整理、断面形状の再構成、線整理が必要なため、' +
+    (input.style === 'color'
+      ? 'カラー断面図は8時間前後を基準として工数を補正しました。'
+      : input.style === 'real'
+        ? 'リアル断面図は12時間前後を基準として工数を補正しました。'
+        : '線画断面図は6時間前後を基準として工数を補正しました。');
+}
+
     const conceptWords = ['概念図', 'システム図', '構成図', '製品説明図', '説明図', 'フロー図'];
 
 const isConceptRequest =
@@ -408,7 +466,6 @@ if (isConceptRequest && workType !== '3d_conversion') {
   analysis.structureComplexity = Math.max(analysis.structureComplexity, 80);
 }
 
-
 if (
   workType !== '3d_conversion' &&
   (input.notes.includes('概念') ||
@@ -422,7 +479,7 @@ if (
 // technical補正
 // ------------------------
 if (workType === 'technical_drawing') {
-  if (analysis.structureComplexity < 45) {
+  if (!isReferenceSectionDrawing && analysis.structureComplexity < 45) {
     workType = 'standard_trace';
   } else {
     workType = 'technical_drawing';
@@ -455,6 +512,13 @@ const analysisText = `
 `.toLowerCase();
 
 let minimumHours = 0;
+
+// 断面図はAI側の推定値だけでなく、価格計算側でも最低工数を保証する。
+if (isReferenceSectionDrawing) {
+  const sectionMinimumHours =
+    input.style === 'real' ? 12 : input.style === 'color' ? 8 : 6;
+  minimumHours = Math.max(minimumHours, sectionMinimumHours);
+}
 
 // ------------------------
 // 写真・資料からオリジナルで新規作図する販促用リアル工業イラスト

@@ -78,7 +78,12 @@ export function calculateEstimate({
     text.includes('新たに作図') ||
     text.includes('新しく作図') ||
     text.includes('写真を参考に') ||
-    text.includes('資料を参考に');
+    text.includes('写真と図面を参考に') ||
+    text.includes('図面を参考に') ||
+    text.includes('資料を参考に') ||
+    text.includes('断面図') ||
+    text.includes('断面を作成') ||
+    text.includes('断面を作図');
 
   if (
     sourceType === 'reference_drawing' &&
@@ -400,6 +405,49 @@ export function calculateEstimate({
     score = Math.max(score, 70);
   }
 
+
+  // -----------------------------
+  // 写真・図面から新規に断面図を作図する案件
+  // -----------------------------
+  // 元写真をそのままなぞる作業ではなく、図面を読み取りながら
+  // 内部構造・部品位置・断面形状を再構成するため、reference_drawing の
+  // technical_drawing として最低工数を確保する。
+  const isSectionDrawing =
+    text.includes('断面図') ||
+    text.includes('断面イラスト') ||
+    text.includes('断面を作成') ||
+    text.includes('断面を作図') ||
+    (text.includes('断面') && text.includes('図面'));
+
+  if (
+    sourceType === 'reference_drawing' &&
+    isSectionDrawing &&
+    workType !== '3d_conversion'
+  ) {
+    const sectionBaseHours =
+      style === 'real' ? 12 : style === 'color' ? 8 : 6;
+
+    const hasHighComplexitySection =
+      text.includes('複数断面') ||
+      text.includes('複数の断面') ||
+      text.includes('多数の部品') ||
+      text.includes('部品点数が多い') ||
+      text.includes('複雑な内部') ||
+      text.includes('複雑な構造') ||
+      text.includes('精密機構') ||
+      text.includes('引出し線') ||
+      text.includes('部品番号') ||
+      part >= 75 ||
+      structure >= 80;
+
+    // 標準的な断面図は基準工数へ揃える。
+    // 明確に複雑な案件のみ、既存計算が基準を超えることを許容する。
+    hours = hasHighComplexitySection
+      ? Math.max(hours, sectionBaseHours)
+      : sectionBaseHours;
+
+    score = Math.max(score, 65);
+  }
 
   // -----------------------------
   // 参考資料から新規作図する販促用リアルイラスト補正
