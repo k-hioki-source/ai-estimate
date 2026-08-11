@@ -537,36 +537,36 @@ export function calculateEstimate({
   // 多数の穴・スリットなど、線量が多い写真トレースは「簡単な取説用トレース」
   // として0.8hへ落とさない。画像解析の密度判定または対象物キーワードの
   // どちらかで高密度と判断した場合、1点5時間を最低基準とする。
-  const hasDenseLineSubjectKeyword =
-    text.includes('マザーボード') ||
-    text.includes('基板') ||
-    text.includes('電子部品') ||
-    text.includes('周辺部品') ||
-    text.includes('コネクター') ||
-    text.includes('コネクタ') ||
-    text.includes('スロット') ||
-    text.includes('ファン') ||
-    text.includes('放熱フィン') ||
-    text.includes('ヒートシンク') ||
-    text.includes('配線') ||
-    text.includes('ハーネス') ||
-    text.includes('多数の穴') ||
-    text.includes('スリット') ||
-    text.includes('内部部品') ||
-    text.includes('細部の再現') ||
-    text.includes('線整理の工数');
+  // 高密度判定はAIコメント中の単語ではなく、依頼文と画像解析スコアで判定する。
+  // AIが『ファン』『スロット』などを誤認しても、簡単な製品トレースが5時間へ
+  // 引き上がらないようにする。
+  const requestText = `${description} ${notes}`.toLowerCase();
+
+  const hasExplicitDenseLineRequest =
+    requestText.includes('マザーボード') ||
+    requestText.includes('基板') ||
+    requestText.includes('電子部品') ||
+    requestText.includes('内部機構') ||
+    requestText.includes('内部部品') ||
+    requestText.includes('多数の部品') ||
+    requestText.includes('部品点数が多い') ||
+    requestText.includes('多数の穴') ||
+    requestText.includes('細かい部品') ||
+    requestText.includes('細かな部品') ||
+    requestText.includes('配線') ||
+    requestText.includes('ハーネス');
+
+  const hasDenseVisualScores =
+    part >= 70 &&
+    line >= 70 &&
+    score >= 65;
 
   const isHighDensityManualLineTrace =
     sourceType === 'photo_trace' &&
     usage === 'manual' &&
     style === 'line' &&
     !isSimpleLogoVectorization &&
-    (
-      hasDenseLineSubjectKeyword ||
-      part >= 65 ||
-      line >= 65 ||
-      (score >= 60 && (part >= 55 || line >= 55))
-    );
+    (hasExplicitDenseLineRequest || hasDenseVisualScores);
 
   if (isHighDensityManualLineTrace) {
     hours = Math.max(hours, 5);
@@ -580,10 +580,10 @@ export function calculateEstimate({
     sourceType === 'photo_trace' &&
     usage === 'manual' &&
     style === 'line' &&
-    score <= 55 &&
-    part <= 40 &&
+    score <= 60 &&
+    part <= 45 &&
     line <= 50 &&
-    structure <= 40 &&
+    structure <= 45 &&
     !isExplodedView &&
     !hasLeaderLines &&
     !hasPartNumbers

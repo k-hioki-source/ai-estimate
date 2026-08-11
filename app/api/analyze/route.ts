@@ -532,40 +532,37 @@ if (isReferenceSectionDrawing) {
 }
 
 // ------------------------
-// 高密度な取説用・白黒線画の写真トレース補正
+// 取説用・白黒線画の写真トレース密度補正
 // ------------------------
-// 写真トレースでも、基板・電子部品・内部機構など細かな線要素が
-// 密集している場合は、単純な1時間前後のトレースとして扱わない。
-const hasDenseLineSubjectKeyword =
-  analysisText.includes('マザーボード') ||
-  analysisText.includes('基板') ||
-  analysisText.includes('電子部品') ||
-  analysisText.includes('周辺部品') ||
-  analysisText.includes('コネクター') ||
-  analysisText.includes('コネクタ') ||
-  analysisText.includes('スロット') ||
-  analysisText.includes('ファン') ||
-  analysisText.includes('放熱フィン') ||
-  analysisText.includes('ヒートシンク') ||
-  analysisText.includes('配線') ||
-  analysisText.includes('ハーネス') ||
-  analysisText.includes('多数の穴') ||
-  analysisText.includes('スリット') ||
-  analysisText.includes('内部部品') ||
-  analysisText.includes('細部の再現') ||
-  analysisText.includes('線整理の工数');
+// 高密度判定にAI summary内の単語は使わない。
+// AIが画像を誤認して『ファン』『スロット』などと書いた場合に、
+// 簡単な単体製品まで5時間へ引き上がるのを防ぐ。
+const requestNotesText = input.notes.toLowerCase();
+
+const hasExplicitDenseLineRequest =
+  requestNotesText.includes('マザーボード') ||
+  requestNotesText.includes('基板') ||
+  requestNotesText.includes('電子部品') ||
+  requestNotesText.includes('内部機構') ||
+  requestNotesText.includes('内部部品') ||
+  requestNotesText.includes('多数の部品') ||
+  requestNotesText.includes('部品点数が多い') ||
+  requestNotesText.includes('多数の穴') ||
+  requestNotesText.includes('細かい部品') ||
+  requestNotesText.includes('細かな部品') ||
+  requestNotesText.includes('配線') ||
+  requestNotesText.includes('ハーネス');
+
+const hasDenseVisualScores =
+  analysis.partDensity >= 70 &&
+  analysis.lineDifficulty >= 70 &&
+  analysis.difficultyScore >= 65;
 
 const isHighDensityLineTrace =
   input.sourceType === 'photo_trace' &&
   input.usage === 'manual' &&
   input.style === 'line' &&
-  (
-    hasDenseLineSubjectKeyword ||
-    analysis.partDensity >= 65 ||
-    analysis.lineDifficulty >= 65 ||
-    (analysis.difficultyScore >= 60 &&
-      (analysis.partDensity >= 55 || analysis.lineDifficulty >= 55))
-  );
+  (hasExplicitDenseLineRequest || hasDenseVisualScores);
 
 if (isHighDensityLineTrace) {
   workType = 'standard_trace';
@@ -578,8 +575,33 @@ if (isHighDensityLineTrace) {
   minimumHours = Math.max(minimumHours, 5);
 
   analysis.summary =
-    '写真をもとにした取扱説明書用の白黒線画ですが、細かな部品・穴・スロット・ファンなど線要素が多く、' +
-    '線の取捨選択と整理に時間がかかる高密度な写真トレースとして、5時間前後を基準に工数を補正しました。';
+    '写真をもとにした取扱説明書用の白黒線画で、画像内に多数の細かな線要素が確認できるため、' +
+    '高密度な写真トレースとして5時間前後を基準に工数を補正しました。';
+}
+
+// 単体・外形中心の簡単な取説用線画は、AIが難易度をやや高めに出しても
+// 5時間補正へ入れず、最低価格帯（約1時間・3,000円）を維持する。
+const isSimpleManualLineTrace =
+  input.sourceType === 'photo_trace' &&
+  input.usage === 'manual' &&
+  input.style === 'line' &&
+  !isHighDensityLineTrace &&
+  analysis.partDensity <= 50 &&
+  analysis.lineDifficulty <= 55 &&
+  analysis.structureComplexity <= 50 &&
+  !analysis.isExplodedView &&
+  !analysis.hasLeaderLines &&
+  !analysis.hasPartNumbers;
+
+if (isSimpleManualLineTrace) {
+  workType = 'simple_trace';
+  analysis.difficultyScore = Math.min(analysis.difficultyScore, 35);
+  analysis.estimatedHoursMin = 0.8;
+  analysis.estimatedHours = 1;
+  analysis.estimatedHoursMax = 1.5;
+  analysis.summary =
+    '単体製品の外形を中心とした取扱説明書用の白黒線画で、細かな内部構造や高密度な線要素が少ないため、' +
+    '簡易な写真トレースとして1時間前後を基準に判定しました。';
 }
 
 // ------------------------
