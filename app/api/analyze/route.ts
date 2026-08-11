@@ -212,6 +212,36 @@ if (workType === '3d_conversion') points.push('2D図面から立体化');
 };
 }
 
+function detectRequestedIllustrationCount(
+  notes: string,
+  formQuantity: number
+): number {
+  const normalized = notes
+    .replace(/[０-９]/g, (char) =>
+      String.fromCharCode(char.charCodeAt(0) - 0xfee0)
+    )
+    .toLowerCase();
+
+  const patterns = [
+    /(\d+)\s*枚\s*の?\s*イラスト/,
+    /イラスト\s*(\d+)\s*枚/,
+    /(\d+)\s*点\s*の?\s*イラスト/,
+    /イラスト\s*(\d+)\s*点/,
+  ];
+
+  for (const pattern of patterns) {
+    const match = normalized.match(pattern);
+    if (!match) continue;
+
+    const count = Number(match[1]);
+    if (Number.isFinite(count) && count >= 1 && count <= 20) {
+      return Math.max(formQuantity, count);
+    }
+  }
+
+  return formQuantity;
+}
+
 export async function POST(req: NextRequest) {
   try {
     const form = await req.formData();
@@ -268,6 +298,13 @@ if (file && file.size > 0) {
         getString(form.get('requestFormalQuote'))
       ),
     };
+
+    // 備考内に「2枚のイラスト」「3点のイラスト」など点数が明記されている場合は、
+    // フォーム上の数量1より依頼文の点数を優先する。
+    input.quantity = detectRequestedIllustrationCount(
+      input.notes,
+      input.quantity
+    );
 
     // -----------------------------
     // AI解析（分類＋難易度）
@@ -417,6 +454,56 @@ const analysisText = `
 `.toLowerCase();
 
 let minimumHours = 0;
+
+// ------------------------
+// 写真・資料からオリジナルで新規作図する販促用リアル工業イラスト
+// ------------------------
+const isOriginalReferenceDrawing =
+  input.sourceType === 'reference_drawing' &&
+  (
+    analysisText.includes('オリジナル') ||
+    analysisText.includes('新規作図') ||
+    analysisText.includes('新規に作図') ||
+    analysisText.includes('新たに作図') ||
+    analysisText.includes('新しく作図') ||
+    analysisText.includes('写真を参考に') ||
+    analysisText.includes('資料を参考に')
+  );
+
+const hasIndustrialProductKeyword =
+  analysisText.includes('ev') ||
+  analysisText.includes('バッテリー') ||
+  analysisText.includes('コネクター') ||
+  analysisText.includes('コネクタ') ||
+  analysisText.includes('車両') ||
+  analysisText.includes('自動車') ||
+  analysisText.includes('機械') ||
+  analysisText.includes('工具') ||
+  analysisText.includes('装置') ||
+  analysisText.includes('製品');
+
+const isOriginalRealSalesIllustration =
+  isOriginalReferenceDrawing &&
+  input.usage === 'sales' &&
+  input.style === 'real' &&
+  (analysis.isIndustrialProduct || hasIndustrialProductKeyword);
+
+if (isOriginalRealSalesIllustration && workType !== '3d_conversion') {
+  workType = 'realistic_illustration';
+  analysis.difficultyScore = Math.max(analysis.difficultyScore, 75);
+  analysis.partDensity = Math.max(analysis.partDensity, 65);
+  analysis.lineDifficulty = Math.max(analysis.lineDifficulty, 65);
+  analysis.structureComplexity = Math.max(analysis.structureComplexity, 60);
+  analysis.estimatedHoursMin = Math.max(analysis.estimatedHoursMin || 0, 24);
+  analysis.estimatedHours = Math.max(analysis.estimatedHours || 0, 26);
+  analysis.estimatedHoursMax = Math.max(analysis.estimatedHoursMax || 0, 30);
+  minimumHours = Math.max(minimumHours, 26);
+
+  analysis.summary =
+    '写真・参考資料をもとに形状を新規に構成する販促用リアルイラストです。' +
+    '単純な写真トレースではなく、パース・形状再構築・質感・陰影・細部表現を含むため、' +
+    'オリジナル作図案件として工数を補正しました。';
+}
 
 // ------------------------
 // 複数の車両・機械製品を並べるカラー案件の補正

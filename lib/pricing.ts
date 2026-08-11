@@ -71,7 +71,14 @@ export function calculateEstimate({
     text.includes('角度変更') ||
     text.includes('見えない部分') ||
     text.includes('推測して') ||
-    text.includes('描き起こし');
+    text.includes('描き起こし') ||
+    text.includes('オリジナル') ||
+    text.includes('新規作図') ||
+    text.includes('新規に作図') ||
+    text.includes('新たに作図') ||
+    text.includes('新しく作図') ||
+    text.includes('写真を参考に') ||
+    text.includes('資料を参考に');
 
   if (
     sourceType === 'reference_drawing' &&
@@ -391,6 +398,50 @@ export function calculateEstimate({
   ) {
     hours = Math.max(hours, 15);
     score = Math.max(score, 70);
+  }
+
+
+  // -----------------------------
+  // 参考資料から新規作図する販促用リアルイラスト補正
+  // -----------------------------
+  // 「写真からオリジナル」「写真を参考に新規作図」などは
+  // 写真をなぞる photo_trace ではなく、資料を読み取って形状・パース・
+  // 構成を新たに起こす reference_drawing として扱う。
+  const isOriginalReferenceDrawing =
+    sourceType === 'reference_drawing' &&
+    (
+      text.includes('オリジナル') ||
+      text.includes('新規作図') ||
+      text.includes('新規に作図') ||
+      text.includes('新たに作図') ||
+      text.includes('新しく作図') ||
+      text.includes('写真を参考に') ||
+      text.includes('資料を参考に')
+    );
+
+  const hasIndustrialProductKeyword =
+    text.includes('ev') ||
+    text.includes('バッテリー') ||
+    text.includes('コネクター') ||
+    text.includes('コネクタ') ||
+    text.includes('車両') ||
+    text.includes('自動車') ||
+    text.includes('機械') ||
+    text.includes('工具') ||
+    text.includes('装置') ||
+    text.includes('製品');
+
+  if (
+    isOriginalReferenceDrawing &&
+    usage === 'sales' &&
+    style === 'real' &&
+    (isIndustrialProduct || hasIndustrialProductKeyword)
+  ) {
+    // 今回のEVバッテリー筐体・高電圧コネクターのように、
+    // 写真資料を元に販促品質のリアル表現を新規作図する案件は
+    // 1点あたり約26時間を最低ラインとする。
+    hours = Math.max(hours, 26);
+    score = Math.max(score, 75);
   }
 
   // -----------------------------
