@@ -431,16 +431,36 @@ export function calculateEstimate({
     text.includes('装置') ||
     text.includes('製品');
 
+  const hasHighComplexityOriginalDrawing =
+    text.includes('分解図') ||
+    text.includes('分解') ||
+    text.includes('断面') ||
+    text.includes('内部構造') ||
+    text.includes('内部機構') ||
+    text.includes('複雑な構造') ||
+    text.includes('多数の部品') ||
+    text.includes('部品点数が多い') ||
+    text.includes('背景込み') ||
+    text.includes('背景を含む');
+
   if (
     isOriginalReferenceDrawing &&
     usage === 'sales' &&
     style === 'real' &&
     (isIndustrialProduct || hasIndustrialProductKeyword)
   ) {
-    // 今回のEVバッテリー筐体・高電圧コネクターのように、
-    // 写真資料を元に販促品質のリアル表現を新規作図する案件は
-    // 1点あたり約26時間を最低ラインとする。
-    hours = Math.max(hours, 26);
+    // 写真・資料を参考に工業製品をオリジナルで新規作図する
+    // 販促用リアルイラストは、通常1点26時間前後を基準とする。
+    // 難易度・リアル表現などの既存加算が重複して40時間以上へ
+    // 膨らむのを防ぐため、通常案件は26時間を基準値として固定する。
+    // 分解・断面・内部構造・多数部品など明確な高複雑度案件のみ、
+    // 既存計算が26時間を超えることを許容する。
+    if (hasHighComplexityOriginalDrawing) {
+      hours = Math.max(hours, 26);
+    } else {
+      hours = 26;
+    }
+
     score = Math.max(score, 75);
   }
 

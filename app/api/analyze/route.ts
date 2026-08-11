@@ -488,21 +488,43 @@ const isOriginalRealSalesIllustration =
   input.style === 'real' &&
   (analysis.isIndustrialProduct || hasIndustrialProductKeyword);
 
+const hasHighComplexityOriginalDrawing =
+  analysisText.includes('分解図') ||
+  analysisText.includes('分解') ||
+  analysisText.includes('断面') ||
+  analysisText.includes('内部構造') ||
+  analysisText.includes('内部機構') ||
+  analysisText.includes('複雑な構造') ||
+  analysisText.includes('多数の部品') ||
+  analysisText.includes('部品点数が多い') ||
+  analysisText.includes('背景込み') ||
+  analysisText.includes('背景を含む');
+
 if (isOriginalRealSalesIllustration && workType !== '3d_conversion') {
   workType = 'realistic_illustration';
   analysis.difficultyScore = Math.max(analysis.difficultyScore, 75);
   analysis.partDensity = Math.max(analysis.partDensity, 65);
   analysis.lineDifficulty = Math.max(analysis.lineDifficulty, 65);
   analysis.structureComplexity = Math.max(analysis.structureComplexity, 60);
-  analysis.estimatedHoursMin = Math.max(analysis.estimatedHoursMin || 0, 24);
-  analysis.estimatedHours = Math.max(analysis.estimatedHours || 0, 26);
-  analysis.estimatedHoursMax = Math.max(analysis.estimatedHoursMax || 0, 30);
+
+  if (hasHighComplexityOriginalDrawing) {
+    analysis.estimatedHoursMin = Math.max(analysis.estimatedHoursMin || 0, 24);
+    analysis.estimatedHours = Math.max(analysis.estimatedHours || 0, 26);
+    analysis.estimatedHoursMax = Math.max(analysis.estimatedHoursMax || 0, 30);
+  } else {
+    // 通常のオリジナル販促リアル案件は26時間前後を基準にする。
+    // AIが難易度だけで40時間以上へ膨らませた場合も基準値へ戻す。
+    analysis.estimatedHoursMin = 24;
+    analysis.estimatedHours = 26;
+    analysis.estimatedHoursMax = 30;
+  }
+
   minimumHours = Math.max(minimumHours, 26);
 
   analysis.summary =
     '写真・参考資料をもとに形状を新規に構成する販促用リアルイラストです。' +
     '単純な写真トレースではなく、パース・形状再構築・質感・陰影・細部表現を含むため、' +
-    'オリジナル作図案件として工数を補正しました。';
+    '通常は1点26時間前後を基準として工数を補正しました。';
 }
 
 // ------------------------
