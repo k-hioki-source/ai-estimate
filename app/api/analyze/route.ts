@@ -109,6 +109,7 @@ function calculateConfidence({
   hasImage,
   hasNotes,
   workType,
+  isHighDensityLineTrace = false,
 }: {
   sourceType: string;
   usage: string;
@@ -121,6 +122,7 @@ function calculateConfidence({
   hasImage: boolean;
   hasNotes: boolean;
   workType: string;
+  isHighDensityLineTrace?: boolean;
 }) {
   let score = 50;
 
@@ -203,6 +205,15 @@ if (structureComplexity >= 60) points.push('構造理解が必要');
 if (workType === 'concept_diagram') points.push('概念図・構成図');
 if (workType === 'realistic_illustration') points.push('質感・陰影表現');
 if (workType === '3d_conversion') points.push('2D図面から立体化');
+
+// 高密度な白黒線画トレースは、画像から線量・省略範囲を完全には
+// 確定できないため、単純トレースと同じ98%まで精度を上げない。
+if (isHighDensityLineTrace) {
+  score = Math.min(score, 74);
+  level = '中';
+  comment =
+    '細かな線要素が多い写真トレースのため、概算見積りとして参考になる結果です。仕上げ時の省略範囲によって工数が変わる可能性があります。';
+}
   
   return {
   score,
@@ -521,6 +532,57 @@ if (isReferenceSectionDrawing) {
 }
 
 // ------------------------
+// 高密度な取説用・白黒線画の写真トレース補正
+// ------------------------
+// 写真トレースでも、基板・電子部品・内部機構など細かな線要素が
+// 密集している場合は、単純な1時間前後のトレースとして扱わない。
+const hasDenseLineSubjectKeyword =
+  analysisText.includes('マザーボード') ||
+  analysisText.includes('基板') ||
+  analysisText.includes('電子部品') ||
+  analysisText.includes('周辺部品') ||
+  analysisText.includes('コネクター') ||
+  analysisText.includes('コネクタ') ||
+  analysisText.includes('スロット') ||
+  analysisText.includes('ファン') ||
+  analysisText.includes('放熱フィン') ||
+  analysisText.includes('ヒートシンク') ||
+  analysisText.includes('配線') ||
+  analysisText.includes('ハーネス') ||
+  analysisText.includes('多数の穴') ||
+  analysisText.includes('スリット') ||
+  analysisText.includes('内部部品') ||
+  analysisText.includes('細部の再現') ||
+  analysisText.includes('線整理の工数');
+
+const isHighDensityLineTrace =
+  input.sourceType === 'photo_trace' &&
+  input.usage === 'manual' &&
+  input.style === 'line' &&
+  (
+    hasDenseLineSubjectKeyword ||
+    analysis.partDensity >= 65 ||
+    analysis.lineDifficulty >= 65 ||
+    (analysis.difficultyScore >= 60 &&
+      (analysis.partDensity >= 55 || analysis.lineDifficulty >= 55))
+  );
+
+if (isHighDensityLineTrace) {
+  workType = 'standard_trace';
+  analysis.difficultyScore = Math.max(analysis.difficultyScore, 65);
+  analysis.partDensity = Math.max(analysis.partDensity, 70);
+  analysis.lineDifficulty = Math.max(analysis.lineDifficulty, 70);
+  analysis.estimatedHoursMin = Math.max(analysis.estimatedHoursMin || 0, 4);
+  analysis.estimatedHours = Math.max(analysis.estimatedHours || 0, 5);
+  analysis.estimatedHoursMax = Math.max(analysis.estimatedHoursMax || 0, 6.5);
+  minimumHours = Math.max(minimumHours, 5);
+
+  analysis.summary =
+    '写真をもとにした取扱説明書用の白黒線画ですが、細かな部品・穴・スロット・ファンなど線要素が多く、' +
+    '線の取捨選択と整理に時間がかかる高密度な写真トレースとして、5時間前後を基準に工数を補正しました。';
+}
+
+// ------------------------
 // 写真・資料からオリジナルで新規作図する販促用リアル工業イラスト
 // ------------------------
 const isOriginalReferenceDrawing =
@@ -770,6 +832,7 @@ const confidence = calculateConfidence({
 
   hasImage: !!base64,
   hasNotes: !!input.notes,
+  isHighDensityLineTrace,
 });
 
 

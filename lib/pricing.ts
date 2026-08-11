@@ -530,9 +530,53 @@ export function calculateEstimate({
     hours = 5;
   }
 
+  // -----------------------------
+  // 高密度な取説用・白黒線画の写真トレース補正
+  // -----------------------------
+  // 基板、電子部品、内部機構、ファン、フィン、コネクター、スロット、
+  // 多数の穴・スリットなど、線量が多い写真トレースは「簡単な取説用トレース」
+  // として0.8hへ落とさない。画像解析の密度判定または対象物キーワードの
+  // どちらかで高密度と判断した場合、1点5時間を最低基準とする。
+  const hasDenseLineSubjectKeyword =
+    text.includes('マザーボード') ||
+    text.includes('基板') ||
+    text.includes('電子部品') ||
+    text.includes('周辺部品') ||
+    text.includes('コネクター') ||
+    text.includes('コネクタ') ||
+    text.includes('スロット') ||
+    text.includes('ファン') ||
+    text.includes('放熱フィン') ||
+    text.includes('ヒートシンク') ||
+    text.includes('配線') ||
+    text.includes('ハーネス') ||
+    text.includes('多数の穴') ||
+    text.includes('スリット') ||
+    text.includes('内部部品') ||
+    text.includes('細部の再現') ||
+    text.includes('線整理の工数');
+
+  const isHighDensityManualLineTrace =
+    sourceType === 'photo_trace' &&
+    usage === 'manual' &&
+    style === 'line' &&
+    !isSimpleLogoVectorization &&
+    (
+      hasDenseLineSubjectKeyword ||
+      part >= 65 ||
+      line >= 65 ||
+      (score >= 60 && (part >= 55 || line >= 55))
+    );
+
+  if (isHighDensityManualLineTrace) {
+    hours = Math.max(hours, 5);
+    score = Math.max(score, 65);
+  }
+
   // 簡単な取説用写真トレースは1hに抑える
   if (
     !isSimpleLogoVectorization &&
+    !isHighDensityManualLineTrace &&
     sourceType === 'photo_trace' &&
     usage === 'manual' &&
     style === 'line' &&
