@@ -328,7 +328,7 @@ export default function EstimateShare({
 
           <label className="shareAgreement">
             <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} />
-            <span>公開して問題のない内容であることを確認しました</span>
+            <span>公開して問題のない内容であることを確認しました。</span>
           </label>
 
           <button type="button" className="shareButton" disabled={busy || !agree} onClick={share}>
