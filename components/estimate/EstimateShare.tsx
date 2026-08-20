@@ -248,13 +248,13 @@ export default function EstimateShare({
   }
 
   return (
-    <section className="shareCard">
+    <section className="shareCard card">
       <div className="shareIntro">
         <div>
           <span className="shareEyebrow">SNS SHARE</span>
           <h3>この見積り結果をシェア</h3>
           <p>
-            金額・難易度・制作時間を共有用画像にまとめ、LINE・Instagram・Pinterest・LinkedIn・Facebookなどへ共有できます。会社名、氏名、メールアドレス、見積IDは入りません。
+            金額・難易度・制作時間を共有用画像にまとめます。会社名、氏名、メールアドレス、見積IDは入りません。
           </p>
         </div>
         <button type="button" className="shareOpenButton" onClick={() => setOpen((v) => !v)}>
@@ -264,15 +264,6 @@ export default function EstimateShare({
 
       {open ? (
         <div className="sharePanel">
-          <div className="shareTargets" aria-label="共有できるSNSの例">
-            <span>LINE</span>
-            <span>Instagram</span>
-            <span>Pinterest</span>
-            <span>LinkedIn</span>
-            <span>Facebook</span>
-            <span>その他</span>
-          </div>
-
           <div className="shareModeTitle">参考画像の表示方法</div>
           <div className="shareModes">
             <label className={imageMode === 'blur' ? 'shareMode active' : 'shareMode'}>
@@ -341,11 +332,11 @@ export default function EstimateShare({
           </label>
 
           <button type="button" className="shareButton" disabled={busy || !agree} onClick={share}>
-            {busy ? '共有画像を作成中...' : 'SNSを選んで共有する'}
+            {busy ? '共有画像を作成中...' : 'この内容で共有する'}
           </button>
 
           <p className="shareHelp">
-            スマートフォンでは共有先の選択画面が開くので、LINE・Instagram・Pinterest・LinkedIn・Facebookなどを選択してください。PCや非対応ブラウザではPNG画像を保存し、投稿用テキストをコピーします。
+            対応端末では共有先の選択画面が開きます。非対応のPC・ブラウザではPNG画像を保存します。
           </p>
 
           {message ? <div className="shareMessage">{message}</div> : null}
@@ -354,32 +345,16 @@ export default function EstimateShare({
 
       <style jsx>{`
         .shareCard {
-          display: block !important;
-          width: 100% !important;
-          max-width: 100% !important;
-          min-width: 0 !important;
-          box-sizing: border-box !important;
           padding: 24px;
           border: 1px solid #cfe0f4;
-          border-radius: 16px;
           background: linear-gradient(135deg, #f6fbff 0%, #ffffff 72%);
-          overflow: hidden;
         }
 
         .shareIntro {
-          display: flex !important;
-          width: 100%;
-          min-width: 0;
+          display: flex;
           justify-content: space-between;
           gap: 24px;
           align-items: center;
-        }
-
-        .shareIntro > div {
-          flex: 1 1 auto;
-          width: auto !important;
-          min-width: 0 !important;
-          max-width: none !important;
         }
 
         .shareEyebrow {
@@ -392,27 +367,16 @@ export default function EstimateShare({
         }
 
         .shareIntro h3 {
-          width: auto !important;
-          max-width: none !important;
           margin: 0 0 8px;
           color: #153455;
           font-size: 22px;
-          line-height: 1.45;
-          white-space: normal;
-          word-break: keep-all;
-          overflow-wrap: break-word;
         }
 
         .shareIntro p {
-          width: auto !important;
-          max-width: 760px !important;
           margin: 0;
           color: #607487;
           font-size: 14px;
           line-height: 1.75;
-          white-space: normal;
-          word-break: normal;
-          overflow-wrap: anywhere;
         }
 
         .shareOpenButton,
@@ -428,42 +392,16 @@ export default function EstimateShare({
 
         .shareOpenButton {
           flex: 0 0 auto;
-          width: auto !important;
-          min-width: 150px;
-          max-width: 220px;
           background: #ffffff;
           color: #1261b8;
-          white-space: nowrap;
         }
 
         .sharePanel {
-          display: grid !important;
-          width: 100%;
-          min-width: 0;
+          display: grid;
           gap: 16px;
           margin-top: 22px;
           padding-top: 20px;
           border-top: 1px solid #dce7f2;
-        }
-
-        .shareTargets {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 8px;
-        }
-
-        .shareTargets span {
-          display: inline-flex;
-          align-items: center;
-          min-height: 34px;
-          padding: 7px 12px;
-          border: 1px solid #d7e3ef;
-          border-radius: 999px;
-          background: #ffffff;
-          color: #31536f;
-          font-size: 12px;
-          font-weight: 800;
-          white-space: nowrap;
         }
 
         .shareModeTitle {
@@ -639,8 +577,7 @@ export default function EstimateShare({
           }
 
           .shareOpenButton {
-            width: 100% !important;
-            max-width: none;
+            width: 100%;
           }
 
           .shareModes {
