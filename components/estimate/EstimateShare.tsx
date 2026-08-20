@@ -399,17 +399,22 @@ export default function EstimateShare({
             </p>
           </div>
 
-          <label className="estimateShareAgreement">
-            <input
-              type="checkbox"
-              checked={agree}
-              onChange={(e) => {
-                setAgree(e.target.checked);
-                setMessage(null);
-              }}
-            />
-            <span>公開して問題のない内容であることを確認しました</span>
-          </label>
+          <button
+            type="button"
+            className={agree ? 'estimateShareAgreement active' : 'estimateShareAgreement'}
+            aria-pressed={agree}
+            onClick={() => {
+              setAgree((value) => !value);
+              setMessage(null);
+            }}
+          >
+            <span className="estimateShareAgreementIndicator" aria-hidden="true">
+              {agree ? '✓' : ''}
+            </span>
+            <span className="estimateShareAgreementText">
+              公開して問題のない内容であることを確認しました
+            </span>
+          </button>
 
           <div className="estimateShareNativeArea">
             <button
@@ -790,20 +795,70 @@ export default function EstimateShare({
         }
 
         .estimateShareAgreement {
-          display: flex !important;
+          appearance: none;
+          -webkit-appearance: none;
+          display: grid !important;
+          grid-template-columns: 24px minmax(0, 1fr) !important;
           width: 100% !important;
-          align-items: flex-start;
-          gap: 10px;
-          color: #334f69;
-          font-size: 14px;
-          font-weight: 700;
-          line-height: 1.6;
+          min-width: 0 !important;
+          align-items: center !important;
+          gap: 12px !important;
+          margin: 0 !important;
+          padding: 13px 14px !important;
+          border: 1px solid #d8e3ed !important;
+          border-radius: 11px !important;
+          background: #ffffff !important;
+          color: #334f69 !important;
+          font-family: inherit !important;
+          font-size: 14px !important;
+          font-weight: 700 !important;
+          line-height: 1.6 !important;
+          text-align: left !important;
           cursor: pointer;
         }
 
-        .estimateShareAgreement input {
-          flex: 0 0 auto;
-          margin-top: 4px;
+        .estimateShareAgreement.active {
+          border-color: #1676df !important;
+          background: #f7fbff !important;
+          box-shadow: 0 0 0 2px rgba(22, 118, 223, 0.08);
+        }
+
+        .estimateShareAgreementIndicator {
+          display: inline-flex !important;
+          width: 22px !important;
+          height: 22px !important;
+          min-width: 22px !important;
+          min-height: 22px !important;
+          align-items: center !important;
+          justify-content: center !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          border: 1.5px solid #9aabba;
+          border-radius: 6px;
+          background: #ffffff;
+          color: #ffffff;
+          font-size: 14px !important;
+          font-weight: 900 !important;
+          line-height: 1 !important;
+        }
+
+        .estimateShareAgreement.active .estimateShareAgreementIndicator {
+          border-color: #1676df;
+          background: #1676df;
+        }
+
+        .estimateShareAgreementText {
+          display: block !important;
+          width: 100% !important;
+          min-width: 0 !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          writing-mode: horizontal-tb !important;
+          text-orientation: mixed !important;
+          white-space: normal !important;
+          word-break: normal !important;
+          overflow-wrap: break-word !important;
+          text-align: left !important;
         }
 
         .estimateShareNativeArea {
