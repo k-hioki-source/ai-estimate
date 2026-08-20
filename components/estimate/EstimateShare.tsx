@@ -323,45 +323,51 @@ export default function EstimateShare({
         <div className="estimateSharePanel">
           <div>
             <div className="estimateShareSectionTitle">参考画像の表示方法</div>
-            <div className="estimateShareModes">
-              <label className={imageMode === 'blur' ? 'estimateShareMode active' : 'estimateShareMode'}>
-                <input
-                  type="radio"
-                  name="shareImageMode"
-                  checked={imageMode === 'blur'}
-                  onChange={() => setImageMode('blur')}
-                />
+            <div className="estimateShareModes" role="group" aria-label="参考画像の表示方法">
+              <button
+                type="button"
+                className={imageMode === 'blur' ? 'estimateShareMode active' : 'estimateShareMode'}
+                aria-pressed={imageMode === 'blur'}
+                onClick={() => setImageMode('blur')}
+              >
+                <span className="estimateShareModeIndicator" aria-hidden="true">
+                  <span />
+                </span>
                 <span className="estimateShareModeText">
                   <strong>ぼかして表示</strong>
                   <small>おすすめ・初期設定</small>
                 </span>
-              </label>
+              </button>
 
-              <label className={imageMode === 'original' ? 'estimateShareMode active' : 'estimateShareMode'}>
-                <input
-                  type="radio"
-                  name="shareImageMode"
-                  checked={imageMode === 'original'}
-                  onChange={() => setImageMode('original')}
-                />
+              <button
+                type="button"
+                className={imageMode === 'original' ? 'estimateShareMode active' : 'estimateShareMode'}
+                aria-pressed={imageMode === 'original'}
+                onClick={() => setImageMode('original')}
+              >
+                <span className="estimateShareModeIndicator" aria-hidden="true">
+                  <span />
+                </span>
                 <span className="estimateShareModeText">
                   <strong>そのまま表示</strong>
                   <small>公開可能な画像のみ</small>
                 </span>
-              </label>
+              </button>
 
-              <label className={imageMode === 'none' ? 'estimateShareMode active' : 'estimateShareMode'}>
-                <input
-                  type="radio"
-                  name="shareImageMode"
-                  checked={imageMode === 'none'}
-                  onChange={() => setImageMode('none')}
-                />
+              <button
+                type="button"
+                className={imageMode === 'none' ? 'estimateShareMode active' : 'estimateShareMode'}
+                aria-pressed={imageMode === 'none'}
+                onClick={() => setImageMode('none')}
+              >
+                <span className="estimateShareModeIndicator" aria-hidden="true">
+                  <span />
+                </span>
                 <span className="estimateShareModeText">
                   <strong>画像を載せない</strong>
                   <small>最も安全</small>
                 </span>
-              </label>
+              </button>
             </div>
           </div>
 
@@ -538,6 +544,7 @@ export default function EstimateShare({
 
         .estimateShareOpenButton,
         .estimateShareNativeButton,
+        .estimateShareMode,
         .socialButton {
           appearance: none;
           -webkit-appearance: none;
@@ -590,39 +597,87 @@ export default function EstimateShare({
         }
 
         .estimateShareMode {
-          display: flex !important;
+          display: grid !important;
+          grid-template-columns: 20px minmax(0, 1fr) !important;
           width: 100% !important;
           min-width: 0 !important;
-          min-height: 82px;
-          align-items: flex-start;
-          gap: 10px;
-          padding: 14px;
-          border: 1px solid #d8e3ed;
-          border-radius: 12px;
-          background: #ffffff;
+          min-height: 82px !important;
+          align-items: start !important;
+          justify-content: stretch !important;
+          gap: 11px !important;
+          margin: 0 !important;
+          padding: 14px !important;
+          border: 1px solid #d8e3ed !important;
+          border-radius: 12px !important;
+          background: #ffffff !important;
+          color: inherit !important;
+          text-align: left !important;
+          line-height: normal !important;
           cursor: pointer;
+          overflow: hidden;
         }
 
         .estimateShareMode.active {
-          border-color: #1676df;
+          border-color: #1676df !important;
           box-shadow: 0 0 0 2px rgba(22, 118, 223, 0.1);
+          background: #f9fcff !important;
         }
 
-        .estimateShareMode input {
-          flex: 0 0 auto;
-          margin: 3px 0 0;
+        .estimateShareModeIndicator {
+          display: inline-flex !important;
+          width: 18px !important;
+          height: 18px !important;
+          min-width: 18px !important;
+          min-height: 18px !important;
+          align-items: center !important;
+          justify-content: center !important;
+          margin: 1px 0 0 !important;
+          padding: 0 !important;
+          border: 1.5px solid #9aabba;
+          border-radius: 50%;
+          background: #ffffff;
+        }
+
+        .estimateShareMode.active .estimateShareModeIndicator {
+          border-color: #1676df;
+        }
+
+        .estimateShareModeIndicator > span {
+          display: block !important;
+          width: 8px !important;
+          height: 8px !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          border-radius: 50%;
+          background: transparent;
+        }
+
+        .estimateShareMode.active .estimateShareModeIndicator > span {
+          background: #1676df;
         }
 
         .estimateShareModeText {
-          display: block;
-          min-width: 0;
+          display: block !important;
+          width: 100% !important;
+          min-width: 0 !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          text-align: left !important;
+          writing-mode: horizontal-tb !important;
         }
 
         .estimateShareModeText strong,
         .estimateShareModeText small {
-          display: block;
+          display: block !important;
+          width: 100% !important;
+          max-width: 100% !important;
+          margin-left: 0 !important;
+          margin-right: 0 !important;
           writing-mode: horizontal-tb !important;
-          word-break: normal !important;
+          text-orientation: mixed !important;
+          white-space: normal !important;
+          word-break: keep-all !important;
+          overflow-wrap: normal !important;
         }
 
         .estimateShareModeText strong {
