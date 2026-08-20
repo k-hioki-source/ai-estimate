@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import HeaderLinks from "./HeaderLinks";
 import AiAssistant from "./estimate/AiAssistant";
+import EstimateShare from "./estimate/EstimateShare";
 type ApiResponse = {
   estimateId: string;
   requiresConsultation?: boolean;
@@ -1292,6 +1293,16 @@ async function handleFormalQuoteRequest() {
                 : '※この金額は参考画像と入力条件から算出した概算です。正式なお見積りは、内容確認後にご案内いたします。'}
             </p>
           </div>
+
+          {!result.requiresConsultation ? (
+            <EstimateShare
+              preview={preview}
+              amount={result.estimate.total}
+              difficultyScore={result.vision.complexityScore}
+              estimatedHours={result.estimate.estimatedHours}
+              subjectType={result.vision.subjectType}
+            />
+          ) : null}
 
           {!result.requiresConsultation ? <div className="grid grid-2">
             <div className="resultBox">
