@@ -82,6 +82,70 @@ export default function EstimateShare({
     [amount, difficultyScore, estimatedHours]
   );
 
+  function ensureAgreement() {
+    if (agree) return true;
+    setMessage('公開内容の確認にチェックを入れてください。');
+    return false;
+  }
+
+  function openShareWindow(url: string) {
+    window.open(url, '_blank', 'noopener,noreferrer,width=760,height=720');
+  }
+
+  async function copyPostText() {
+    try {
+      await navigator.clipboard.writeText(`${shareText}\n${SHARE_URL}`);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  async function shareToLine() {
+    if (!ensureAgreement()) return;
+    setMessage(null);
+    const url =
+      `https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(SHARE_URL)}` +
+      `&text=${encodeURIComponent(shareText)}`;
+    openShareWindow(url);
+  }
+
+  function shareToFacebook() {
+    if (!ensureAgreement()) return;
+    setMessage(null);
+    openShareWindow(
+      `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(SHARE_URL)}`
+    );
+  }
+
+  function shareToLinkedIn() {
+    if (!ensureAgreement()) return;
+    setMessage(null);
+    openShareWindow(
+      `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(SHARE_URL)}`
+    );
+  }
+
+  function shareToPinterest() {
+    if (!ensureAgreement()) return;
+    setMessage(null);
+    const url =
+      `https://www.pinterest.com/pin/create/button/?url=${encodeURIComponent(SHARE_URL)}` +
+      `&description=${encodeURIComponent(shareText)}`;
+    openShareWindow(url);
+  }
+
+  async function shareToInstagram() {
+    if (!ensureAgreement()) return;
+    const copied = await copyPostText();
+    window.open('https://www.instagram.com/', '_blank', 'noopener,noreferrer');
+    setMessage(
+      copied
+        ? 'Instagramを開きました。投稿文はクリップボードにコピー済みです。'
+        : 'Instagramを開きました。投稿時に見積り内容とURLを入力してください。'
+    );
+  }
+
   async function createShareImage(): Promise<File> {
     const canvas = document.createElement('canvas');
     canvas.width = 1200;
@@ -195,11 +259,8 @@ export default function EstimateShare({
     return new File([blob], 'ai-estimate-result.png', { type: 'image/png' });
   }
 
-  async function share() {
-    if (!agree) {
-      setMessage('公開内容の確認にチェックを入れてください。');
-      return;
-    }
+  async function shareWithDevice() {
+    if (!ensureAgreement()) return;
 
     setBusy(true);
     setMessage(null);
@@ -220,25 +281,13 @@ export default function EstimateShare({
           url: SHARE_URL,
           files: [file],
         });
-        setMessage('共有画面を開きました。');
+        setMessage('共有先の選択画面を開きました。');
         return;
       }
 
-      const url = URL.createObjectURL(file);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = file.name;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-
-      try {
-        await navigator.clipboard.writeText(`${shareText}\n${SHARE_URL}`);
-        setMessage('共有画像を保存し、投稿用テキストをコピーしました。');
-      } catch {
-        setMessage('共有画像を保存しました。SNSへ添付してご利用ください。');
-      }
+      setMessage(
+        'このPC・ブラウザでは画像付き共有に対応していません。下のSNS個別ボタンをご利用ください。'
+      );
     } catch (error) {
       if (error instanceof DOMException && error.name === 'AbortError') return;
       setMessage(error instanceof Error ? error.message : '共有処理に失敗しました。');
@@ -248,177 +297,305 @@ export default function EstimateShare({
   }
 
   return (
-    <section className="shareCard card">
-      <div className="shareIntro">
-        <div>
-          <span className="shareEyebrow">SNS SHARE</span>
+    <section className="estimateShareRoot">
+      <div className="estimateShareIntro">
+        <div className="estimateShareIntroText">
+          <span className="estimateShareEyebrow">SNS SHARE</span>
           <h3>この見積り結果をシェア</h3>
           <p>
-            金額・難易度・制作時間を共有用画像にまとめます。会社名、氏名、メールアドレス、見積IDは入りません。
+            金額・難易度・制作時間を共有できます。会社名、氏名、メールアドレス、見積IDは共有内容に含めません。
           </p>
         </div>
-        <button type="button" className="shareOpenButton" onClick={() => setOpen((v) => !v)}>
-          {open ? '閉じる' : '共有画像を作る'}
+
+        <button
+          type="button"
+          className="estimateShareOpenButton"
+          onClick={() => {
+            setOpen((value) => !value);
+            setMessage(null);
+          }}
+        >
+          {open ? '閉じる' : 'シェア方法を選ぶ'}
         </button>
       </div>
 
       {open ? (
-        <div className="sharePanel">
-          <div className="shareModeTitle">参考画像の表示方法</div>
-          <div className="shareModes">
-            <label className={imageMode === 'blur' ? 'shareMode active' : 'shareMode'}>
-              <input
-                type="radio"
-                name="shareImageMode"
-                checked={imageMode === 'blur'}
-                onChange={() => setImageMode('blur')}
-              />
-              <strong>ぼかして表示</strong>
-              <span>おすすめ・初期設定</span>
-            </label>
+        <div className="estimateSharePanel">
+          <div>
+            <div className="estimateShareSectionTitle">参考画像の表示方法</div>
+            <div className="estimateShareModes">
+              <label className={imageMode === 'blur' ? 'estimateShareMode active' : 'estimateShareMode'}>
+                <input
+                  type="radio"
+                  name="shareImageMode"
+                  checked={imageMode === 'blur'}
+                  onChange={() => setImageMode('blur')}
+                />
+                <span className="estimateShareModeText">
+                  <strong>ぼかして表示</strong>
+                  <small>おすすめ・初期設定</small>
+                </span>
+              </label>
 
-            <label className={imageMode === 'original' ? 'shareMode active' : 'shareMode'}>
-              <input
-                type="radio"
-                name="shareImageMode"
-                checked={imageMode === 'original'}
-                onChange={() => setImageMode('original')}
-              />
-              <strong>そのまま表示</strong>
-              <span>公開可能な画像のみ</span>
-            </label>
+              <label className={imageMode === 'original' ? 'estimateShareMode active' : 'estimateShareMode'}>
+                <input
+                  type="radio"
+                  name="shareImageMode"
+                  checked={imageMode === 'original'}
+                  onChange={() => setImageMode('original')}
+                />
+                <span className="estimateShareModeText">
+                  <strong>そのまま表示</strong>
+                  <small>公開可能な画像のみ</small>
+                </span>
+              </label>
 
-            <label className={imageMode === 'none' ? 'shareMode active' : 'shareMode'}>
-              <input
-                type="radio"
-                name="shareImageMode"
-                checked={imageMode === 'none'}
-                onChange={() => setImageMode('none')}
-              />
-              <strong>画像を載せない</strong>
-              <span>最も安全</span>
-            </label>
+              <label className={imageMode === 'none' ? 'estimateShareMode active' : 'estimateShareMode'}>
+                <input
+                  type="radio"
+                  name="shareImageMode"
+                  checked={imageMode === 'none'}
+                  onChange={() => setImageMode('none')}
+                />
+                <span className="estimateShareModeText">
+                  <strong>画像を載せない</strong>
+                  <small>最も安全</small>
+                </span>
+              </label>
+            </div>
           </div>
 
-          <div className="sharePreview" aria-label="共有内容のプレビュー">
-            <div className="sharePreviewHeader">
+          <div className="estimateSharePreview">
+            <div className="estimateSharePreviewHeader">
               <span>AI概算見積り結果</span>
               <strong>{amount.toLocaleString()}円</strong>
             </div>
-            <div className={`sharePreviewImage ${imageMode === 'blur' ? 'blur' : ''}`}>
+
+            <div className={`estimateSharePreviewImage ${imageMode === 'blur' ? 'blur' : ''}`}>
               {preview && imageMode !== 'none' ? (
                 <img src={preview} alt="共有対象の参考画像" />
               ) : (
                 <span>参考画像は非表示</span>
               )}
             </div>
-            <div className="sharePreviewStats">
+
+            <div className="estimateSharePreviewStats">
               <span>難易度 {difficultyScore}/100</span>
               <span>制作時間 {estimatedHours}時間</span>
               <span>{difficultyLabel(difficultyScore)}</span>
             </div>
           </div>
 
-          <div className="shareWarning">
+          <div className="estimateShareWarning">
             <strong>公開前にご確認ください</strong>
             <p>
               未公開製品、機密情報、第三者の著作物など、SNSへ公開する権利がない画像は共有しないでください。ぼかしを使用しても形状が推測される場合があります。
             </p>
           </div>
 
-          <label className="shareAgreement">
-            <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} />
+          <label className="estimateShareAgreement">
+            <input
+              type="checkbox"
+              checked={agree}
+              onChange={(e) => {
+                setAgree(e.target.checked);
+                setMessage(null);
+              }}
+            />
             <span>公開して問題のない内容であることを確認しました</span>
           </label>
 
-          <button type="button" className="shareButton" disabled={busy || !agree} onClick={share}>
-            {busy ? '共有画像を作成中...' : 'この内容で共有する'}
-          </button>
+          <div className="estimateShareNativeArea">
+            <button
+              type="button"
+              className="estimateShareNativeButton"
+              disabled={busy || !agree}
+              onClick={shareWithDevice}
+            >
+              {busy ? '共有画像を準備中...' : '画像付きでSNSを選んで共有'}
+            </button>
+            <p>
+              対応している端末・ブラウザでは、画像を保存せずに共有先アプリへ渡します。
+            </p>
+          </div>
 
-          <p className="shareHelp">
-            対応端末では共有先の選択画面が開きます。非対応のPC・ブラウザではPNG画像を保存します。
-          </p>
+          <div className="estimateShareDivider"><span>PCからSNSを選ぶ</span></div>
 
-          {message ? <div className="shareMessage">{message}</div> : null}
+          <div>
+            <div className="estimateShareSectionTitle">SNS個別ボタン</div>
+            <div className="estimateShareSocialGrid">
+              <button type="button" className="socialButton line" onClick={shareToLine}>
+                <span className="socialMark">L</span>
+                <span>LINE</span>
+              </button>
+
+              <button type="button" className="socialButton facebook" onClick={shareToFacebook}>
+                <span className="socialMark">f</span>
+                <span>Facebook</span>
+              </button>
+
+              <button type="button" className="socialButton linkedin" onClick={shareToLinkedIn}>
+                <span className="socialMark">in</span>
+                <span>LinkedIn</span>
+              </button>
+
+              <button type="button" className="socialButton pinterest" onClick={shareToPinterest}>
+                <span className="socialMark">P</span>
+                <span>Pinterest</span>
+              </button>
+
+              <button type="button" className="socialButton instagram" onClick={shareToInstagram}>
+                <span className="socialMark">◎</span>
+                <span>Instagram</span>
+              </button>
+            </div>
+
+            <p className="estimateSharePcNote">
+              PCの個別SNSボタンでは、画像を保存・外部公開しないため画像の自動添付は行いません。LINE・Facebook・LinkedIn・Pinterestは共有画面を開き、Instagramは投稿文をコピーしてWeb版を開きます。
+            </p>
+          </div>
+
+          {message ? <div className="estimateShareMessage">{message}</div> : null}
         </div>
       ) : null}
 
       <style jsx>{`
-        .shareCard {
-          padding: 24px;
+        .estimateShareRoot {
+          display: block !important;
+          width: 100% !important;
+          max-width: 100% !important;
+          min-width: 0 !important;
+          margin: 0 !important;
+          padding: 24px !important;
+          box-sizing: border-box !important;
           border: 1px solid #cfe0f4;
+          border-radius: 18px;
           background: linear-gradient(135deg, #f6fbff 0%, #ffffff 72%);
+          overflow: hidden;
         }
 
-        .shareIntro {
-          display: flex;
-          justify-content: space-between;
-          gap: 24px;
-          align-items: center;
+        .estimateShareRoot * {
+          box-sizing: border-box;
         }
 
-        .shareEyebrow {
+        .estimateShareIntro {
+          display: flex !important;
+          width: 100% !important;
+          min-width: 0 !important;
+          align-items: center !important;
+          justify-content: space-between !important;
+          gap: 24px !important;
+        }
+
+        .estimateShareIntroText {
+          display: block !important;
+          flex: 1 1 auto !important;
+          width: auto !important;
+          min-width: 0 !important;
+          max-width: none !important;
+        }
+
+        .estimateShareEyebrow {
           display: block;
-          margin-bottom: 6px;
+          margin: 0 0 6px;
           color: #1676df;
           font-size: 11px;
           font-weight: 900;
           letter-spacing: 0.14em;
+          line-height: 1.4;
+          white-space: nowrap;
         }
 
-        .shareIntro h3 {
-          margin: 0 0 8px;
-          color: #153455;
-          font-size: 22px;
+        .estimateShareIntro h3 {
+          display: block !important;
+          width: auto !important;
+          margin: 0 0 8px !important;
+          padding: 0 !important;
+          border: 0 !important;
+          color: #153455 !important;
+          font-size: 22px !important;
+          font-weight: 800 !important;
+          line-height: 1.45 !important;
+          letter-spacing: normal !important;
+          writing-mode: horizontal-tb !important;
+          word-break: normal !important;
+          overflow-wrap: break-word !important;
         }
 
-        .shareIntro p {
-          margin: 0;
-          color: #607487;
-          font-size: 14px;
-          line-height: 1.75;
+        .estimateShareIntro p {
+          display: block !important;
+          width: auto !important;
+          max-width: 720px !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          color: #607487 !important;
+          font-size: 14px !important;
+          line-height: 1.75 !important;
+          writing-mode: horizontal-tb !important;
+          word-break: normal !important;
+          overflow-wrap: break-word !important;
         }
 
-        .shareOpenButton,
-        .shareButton {
+        .estimateShareOpenButton,
+        .estimateShareNativeButton,
+        .socialButton {
+          appearance: none;
+          -webkit-appearance: none;
+          font-family: inherit;
+        }
+
+        .estimateShareOpenButton {
+          display: inline-flex !important;
+          flex: 0 0 auto !important;
+          width: auto !important;
+          min-width: 190px !important;
           min-height: 48px;
+          align-items: center;
+          justify-content: center;
           padding: 12px 20px;
-          border-radius: 11px;
           border: 1px solid #1676df;
+          border-radius: 11px;
+          background: #ffffff;
+          color: #1261b8;
           font-size: 15px;
           font-weight: 800;
+          line-height: 1.4;
+          white-space: nowrap;
           cursor: pointer;
         }
 
-        .shareOpenButton {
-          flex: 0 0 auto;
-          background: #ffffff;
-          color: #1261b8;
-        }
-
-        .sharePanel {
-          display: grid;
-          gap: 16px;
-          margin-top: 22px;
-          padding-top: 20px;
+        .estimateSharePanel {
+          display: grid !important;
+          grid-template-columns: minmax(0, 1fr) !important;
+          width: 100% !important;
+          min-width: 0 !important;
+          gap: 18px !important;
+          margin-top: 22px !important;
+          padding-top: 20px !important;
           border-top: 1px solid #dce7f2;
         }
 
-        .shareModeTitle {
+        .estimateShareSectionTitle {
+          margin-bottom: 10px;
           color: #243f5e;
           font-size: 14px;
           font-weight: 800;
         }
 
-        .shareModes {
-          display: grid;
-          grid-template-columns: repeat(3, minmax(0, 1fr));
-          gap: 10px;
+        .estimateShareModes {
+          display: grid !important;
+          grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+          width: 100% !important;
+          gap: 12px !important;
         }
 
-        .shareMode {
-          display: grid;
-          gap: 4px;
+        .estimateShareMode {
+          display: flex !important;
+          width: 100% !important;
+          min-width: 0 !important;
+          min-height: 82px;
+          align-items: flex-start;
+          gap: 10px;
           padding: 14px;
           border: 1px solid #d8e3ed;
           border-radius: 12px;
@@ -426,167 +603,316 @@ export default function EstimateShare({
           cursor: pointer;
         }
 
-        .shareMode.active {
+        .estimateShareMode.active {
           border-color: #1676df;
           box-shadow: 0 0 0 2px rgba(22, 118, 223, 0.1);
         }
 
-        .shareMode input {
-          margin: 0 0 5px;
+        .estimateShareMode input {
+          flex: 0 0 auto;
+          margin: 3px 0 0;
         }
 
-        .shareMode strong {
+        .estimateShareModeText {
+          display: block;
+          min-width: 0;
+        }
+
+        .estimateShareModeText strong,
+        .estimateShareModeText small {
+          display: block;
+          writing-mode: horizontal-tb !important;
+          word-break: normal !important;
+        }
+
+        .estimateShareModeText strong {
           color: #173a5c;
           font-size: 14px;
+          line-height: 1.45;
         }
 
-        .shareMode span {
+        .estimateShareModeText small {
+          margin-top: 4px;
           color: #728496;
           font-size: 12px;
+          line-height: 1.45;
         }
 
-        .sharePreview {
+        .estimateSharePreview {
+          display: block !important;
+          width: 100% !important;
+          min-width: 0 !important;
           overflow: hidden;
           border: 1px solid #dce6ef;
           border-radius: 16px;
           background: #ffffff;
         }
 
-        .sharePreviewHeader {
-          display: flex;
-          justify-content: space-between;
-          align-items: baseline;
+        .estimateSharePreviewHeader {
+          display: flex !important;
+          width: 100% !important;
+          align-items: baseline !important;
+          justify-content: space-between !important;
           gap: 16px;
           padding: 16px 18px;
         }
 
-        .sharePreviewHeader span {
+        .estimateSharePreviewHeader span {
           color: #1676df;
           font-weight: 800;
         }
 
-        .sharePreviewHeader strong {
+        .estimateSharePreviewHeader strong {
           color: #153455;
           font-size: 26px;
+          white-space: nowrap;
         }
 
-        .sharePreviewImage {
-          display: grid;
-          place-items: center;
+        .estimateSharePreviewImage {
+          display: grid !important;
+          width: 100% !important;
           min-height: 220px;
+          place-items: center;
           overflow: hidden;
           background: #eaf1f6;
         }
 
-        .sharePreviewImage img {
-          display: block;
-          width: 100%;
-          height: 260px;
+        .estimateSharePreviewImage img {
+          display: block !important;
+          width: 100% !important;
+          height: 260px !important;
+          max-width: none !important;
           object-fit: cover;
         }
 
-        .sharePreviewImage.blur img {
+        .estimateSharePreviewImage.blur img {
           filter: blur(18px);
           transform: scale(1.12);
         }
 
-        .sharePreviewImage span {
+        .estimateSharePreviewImage > span {
           color: #7b8b9a;
           font-weight: 700;
         }
 
-        .sharePreviewStats {
-          display: flex;
-          flex-wrap: wrap;
+        .estimateSharePreviewStats {
+          display: flex !important;
+          width: 100% !important;
+          flex-wrap: wrap !important;
           gap: 8px;
           padding: 14px 18px 18px;
         }
 
-        .sharePreviewStats span {
+        .estimateSharePreviewStats span {
+          display: inline-block;
           padding: 7px 10px;
           border-radius: 999px;
           background: #eef5fb;
           color: #31536f;
           font-size: 12px;
           font-weight: 800;
+          white-space: nowrap;
         }
 
-        .shareWarning {
+        .estimateShareWarning {
+          display: block !important;
+          width: 100% !important;
           padding: 14px 16px;
           border: 1px solid #f0d7a0;
           border-radius: 12px;
           background: #fffaf0;
         }
 
-        .shareWarning strong {
+        .estimateShareWarning strong {
           color: #795b17;
         }
 
-        .shareWarning p {
-          margin: 6px 0 0;
+        .estimateShareWarning p {
+          margin: 6px 0 0 !important;
           color: #6f6244;
-          font-size: 13px;
-          line-height: 1.7;
+          font-size: 13px !important;
+          line-height: 1.7 !important;
         }
 
-        .shareAgreement {
-          display: flex;
-          gap: 10px;
+        .estimateShareAgreement {
+          display: flex !important;
+          width: 100% !important;
           align-items: flex-start;
+          gap: 10px;
           color: #334f69;
           font-size: 14px;
           font-weight: 700;
+          line-height: 1.6;
           cursor: pointer;
         }
 
-        .shareAgreement input {
-          margin-top: 3px;
+        .estimateShareAgreement input {
+          flex: 0 0 auto;
+          margin-top: 4px;
         }
 
-        .shareButton {
-          width: 100%;
+        .estimateShareNativeArea {
+          display: grid !important;
+          width: 100% !important;
+          gap: 7px;
+        }
+
+        .estimateShareNativeButton {
+          display: flex !important;
+          width: 100% !important;
+          min-height: 50px;
+          align-items: center;
+          justify-content: center;
+          padding: 12px 18px;
+          border: 1px solid #1676df;
+          border-radius: 11px;
           background: #1676df;
           color: #ffffff;
+          font-size: 15px;
+          font-weight: 800;
+          cursor: pointer;
         }
 
-        .shareButton:disabled {
+        .estimateShareNativeButton:disabled {
           cursor: not-allowed;
-          opacity: 0.5;
+          opacity: 0.48;
         }
 
-        .shareHelp {
-          margin: -5px 0 0;
-          color: #718397;
+        .estimateShareNativeArea p,
+        .estimateSharePcNote {
+          margin: 0 !important;
+          color: #718397 !important;
+          font-size: 12px !important;
+          line-height: 1.65 !important;
+        }
+
+        .estimateShareDivider {
+          display: flex !important;
+          width: 100% !important;
+          align-items: center;
+          gap: 12px;
+          color: #708296;
           font-size: 12px;
-          line-height: 1.6;
+          font-weight: 800;
         }
 
-        .shareMessage {
+        .estimateShareDivider::before,
+        .estimateShareDivider::after {
+          content: '';
+          flex: 1 1 auto;
+          height: 1px;
+          background: #dce7f2;
+        }
+
+        .estimateShareDivider span {
+          flex: 0 0 auto;
+          white-space: nowrap;
+        }
+
+        .estimateShareSocialGrid {
+          display: grid !important;
+          grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+          width: 100% !important;
+          min-width: 0 !important;
+          gap: 10px !important;
+        }
+
+        .socialButton {
+          display: flex !important;
+          width: 100% !important;
+          min-width: 0 !important;
+          min-height: 52px;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          padding: 10px 8px;
+          border: 1px solid #d8e3ed;
+          border-radius: 11px;
+          background: #ffffff;
+          color: #203b55;
+          font-size: 13px;
+          font-weight: 800;
+          line-height: 1.3;
+          white-space: nowrap;
+          cursor: pointer;
+          transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        .socialButton:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 5px 14px rgba(28, 66, 103, 0.1);
+        }
+
+        .socialMark {
+          display: inline-flex !important;
+          flex: 0 0 auto;
+          width: 26px;
+          height: 26px;
+          align-items: center;
+          justify-content: center;
+          border-radius: 7px;
+          color: #ffffff;
+          font-size: 12px;
+          font-weight: 900;
+          line-height: 1;
+        }
+
+        .line .socialMark { background: #06c755; }
+        .facebook .socialMark { background: #1877f2; }
+        .linkedin .socialMark { background: #0a66c2; }
+        .pinterest .socialMark { background: #e60023; }
+        .instagram .socialMark { background: #8a3ab9; }
+
+        .estimateSharePcNote {
+          margin-top: 10px !important;
+        }
+
+        .estimateShareMessage {
+          display: block !important;
+          width: 100% !important;
           padding: 11px 13px;
           border-radius: 10px;
           background: #eef8f2;
           color: #2e6847;
           font-size: 13px;
           font-weight: 700;
+          line-height: 1.6;
+        }
+
+        @media (max-width: 900px) {
+          .estimateShareSocialGrid {
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+          }
         }
 
         @media (max-width: 760px) {
-          .shareIntro {
-            align-items: stretch;
-            flex-direction: column;
+          .estimateShareRoot {
+            padding: 18px !important;
           }
 
-          .shareOpenButton {
-            width: 100%;
+          .estimateShareIntro {
+            flex-direction: column !important;
+            align-items: stretch !important;
           }
 
-          .shareModes {
-            grid-template-columns: 1fr;
+          .estimateShareOpenButton {
+            width: 100% !important;
+            min-width: 0 !important;
           }
 
-          .sharePreviewHeader {
-            align-items: flex-start;
-            flex-direction: column;
+          .estimateShareModes {
+            grid-template-columns: minmax(0, 1fr) !important;
+          }
+
+          .estimateSharePreviewHeader {
+            align-items: flex-start !important;
+            flex-direction: column !important;
+          }
+        }
+
+        @media (max-width: 520px) {
+          .estimateShareSocialGrid {
+            grid-template-columns: minmax(0, 1fr) !important;
           }
         }
       `}</style>
