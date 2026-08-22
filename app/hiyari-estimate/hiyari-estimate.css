@@ -503,6 +503,52 @@ body{
   line-height:1.8;
 }
 
+
+
+.hiyariHumanNotice{
+  margin-top:22px;
+  padding:18px 20px;
+  border:1px solid #c9e7da;
+  border-radius:15px;
+  background:#f3fbf7;
+}
+
+.hiyariHumanNotice strong{
+  display:block;
+  margin-top:9px;
+  color:var(--hi-green-dark);
+  font-size:16px;
+  line-height:1.6;
+}
+
+.hiyariHumanNotice p{
+  margin:7px 0 0;
+  color:#526760;
+  font-size:13px;
+  line-height:1.8;
+}
+
+.hiyariHumanBadge{
+  display:inline-block;
+  padding:5px 10px;
+  border-radius:999px;
+  background:#fff1e6;
+  color:#c85f00;
+  border:1px solid #f1c79e;
+  font-size:11px;
+  font-weight:900;
+}
+
+.hiyariHumanResultNote{
+  margin-top:12px!important;
+  padding:10px 12px;
+  border-radius:10px;
+  background:#f3fbf7;
+  color:#3f6759!important;
+  font-size:12px!important;
+  line-height:1.7!important;
+}
+
 @media(max-width:800px){
   .hiyariPage{width:min(100% - 20px,1120px)}
   .hiyariHeader{padding:0 4px}

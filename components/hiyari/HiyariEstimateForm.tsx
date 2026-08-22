@@ -194,17 +194,30 @@ export default function HiyariEstimateForm() {
             工場・製造現場の写真と状況説明を入力すると、
             AIが固定タッチの安全教育イラスト制作費を概算します。
           </p>
+
+          <div className="hiyariHumanNotice">
+            <span className="hiyariHumanBadge">AI画像生成ではありません</span>
+            <strong>AIで見積り、制作はイラストレーターが対応します。</strong>
+            <p>
+              AIは現場写真とヒヤリハット内容の分析、制作内容の整理、概算費用の算出に使用します。
+              実際の安全教育イラストは、クリエイトサポートのイラストレーターが内容を確認して制作します。
+            </p>
+          </div>
+
           <div className="hiyariHeroPoints">
-            <span>現場写真から見積り</span>
-            <span>タッチ固定で分かりやすい</span>
-            <span>そのまま発注申込み</span>
+            <span>AIが写真・説明を分析</span>
+            <span>AIが概算費用を算出</span>
+            <span>イラストレーターが制作</span>
           </div>
         </div>
 
         <div className="hiyariStyleCard">
           <img src={STYLE_IMAGE} alt="安全教育イラストの固定タッチ見本" />
           <strong>制作タッチはこのイメージで固定</strong>
-          <span>安全教育資料・KY活動・社内掲示・eラーニングなどに使用できます。</span>
+          <span>
+            AI生成画像を納品するサービスではありません。
+            この見本タッチを基準に、イラストレーターが安全教育用イラストとして制作します。
+          </span>
         </div>
       </section>
 
@@ -212,7 +225,7 @@ export default function HiyariEstimateForm() {
         <div><b>1</b><span>現場写真と状況を入力</span></div>
         <div><b>2</b><span>AIが概算見積り</span></div>
         <div><b>3</b><span>発注申込み</span></div>
-        <div><b>4</b><span>制作・納品・請求書払い</span></div>
+        <div><b>4</b><span>イラストレーターが制作・納品</span></div>
       </section>
 
       <form onSubmit={runEstimate} className="hiyariPanel hiyariForm">
@@ -346,6 +359,9 @@ export default function HiyariEstimateForm() {
               <p className="hiyariMuted">
                 固定タッチ：安全教育用カラーイラスト
               </p>
+              <p className="hiyariHumanResultNote">
+                ※AIが生成した画像をそのまま納品するサービスではありません。実制作はイラストレーターが行います。
+              </p>
             </div>
           </div>
 
@@ -371,7 +387,7 @@ export default function HiyariEstimateForm() {
             {!ordered ? (
               <>
                 <p>
-                  法人向け請求書払いです。発注申込み後、クリエイトサポートで写真と内容を確認して制作を開始します。
+                  法人向け請求書払いです。発注申込み後、クリエイトサポートのイラストレーターが写真と内容を確認して制作を開始します。
                 </p>
 
                 <div className="hiyariTwoCols">
