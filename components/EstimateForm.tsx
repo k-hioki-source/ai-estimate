@@ -1289,6 +1289,30 @@ async function handleFormalQuoteRequest() {
             {result ? (
         <section className="stackLarge">
           <div ref={pdfContentRef} className="stackLarge pdfCaptureArea">
+          <div className="pdfReportHeader">
+            <div>
+              <div className="pdfReportEyebrow">CREATE SUPPORT</div>
+              <h1 className="pdfReportTitle">AI概算見積り結果</h1>
+              <p className="pdfReportSubTitle">テクニカルイラスト・取扱説明書・パーツカタログ制作</p>
+            </div>
+            <div className="pdfEstimateMeta">
+              <span>見積ID</span>
+              <strong>{result.estimateId}</strong>
+            </div>
+          </div>
+
+          {preview ? (
+            <div className="pdfReferenceImageCard">
+              <div className="pdfSectionLabel">判定対象画像</div>
+              <img
+                src={preview}
+                alt="AI判定に使用した参考画像"
+                className="pdfReferenceImage"
+                crossOrigin="anonymous"
+              />
+            </div>
+          ) : null}
+
           <div className="resultHero card">
             <div className="badgeRow">
               <div className="badge">概算見積り結果</div>
@@ -1428,6 +1452,26 @@ async function handleFormalQuoteRequest() {
               </ul>
             </div>
           </div> : null}
+
+          <div className="pdfReportFooter">
+            <div className="pdfFooterCompany">
+              <strong>株式会社クリエイトサポート</strong>
+              <span>担当　日置　勝己</span>
+            </div>
+            <div className="pdfFooterGrid">
+              <div>
+                <span>携帯 090-2943-2763</span>
+                <span>e-mail: k-hioki@create-support.co.jp</span>
+                <span>Homepage: https://www.create-support.co.jp/</span>
+              </div>
+              <div>
+                <strong>多治見オフィス</strong>
+                <span>電話 0572-74-1985</span>
+                <span>〒507-0038 岐阜県多治見市白山町５－１７－３</span>
+                <span>梅村ビル３F</span>
+              </div>
+            </div>
+          </div>
           </div>
 
           <div className="pdfDownloadArea">
@@ -1448,6 +1492,135 @@ async function handleFormalQuoteRequest() {
             .pdfCaptureArea {
               width: 100%;
               background: #ffffff;
+              padding: 18px;
+              box-sizing: border-box;
+            }
+
+            .pdfReportHeader {
+              display: flex;
+              align-items: flex-end;
+              justify-content: space-between;
+              gap: 20px;
+              padding: 22px 24px;
+              border-radius: 18px;
+              background: linear-gradient(135deg, #0d5fa8 0%, #1676df 55%, #23a8de 100%);
+              color: #ffffff;
+            }
+
+            .pdfReportEyebrow {
+              margin-bottom: 4px;
+              font-size: 11px;
+              font-weight: 900;
+              letter-spacing: 0.16em;
+              opacity: 0.9;
+            }
+
+            .pdfReportTitle {
+              margin: 0;
+              color: #ffffff;
+              font-size: 28px;
+              line-height: 1.25;
+            }
+
+            .pdfReportSubTitle {
+              margin: 7px 0 0;
+              color: rgba(255,255,255,0.9);
+              font-size: 12px;
+            }
+
+            .pdfEstimateMeta {
+              flex: 0 0 auto;
+              min-width: 210px;
+              padding: 12px 14px;
+              border: 1px solid rgba(255,255,255,0.28);
+              border-radius: 12px;
+              background: rgba(255,255,255,0.12);
+            }
+
+            .pdfEstimateMeta span,
+            .pdfEstimateMeta strong {
+              display: block;
+            }
+
+            .pdfEstimateMeta span {
+              margin-bottom: 4px;
+              font-size: 11px;
+              opacity: 0.82;
+            }
+
+            .pdfEstimateMeta strong {
+              font-size: 14px;
+              overflow-wrap: anywhere;
+            }
+
+            .pdfReferenceImageCard {
+              padding: 18px;
+              border: 1px solid #d9e5f2;
+              border-radius: 16px;
+              background: #f8fbff;
+              text-align: center;
+            }
+
+            .pdfSectionLabel {
+              margin-bottom: 10px;
+              color: #4d657d;
+              font-size: 12px;
+              font-weight: 800;
+              text-align: left;
+            }
+
+            .pdfReferenceImage {
+              display: block;
+              width: auto;
+              max-width: 100%;
+              max-height: 320px;
+              margin: 0 auto;
+              object-fit: contain;
+              border-radius: 10px;
+              background: #ffffff;
+            }
+
+            .pdfReportFooter {
+              margin-top: 4px;
+              padding: 20px 22px;
+              border-top: 4px solid #1676df;
+              border-radius: 14px;
+              background: #f4f8fc;
+              color: #334e68;
+            }
+
+            .pdfFooterCompany {
+              display: flex;
+              align-items: baseline;
+              gap: 14px;
+              margin-bottom: 12px;
+            }
+
+            .pdfFooterCompany strong {
+              color: #123c67;
+              font-size: 16px;
+            }
+
+            .pdfFooterCompany span {
+              font-size: 12px;
+            }
+
+            .pdfFooterGrid {
+              display: grid;
+              grid-template-columns: repeat(2, minmax(0, 1fr));
+              gap: 18px;
+              font-size: 11px;
+              line-height: 1.75;
+            }
+
+            .pdfFooterGrid > div {
+              display: flex;
+              flex-direction: column;
+            }
+
+            .pdfFooterGrid strong {
+              color: #123c67;
+              font-size: 12px;
             }
 
             .pdfDownloadArea {
@@ -1495,6 +1668,25 @@ async function handleFormalQuoteRequest() {
 
               .pdfDownloadButton {
                 width: 100%;
+              }
+
+              .pdfReportHeader {
+                align-items: stretch;
+                flex-direction: column;
+              }
+
+              .pdfEstimateMeta {
+                min-width: 0;
+              }
+
+              .pdfFooterGrid {
+                grid-template-columns: 1fr;
+              }
+
+              .pdfFooterCompany {
+                align-items: flex-start;
+                flex-direction: column;
+                gap: 3px;
               }
             }
           `}</style>
