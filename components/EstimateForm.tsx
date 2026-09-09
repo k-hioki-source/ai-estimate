@@ -619,6 +619,16 @@ async function handleFormalQuoteRequest() {
         `
         : '';
 
+    const deliveryHtml = !result.requiresConsultation
+      ? '<div>納期目安：' + escapeHtml(result.estimate.deliveryDays) + '</div>'
+      : '';
+
+    const unitPriceHtml = !result.requiresConsultation
+      ? '<div class="row"><span>1点あたり</span><strong>' +
+        result.estimate.subtotal.toLocaleString() +
+        '円</strong></div>'
+      : '';
+
     const pdfWindow = window.open('', '_blank', 'width=900,height=1200');
 
     if (!pdfWindow) {
@@ -733,7 +743,7 @@ async function handleFormalQuoteRequest() {
             <div class="amountBox">
               <div class="amountLabel">${result.requiresConsultation ? 'お見積り方法' : '概算金額'}</div>
               <div class="amount">${escapeHtml(amountText)}</div>
-              ${!result.requiresConsultation ? `<div>納期目安：${escapeHtml(result.estimate.deliveryDays)}</div>` : ''}
+              ${deliveryHtml}
               ${referencePriceHtml}
             </div>
 
@@ -751,7 +761,7 @@ async function handleFormalQuoteRequest() {
               <div class="row"><span>難易度スコア</span><strong>${escapeHtml(result.vision.complexityScore)}</strong></div>
               <div class="row"><span>難易度</span><strong>${escapeHtml(difficultyLabel(result.vision.complexityScore))}</strong></div>
               <div class="row"><span>想定制作時間</span><strong>${escapeHtml(result.estimate.estimatedHours)}時間</strong></div>
-              ${!result.requiresConsultation ? `<div class="row"><span>1点あたり</span><strong>${result.estimate.subtotal.toLocaleString()}円</strong></div>` : ''}
+              ${unitPriceHtml}
               <div class="reason"><strong>AI判定コメント</strong><br />${escapeHtml(result.vision.reason)}</div>
             </section>
 
