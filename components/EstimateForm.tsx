@@ -833,7 +833,7 @@ async function handleFormalQuoteRequest() {
               </section>
             ) : null}
 
-            <style jsx>{`
+            <style>{`
               .aiSelectedNoticeCard {
                 margin-bottom: 16px;
                 padding: 16px 18px;
@@ -1444,7 +1444,7 @@ async function handleFormalQuoteRequest() {
             </p>
           </div>
 
-          <style jsx>{`
+          <style>{`
             .pdfCaptureArea {
               width: 100%;
               background: #ffffff;
@@ -1601,7 +1601,7 @@ async function handleFormalQuoteRequest() {
                   ※この操作により、入力情報・参考画像・見積り結果が株式会社クリエイトサポートへ送信されます。
                 </p>
 
-                <style jsx>{`
+                <style>{`
                   .illustrationReferencePrice {
                     margin-top: 18px;
                     padding: 16px 18px;
