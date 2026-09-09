@@ -1,9 +1,8 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import HeaderLinks from "./HeaderLinks";
 import AiAssistant from "./estimate/AiAssistant";
-import EstimateShare from "./estimate/EstimateShare";
 type ApiResponse = {
   estimateId: string;
   requiresConsultation?: boolean;
@@ -90,6 +89,8 @@ export default function EstimateForm() {
   const [consultSent, setConsultSent] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
   const [result, setResult] = useState<ApiResponse | null>(null);
+  const [pdfDownloading, setPdfDownloading] = useState(false);
+  const pdfContentRef = useRef<HTMLDivElement | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selectedStyle, setSelectedStyle] = useState<'line' | 'color' | 'real'>('line');
   const [showEstimateForm, setShowEstimateForm] = useState(false);
@@ -551,158 +552,98 @@ async function handleFormalQuoteRequest() {
   }
 }
 
+  async function handleDownloadPdf() {
+    if (!result || !pdfContentRef.current || pdfDownloading) return;
 
-  function handleDownloadPdf() {
-    if (!result) return;
+    setPdfDownloading(true);
+    setError(null);
 
-    const productionMethodLabel =
-      selectedSourceType === 'photo_trace'
-        ? '写真・画像トレース'
-        : selectedSourceType === 'reference_drawing'
-          ? '写真・図面・資料から作図'
-          : 'XVL・3DCADから作成';
+    try {
+      const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
+        import('html2canvas'),
+        import('jspdf'),
+      ]);
 
-    const usageLabel =
-      selectedUsage === 'manual'
-        ? '取扱説明書・組立説明書・サービスマニュアル'
-        : selectedUsage === 'parts'
-          ? 'パーツカタログ・分解図・構成図'
-          : '製品説明・WEBサイト・パンフレット・販促資料';
+      const source = pdfContentRef.current;
+      const canvas = await html2canvas(source, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        logging: false,
+        windowWidth: source.scrollWidth,
+      });
 
-    const styleLabel =
-      selectedStyle === 'line'
-        ? '白黒線画'
-        : selectedStyle === 'color'
-          ? 'カラーイラスト'
-          : 'リアルイラスト';
+      const imageData = canvas.toDataURL('image/jpeg', 0.95);
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4',
+        compress: true,
+      });
 
-    const escapeHtml = (value: string | number | null | undefined) =>
-      String(value ?? '')
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const margin = 10;
+      const usableWidth = pageWidth - margin * 2;
+      const usableHeight = pageHeight - margin * 2;
+      const imageHeight = (canvas.height * usableWidth) / canvas.width;
 
-    const today = new Intl.DateTimeFormat('ja-JP', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-    }).format(new Date());
+      if (imageHeight <= usableHeight) {
+        pdf.addImage(imageData, 'JPEG', margin, margin, usableWidth, imageHeight, undefined, 'FAST');
+      } else {
+        const pageCanvas = document.createElement('canvas');
+        const pageContext = pageCanvas.getContext('2d');
 
-    const amountText = result.requiresConsultation
-      ? '個別見積り（要相談）'
-      : result.estimate.total.toLocaleString() + '円';
+        if (!pageContext) {
+          throw new Error('PDF生成用の描画領域を作成できませんでした。');
+        }
 
-    const confidenceHtml =
-      !result.requiresConsultation && result.confidence
-        ? '<section>' +
-          '<h2>AI見積り信頼度</h2>' +
-          '<div class="row"><span>信頼度</span><strong>' + escapeHtml(result.confidence.score) + '%</strong></div>' +
-          '<div class="row"><span>判定</span><strong>' + escapeHtml(result.confidence.level) + '</strong></div>' +
-          '<p>' + escapeHtml(result.confidence.comment) + '</p>' +
-          '</section>'
-        : '';
+        const pixelsPerMm = canvas.width / usableWidth;
+        const pageSliceHeight = Math.floor(usableHeight * pixelsPerMm);
+        let sourceY = 0;
+        let pageIndex = 0;
 
-    const referencePriceHtml =
-      result.requiresConsultation &&
-      result.showIllustrationReferencePrice &&
-      result.illustrationReferencePrice != null
-        ? '<div class="referencePrice">' +
-          '<span>イラスト制作部分の参考価格</span>' +
-          '<strong>' + result.illustrationReferencePrice.toLocaleString() + '円〜</strong>' +
-          '<p>※イラスト制作のみの参考価格です。PowerPoint制作、ナレーション・音声編集、3DCG・アニメーション、動画編集、インタラクティブ制作などの費用は含まれていません。</p>' +
-          '</div>'
-        : '';
+        while (sourceY < canvas.height) {
+          const sliceHeight = Math.min(pageSliceHeight, canvas.height - sourceY);
+          pageCanvas.width = canvas.width;
+          pageCanvas.height = sliceHeight;
+          pageContext.clearRect(0, 0, pageCanvas.width, pageCanvas.height);
+          pageContext.fillStyle = '#ffffff';
+          pageContext.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
+          pageContext.drawImage(
+            canvas,
+            0,
+            sourceY,
+            canvas.width,
+            sliceHeight,
+            0,
+            0,
+            canvas.width,
+            sliceHeight
+          );
 
-    const deliveryHtml = !result.requiresConsultation
-      ? '<div>納期目安：' + escapeHtml(result.estimate.deliveryDays) + '</div>'
-      : '';
+          const sliceData = pageCanvas.toDataURL('image/jpeg', 0.95);
+          const sliceHeightMm = sliceHeight / pixelsPerMm;
 
-    const unitPriceHtml = !result.requiresConsultation
-      ? '<div class="row"><span>1点あたり</span><strong>' +
-        result.estimate.subtotal.toLocaleString() +
-        '円</strong></div>'
-      : '';
+          if (pageIndex > 0) pdf.addPage();
+          pdf.addImage(sliceData, 'JPEG', margin, margin, usableWidth, sliceHeightMm, undefined, 'FAST');
 
-    const noticeHtml = result.requiresConsultation
-      ? '※本書はAIによる概算判定結果です。参考価格は制作全体の総額ではありません。詳しい仕様を確認後、正式なお見積りをご案内いたします。'
-      : '※本書の金額は参考画像と入力条件からAIが算出した概算です。正式なお見積りは、資料・仕様を確認後に株式会社クリエイトサポートよりご案内いたします。';
+          sourceY += sliceHeight;
+          pageIndex += 1;
+        }
+      }
 
-    const pdfWindow = window.open('', '_blank', 'width=900,height=1200');
-
-    if (!pdfWindow) {
-      setError('PDF保存用の画面を開けませんでした。ブラウザのポップアップブロックをご確認ください。');
-      return;
+      pdf.save(`${result.estimateId || 'AI概算見積り'}.pdf`);
+    } catch (e) {
+      console.error(e);
+      setError(
+        e instanceof Error
+          ? `PDFの作成に失敗しました: ${e.message}`
+          : 'PDFの作成に失敗しました。'
+      );
+    } finally {
+      setPdfDownloading(false);
     }
-
-    const html = [
-      '<!doctype html>',
-      '<html lang="ja">',
-      '<head>',
-      '<meta charset="utf-8" />',
-      '<title>' + escapeHtml(result.estimateId) + '_AI概算見積書</title>',
-      '<style>',
-      '@page { size: A4; margin: 14mm; }',
-      '* { box-sizing: border-box; }',
-      'body { margin:0; color:#1f2937; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif; font-size:12px; line-height:1.65; background:#fff; }',
-      '.sheet { width:100%; }',
-      '.header { display:flex; justify-content:space-between; align-items:flex-start; gap:20px; padding-bottom:14px; border-bottom:2px solid #1676df; }',
-      '.brand { font-size:15px; font-weight:800; color:#0f3b68; }',
-      'h1 { margin:4px 0 0; font-size:24px; color:#102f54; }',
-      '.meta { text-align:right; font-size:11px; }',
-      '.amountBox { margin:18px 0; padding:16px 18px; border:1px solid #cfe0f4; border-radius:10px; background:#f7fbff; }',
-      '.amountLabel { font-weight:700; color:#4b647c; }',
-      '.amount { margin-top:4px; font-size:28px; font-weight:900; color:#1261b8; }',
-      'section { margin-top:16px; break-inside:avoid; }',
-      'h2 { margin:0 0 8px; padding-bottom:5px; border-bottom:1px solid #d9e2ec; font-size:15px; color:#102f54; }',
-      '.row { display:grid; grid-template-columns:190px 1fr; gap:12px; padding:5px 0; border-bottom:1px solid #edf2f7; }',
-      '.row span { color:#64748b; }',
-      '.row strong { color:#172b4d; }',
-      '.reason { margin-top:10px; padding:12px 14px; border-left:4px solid #1ba9e5; background:#eef9ff; }',
-      '.referencePrice { margin-top:12px; padding:12px 14px; border:1px solid #b9dbea; border-radius:8px; background:#f3fbff; }',
-      '.referencePrice span { display:block; font-weight:700; color:#365568; }',
-      '.referencePrice strong { display:block; margin-top:3px; font-size:20px; color:#0876a3; }',
-      '.referencePrice p { margin:5px 0 0; font-size:10px; color:#526675; }',
-      '.notice { margin-top:20px; padding:11px 13px; border:1px solid #e5e7eb; background:#fafafa; font-size:10.5px; color:#5f6b7a; }',
-      '.footer { margin-top:22px; padding-top:10px; border-top:1px solid #d9e2ec; font-size:10px; color:#64748b; }',
-      '@media print { body { -webkit-print-color-adjust:exact; print-color-adjust:exact; } }',
-      '</style>',
-      '</head>',
-      '<body>',
-      '<main class="sheet">',
-      '<div class="header"><div><div class="brand">株式会社クリエイトサポート</div><h1>AI概算見積書</h1></div>',
-      '<div class="meta"><div>見積ID：' + escapeHtml(result.estimateId) + '</div><div>作成日：' + escapeHtml(today) + '</div></div></div>',
-      '<div class="amountBox"><div class="amountLabel">' + (result.requiresConsultation ? 'お見積り方法' : '概算金額') + '</div>',
-      '<div class="amount">' + escapeHtml(amountText) + '</div>' + deliveryHtml + referencePriceHtml + '</div>',
-      '<section><h2>見積り条件</h2>',
-      '<div class="row"><span>制作方法／資料</span><strong>' + escapeHtml(productionMethodLabel) + '</strong></div>',
-      '<div class="row"><span>用途</span><strong>' + escapeHtml(usageLabel) + '</strong></div>',
-      '<div class="row"><span>イラスト表現</span><strong>' + escapeHtml(styleLabel) + '</strong></div>',
-      '<div class="row"><span>点数</span><strong>' + escapeHtml(result.estimate.quantity) + '</strong></div></section>',
-      '<section><h2>AI判定</h2>',
-      '<div class="row"><span>作業内容</span><strong>' + escapeHtml(result.vision.subjectType) + '</strong></div>',
-      '<div class="row"><span>難易度スコア</span><strong>' + escapeHtml(result.vision.complexityScore) + '</strong></div>',
-      '<div class="row"><span>難易度</span><strong>' + escapeHtml(difficultyLabel(result.vision.complexityScore)) + '</strong></div>',
-      '<div class="row"><span>想定制作時間</span><strong>' + escapeHtml(result.estimate.estimatedHours) + '時間</strong></div>',
-      unitPriceHtml,
-      '<div class="reason"><strong>AI判定コメント</strong><br />' + escapeHtml(result.vision.reason) + '</div></section>',
-      confidenceHtml,
-      '<div class="notice">' + noticeHtml + '</div>',
-      '<div class="footer">株式会社クリエイトサポート<br />https://www.create-support.co.jp/</div>',
-      '</main>',
-      '</body>',
-      '</html>',
-    ].join('');
-
-    pdfWindow.document.open();
-    pdfWindow.document.write(html);
-    pdfWindow.document.close();
-
-    window.setTimeout(() => {
-      pdfWindow.focus();
-      pdfWindow.print();
-    }, 300);
   }
 
   const sampleImages = [
@@ -1347,6 +1288,7 @@ async function handleFormalQuoteRequest() {
 
             {result ? (
         <section className="stackLarge">
+          <div ref={pdfContentRef} className="stackLarge pdfCaptureArea">
           <div className="resultHero card">
             <div className="badgeRow">
               <div className="badge">概算見積り結果</div>
@@ -1448,38 +1390,6 @@ async function handleFormalQuoteRequest() {
             </p>
           </div>
 
-
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-                flexWrap: 'wrap',
-                marginTop: '-4px',
-              }}
-            >
-              <button
-                type="button"
-                onClick={handleDownloadPdf}
-                style={{
-                  minHeight: '44px',
-                  padding: '10px 18px',
-                  border: '1px solid #1676df',
-                  borderRadius: '10px',
-                  background: '#1676df',
-                  color: '#ffffff',
-                  fontSize: '14px',
-                  fontWeight: 800,
-                  cursor: 'pointer',
-                }}
-              >
-                PDFで保存
-              </button>
-              <span style={{ color: '#64748b', fontSize: '12px' }}>
-                見積り結果をA4の概算見積書として保存できます。
-              </span>
-            </div>
-
           {!result.requiresConsultation ? <div className="grid grid-2">
             <div className="resultBox">
               <div className="badge">AI判定</div>
@@ -1518,6 +1428,76 @@ async function handleFormalQuoteRequest() {
               </ul>
             </div>
           </div> : null}
+          </div>
+
+          <div className="pdfDownloadArea">
+            <button
+              type="button"
+              className="pdfDownloadButton"
+              onClick={handleDownloadPdf}
+              disabled={pdfDownloading}
+            >
+              {pdfDownloading ? 'PDFを作成中...' : 'PDFでダウンロード'}
+            </button>
+            <p className="pdfDownloadNote">
+              画面に表示された概算見積り結果をPDFファイルとして保存できます。
+            </p>
+          </div>
+
+          <style jsx>{`
+            .pdfCaptureArea {
+              width: 100%;
+              background: #ffffff;
+            }
+
+            .pdfDownloadArea {
+              display: flex;
+              align-items: center;
+              gap: 14px;
+              flex-wrap: wrap;
+              padding: 4px 0;
+            }
+
+            .pdfDownloadButton {
+              min-height: 48px;
+              padding: 12px 22px;
+              border: 1px solid #1676df;
+              border-radius: 10px;
+              background: #1676df;
+              color: #ffffff;
+              font-size: 15px;
+              font-weight: 800;
+              cursor: pointer;
+              box-shadow: 0 5px 14px rgba(22, 118, 223, 0.18);
+            }
+
+            .pdfDownloadButton:hover:not(:disabled) {
+              background: #1268c7;
+            }
+
+            .pdfDownloadButton:disabled {
+              cursor: wait;
+              opacity: 0.68;
+            }
+
+            .pdfDownloadNote {
+              margin: 0;
+              color: #64748b;
+              font-size: 12px;
+              line-height: 1.6;
+            }
+
+            @media (max-width: 640px) {
+              .pdfDownloadArea {
+                align-items: stretch;
+                flex-direction: column;
+              }
+
+              .pdfDownloadButton {
+                width: 100%;
+              }
+            }
+          `}</style>
 
           <div className="ctaCard card">
             <div>
