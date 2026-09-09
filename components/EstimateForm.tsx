@@ -551,6 +551,236 @@ async function handleFormalQuoteRequest() {
   }
 }
 
+
+  function handleDownloadPdf() {
+    if (!result) return;
+
+    const productionMethodLabel =
+      selectedSourceType === 'photo_trace'
+        ? '写真・画像トレース'
+        : selectedSourceType === 'reference_drawing'
+          ? '写真・図面・資料から作図'
+          : 'XVL・3DCADから作成';
+
+    const usageLabel =
+      selectedUsage === 'manual'
+        ? '取扱説明書・組立説明書・サービスマニュアル'
+        : selectedUsage === 'parts'
+          ? 'パーツカタログ・分解図・構成図'
+          : '製品説明・WEBサイト・パンフレット・販促資料';
+
+    const styleLabel =
+      selectedStyle === 'line'
+        ? '白黒線画'
+        : selectedStyle === 'color'
+          ? 'カラーイラスト'
+          : 'リアルイラスト';
+
+    const escapeHtml = (value: string | number | null | undefined) =>
+      String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+
+    const today = new Intl.DateTimeFormat('ja-JP', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(new Date());
+
+    const amountText = result.requiresConsultation
+      ? '個別見積り（要相談）'
+      : `${result.estimate.total.toLocaleString()}円`;
+
+    const confidenceHtml =
+      !result.requiresConsultation && result.confidence
+        ? `
+          <section>
+            <h2>AI見積り信頼度</h2>
+            <div class="row"><span>信頼度</span><strong>${escapeHtml(result.confidence.score)}%</strong></div>
+            <div class="row"><span>判定</span><strong>${escapeHtml(result.confidence.level)}</strong></div>
+            <p>${escapeHtml(result.confidence.comment)}</p>
+          </section>
+        `
+        : '';
+
+    const referencePriceHtml =
+      result.requiresConsultation &&
+      result.showIllustrationReferencePrice &&
+      result.illustrationReferencePrice != null
+        ? `
+          <div class="referencePrice">
+            <span>イラスト制作部分の参考価格</span>
+            <strong>${result.illustrationReferencePrice.toLocaleString()}円〜</strong>
+            <p>※イラスト制作のみの参考価格です。PowerPoint制作、ナレーション・音声編集、3DCG・アニメーション、動画編集、インタラクティブ制作などの費用は含まれていません。</p>
+          </div>
+        `
+        : '';
+
+    const pdfWindow = window.open('', '_blank', 'width=900,height=1200');
+
+    if (!pdfWindow) {
+      setError('PDF保存用の画面を開けませんでした。ブラウザのポップアップブロックをご確認ください。');
+      return;
+    }
+
+    pdfWindow.document.write(`
+      <!doctype html>
+      <html lang="ja">
+        <head>
+          <meta charset="utf-8" />
+          <title>${escapeHtml(result.estimateId)}_AI概算見積書</title>
+          <style>
+            @page { size: A4; margin: 14mm; }
+            * { box-sizing: border-box; }
+            body {
+              margin: 0;
+              color: #1f2937;
+              font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, sans-serif;
+              font-size: 12px;
+              line-height: 1.65;
+              background: #fff;
+            }
+            .sheet { width: 100%; }
+            .header {
+              display: flex;
+              justify-content: space-between;
+              align-items: flex-start;
+              gap: 20px;
+              padding-bottom: 14px;
+              border-bottom: 2px solid #1676df;
+            }
+            .brand { font-size: 15px; font-weight: 800; color: #0f3b68; }
+            h1 { margin: 4px 0 0; font-size: 24px; color: #102f54; }
+            .meta { text-align: right; font-size: 11px; }
+            .amountBox {
+              margin: 18px 0;
+              padding: 16px 18px;
+              border: 1px solid #cfe0f4;
+              border-radius: 10px;
+              background: #f7fbff;
+            }
+            .amountLabel { font-weight: 700; color: #4b647c; }
+            .amount { margin-top: 4px; font-size: 28px; font-weight: 900; color: #1261b8; }
+            section { margin-top: 16px; break-inside: avoid; }
+            h2 {
+              margin: 0 0 8px;
+              padding-bottom: 5px;
+              border-bottom: 1px solid #d9e2ec;
+              font-size: 15px;
+              color: #102f54;
+            }
+            .row {
+              display: grid;
+              grid-template-columns: 190px 1fr;
+              gap: 12px;
+              padding: 5px 0;
+              border-bottom: 1px solid #edf2f7;
+            }
+            .row span { color: #64748b; }
+            .row strong { color: #172b4d; }
+            .reason {
+              margin-top: 10px;
+              padding: 12px 14px;
+              border-left: 4px solid #1ba9e5;
+              background: #eef9ff;
+            }
+            .referencePrice {
+              margin-top: 12px;
+              padding: 12px 14px;
+              border: 1px solid #b9dbea;
+              border-radius: 8px;
+              background: #f3fbff;
+            }
+            .referencePrice span { display: block; font-weight: 700; color: #365568; }
+            .referencePrice strong { display: block; margin-top: 3px; font-size: 20px; color: #0876a3; }
+            .referencePrice p { margin: 5px 0 0; font-size: 10px; color: #526675; }
+            .notice {
+              margin-top: 20px;
+              padding: 11px 13px;
+              border: 1px solid #e5e7eb;
+              background: #fafafa;
+              font-size: 10.5px;
+              color: #5f6b7a;
+            }
+            .footer {
+              margin-top: 22px;
+              padding-top: 10px;
+              border-top: 1px solid #d9e2ec;
+              font-size: 10px;
+              color: #64748b;
+            }
+            @media print {
+              body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            }
+          </style>
+        </head>
+        <body>
+          <main class="sheet">
+            <div class="header">
+              <div>
+                <div class="brand">株式会社クリエイトサポート</div>
+                <h1>AI概算見積書</h1>
+              </div>
+              <div class="meta">
+                <div>見積ID：${escapeHtml(result.estimateId)}</div>
+                <div>作成日：${escapeHtml(today)}</div>
+              </div>
+            </div>
+
+            <div class="amountBox">
+              <div class="amountLabel">${result.requiresConsultation ? 'お見積り方法' : '概算金額'}</div>
+              <div class="amount">${escapeHtml(amountText)}</div>
+              ${!result.requiresConsultation ? `<div>納期目安：${escapeHtml(result.estimate.deliveryDays)}</div>` : ''}
+              ${referencePriceHtml}
+            </div>
+
+            <section>
+              <h2>見積り条件</h2>
+              <div class="row"><span>制作方法／資料</span><strong>${escapeHtml(productionMethodLabel)}</strong></div>
+              <div class="row"><span>用途</span><strong>${escapeHtml(usageLabel)}</strong></div>
+              <div class="row"><span>イラスト表現</span><strong>${escapeHtml(styleLabel)}</strong></div>
+              <div class="row"><span>点数</span><strong>${escapeHtml(result.estimate.quantity)}</strong></div>
+            </section>
+
+            <section>
+              <h2>AI判定</h2>
+              <div class="row"><span>作業内容</span><strong>${escapeHtml(result.vision.subjectType)}</strong></div>
+              <div class="row"><span>難易度スコア</span><strong>${escapeHtml(result.vision.complexityScore)}</strong></div>
+              <div class="row"><span>難易度</span><strong>${escapeHtml(difficultyLabel(result.vision.complexityScore))}</strong></div>
+              <div class="row"><span>想定制作時間</span><strong>${escapeHtml(result.estimate.estimatedHours)}時間</strong></div>
+              ${!result.requiresConsultation ? `<div class="row"><span>1点あたり</span><strong>${result.estimate.subtotal.toLocaleString()}円</strong></div>` : ''}
+              <div class="reason"><strong>AI判定コメント</strong><br />${escapeHtml(result.vision.reason)}</div>
+            </section>
+
+            ${confidenceHtml}
+
+            <div class="notice">
+              ${result.requiresConsultation
+                ? '※本書はAIによる概算判定結果です。参考価格は制作全体の総額ではありません。詳しい仕様を確認後、正式なお見積りをご案内いたします。'
+                : '※本書の金額は参考画像と入力条件からAIが算出した概算です。正式なお見積りは、資料・仕様を確認後に株式会社クリエイトサポートよりご案内いたします。'}
+            </div>
+
+            <div class="footer">
+              株式会社クリエイトサポート<br />
+              https://www.create-support.co.jp/
+            </div>
+          </main>
+          <script>
+            window.onload = function () {
+              window.focus();
+              setTimeout(function () { window.print(); }, 250);
+            };
+          </script>
+        </body>
+      </html>
+    `);
+
+    pdfWindow.document.close();
+  }
+
   const sampleImages = [
   { label: '白黒線画（取扱説明書）', path: '/samples/estimate/manual-line.jpg' },
   { label: 'パーツカタログ', path: '/samples/estimate/parts-catalog.jpg' },
@@ -1294,6 +1524,18 @@ async function handleFormalQuoteRequest() {
             </p>
           </div>
 
+
+            <div className="pdfDownloadRow">
+              <button
+                type="button"
+                className="pdfDownloadButton"
+                onClick={handleDownloadPdf}
+              >
+                PDFで保存
+              </button>
+              <span>見積り結果をA4の概算見積書として保存できます。</span>
+            </div>
+
           {!result.requiresConsultation ? (
             <EstimateShare
               preview={preview}
@@ -1303,6 +1545,38 @@ async function handleFormalQuoteRequest() {
               subjectType={result.vision.subjectType}
             />
           ) : null}
+
+
+          <style jsx>{`
+            .pdfDownloadRow {
+              display: flex;
+              align-items: center;
+              gap: 12px;
+              flex-wrap: wrap;
+              margin-top: -4px;
+            }
+
+            .pdfDownloadButton {
+              min-height: 44px;
+              padding: 10px 18px;
+              border: 1px solid #1676df;
+              border-radius: 10px;
+              background: #1676df;
+              color: #ffffff;
+              font-size: 14px;
+              font-weight: 800;
+              cursor: pointer;
+            }
+
+            .pdfDownloadButton:hover {
+              background: #1261b8;
+            }
+
+            .pdfDownloadRow span {
+              color: #64748b;
+              font-size: 12px;
+            }
+          `}</style>
 
           {!result.requiresConsultation ? <div className="grid grid-2">
             <div className="resultBox">
