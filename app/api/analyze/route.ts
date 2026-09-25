@@ -2,6 +2,7 @@ import { sendNotificationEmail } from '../../../lib/email';
 import { NextRequest, NextResponse } from 'next/server';
 import { analyzeImage } from '../../../lib/openai';
 import { calculateEstimate } from '../../../lib/pricing';
+import { calculateMasterEstimate, calculateIntegratedEstimate } from '../../../lib/estimateMaster';
 import fs from 'fs/promises';
 import path from 'path';
 
@@ -830,6 +831,35 @@ if (minimumHours > 0 && estimate.hours < minimumHours) {
     estimate.unitPrice * input.quantity;
 }
 
+// -----------------------------
+// 第3エンジン：クリサポ工数マスター
+// 現行価格はまだ変更せず、比較・検証用として並走させる。
+// -----------------------------
+const masterEstimate = calculateMasterEstimate({
+  sourceType: input.sourceType,
+  usage: input.usage,
+  style: input.style,
+  quantity: input.quantity,
+  notes: input.notes,
+  workType,
+  difficultyScore: analysis.difficultyScore,
+  partDensity: analysis.partDensity,
+  lineDifficulty: analysis.lineDifficulty,
+  structureComplexity: analysis.structureComplexity,
+  isExplodedView: analysis.isExplodedView,
+  hasLeaderLines: analysis.hasLeaderLines,
+  hasPartNumbers: analysis.hasPartNumbers,
+  isIndustrialProduct: analysis.isIndustrialProduct,
+  aiSummary: analysis.summary,
+});
+
+const integratedEstimate = calculateIntegratedEstimate({
+  systemHours: estimate.hours,
+  aiHours: analysis.estimatedHours,
+  masterHours: masterEstimate.hours,
+  masterMatchScore: masterEstimate.matchScore,
+});
+
 // estimateMatchはここで1回だけ
 const estimateMatch = calculateEstimateMatch({
   systemHours: estimate.hours,
@@ -934,6 +964,17 @@ let comment =
 
   workType: workType,
 estimatedHours: estimate.hours,
+  systemHours: estimate.hours,
+  aiEstimatedHours: analysis.estimatedHours,
+  masterEstimatedHours: masterEstimate.hours,
+  masterCategory: masterEstimate.category,
+  masterBaseHours: masterEstimate.baseHours,
+  masterAdjustmentHours: masterEstimate.adjustmentHours,
+  masterAdjustments: masterEstimate.adjustments.map((item) => `${item.label} +${item.hours}h`),
+  masterMatchScore: masterEstimate.matchScore,
+  integratedHours: integratedEstimate.hours,
+  integratedAgreementScore: integratedEstimate.agreementScore,
+  integratedAgreementLevel: integratedEstimate.level,
   
   aiReason: analysis.summary || '',
   confidenceScore: confidence.score,
@@ -991,6 +1032,19 @@ estimatedHoursMax: analysis.estimatedHoursMax,
         quantity: input.quantity,
       },
       confidence,
+
+      // ▼ 3エンジン比較（検証用。現時点では顧客表示価格に未反映）
+      estimateEngines: {
+        system: { hours: estimate.hours },
+        ai: {
+          minHours: analysis.estimatedHoursMin,
+          hours: analysis.estimatedHours,
+          maxHours: analysis.estimatedHoursMax,
+        },
+        master: masterEstimate,
+        integrated: integratedEstimate,
+        priceUses: 'system',
+      },
       
     });
   } catch (e) {

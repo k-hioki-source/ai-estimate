@@ -20,6 +20,17 @@ export type NotificationPayload = {
   confidenceComment?: string;
   aiComment?: string;
   estimatedHours?: number;
+  systemHours?: number;
+  aiEstimatedHours?: number;
+  masterEstimatedHours?: number;
+  masterCategory?: string;
+  masterBaseHours?: number;
+  masterAdjustmentHours?: number;
+  masterAdjustments?: string[];
+  masterMatchScore?: number;
+  integratedHours?: number;
+  integratedAgreementScore?: number;
+  integratedAgreementLevel?: string;
   estimateId?: string;
 
   imageAttachment?: {
@@ -77,6 +88,17 @@ export async function sendNotificationEmail(payload: NotificationPayload) {
     workType: payload.workType || '',
     difficultyScore,
     estimatedHours: payload.estimatedHours ?? null,
+    systemHours: payload.systemHours ?? payload.estimatedHours ?? null,
+    aiEstimatedHours: payload.aiEstimatedHours ?? null,
+    masterEstimatedHours: payload.masterEstimatedHours ?? null,
+    masterCategory: payload.masterCategory || '',
+    masterBaseHours: payload.masterBaseHours ?? null,
+    masterAdjustmentHours: payload.masterAdjustmentHours ?? null,
+    masterAdjustments: payload.masterAdjustments || [],
+    masterMatchScore: payload.masterMatchScore ?? null,
+    integratedHours: payload.integratedHours ?? null,
+    integratedAgreementScore: payload.integratedAgreementScore ?? null,
+    integratedAgreementLevel: payload.integratedAgreementLevel || '',
     estimatedPrice: payload.totalPrice ?? null,
     confidenceScore: payload.confidenceScore ?? null,
     confidenceLevel: payload.confidenceLevel || '',
@@ -119,6 +141,19 @@ ${isFormal ? '正式見積り依頼' : 'AI概算見積りフォーム'}から送
 
 AI判定コメント：
 ${aiComment || '-'}
+
+■3エンジン比較（検証用）
+現行システム：${payload.systemHours ?? payload.estimatedHours ?? '-'}時間
+AI独自推定：${payload.aiEstimatedHours ?? '-'}時間
+工数マスター：${payload.masterEstimatedHours ?? '-'}時間
+マスター分類：${payload.masterCategory || '-'}
+基準工数：${payload.masterBaseHours ?? '-'}時間
+補正工数：${payload.masterAdjustmentHours ?? 0}時間
+補正内容：${payload.masterAdjustments?.length ? payload.masterAdjustments.join(' / ') : 'なし'}
+マスター適合度：${payload.masterMatchScore ?? '-'}%
+統合参考工数：${payload.integratedHours ?? '-'}時間
+3方式一致度：${payload.integratedAgreementScore ?? '-'}%（${payload.integratedAgreementLevel || '-'}）
+※現在の顧客表示価格は従来の現行システム工数を使用しています。
 
 ■AI見積り精度
 精度：${payload.confidenceScore ?? '-'}%
@@ -185,6 +220,19 @@ ${isFormal ? '正式見積り依頼' : 'AI概算見積りフォーム'}から送
 
 AI判定コメント：
 ${aiComment || '-'}
+
+■3エンジン比較（検証用）
+現行システム：${payload.systemHours ?? payload.estimatedHours ?? '-'}時間
+AI独自推定：${payload.aiEstimatedHours ?? '-'}時間
+工数マスター：${payload.masterEstimatedHours ?? '-'}時間
+マスター分類：${payload.masterCategory || '-'}
+基準工数：${payload.masterBaseHours ?? '-'}時間
+補正工数：${payload.masterAdjustmentHours ?? 0}時間
+補正内容：${payload.masterAdjustments?.length ? payload.masterAdjustments.join(' / ') : 'なし'}
+マスター適合度：${payload.masterMatchScore ?? '-'}%
+統合参考工数：${payload.integratedHours ?? '-'}時間
+3方式一致度：${payload.integratedAgreementScore ?? '-'}%（${payload.integratedAgreementLevel || '-'}）
+※現在の顧客表示価格は従来の現行システム工数を使用しています。
 
 ■AI見積り精度
 精度：${payload.confidenceScore ?? '-'}%
