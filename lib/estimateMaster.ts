@@ -46,6 +46,20 @@ function chooseCategory(input: MasterEstimateInput, text: string): MasterCategor
   const sourceType = input.sourceType;
   const dense = (input.partDensity || 0) >= 70 || (input.lineDifficulty || 0) >= 70;
 
+  // v2: ユーザーがフォームで指定した制作条件とAIの明示的な作業タイプを優先する。
+  // AI要約に「内部構造が少ない」等の否定文が含まれても、キーワードだけで構造図へ誤分類しない。
+  if (sourceType === 'photo_trace' && workType === 'simple_trace' && style === 'line') {
+    return { key: 'photo', label: '写真トレース', baseHours: 1.5, reason: '簡易写真トレース判定を優先（単体・線画・構造作図なし）' };
+  }
+
+  // 「分解図」は technical_drawing より具体的な制作カテゴリなので最優先。
+  if (input.isExplodedView || includesAny(text, ['分解図', '分解状態', '爆発図'])) {
+    if (dense || (input.difficultyScore || 0) >= 60 || includesAny(text, ['30部品', '40部品', '50部品', '部品多数', '部品点数', '複雑'])) {
+      return { key: 'exploded_complex', label: '複雑な分解図', baseHours: 6, reason: '複雑な機械・部品構成を含む分解図基準' };
+    }
+    return { key: 'exploded', label: '分解図', baseHours: 3, reason: '10部品程度の標準分解図基準' };
+  }
+
   if (includesAny(text, ['cgアニメーション', '3dcgアニメーション', '3dアニメーション'])) {
     return { key: 'cg_animation', label: 'CGアニメーション', baseHours: 24, reason: 'CADあり・10秒程度のCGアニメーション基準' };
   }
@@ -70,12 +84,6 @@ function chooseCategory(input: MasterEstimateInput, text: string): MasterCategor
   if (workType === 'concept_diagram' || includesAny(text, ['サイエンス', '概念図', 'システム図', 'フロー図'])) {
     return { key: 'concept', label: 'サイエンス・概念図', baseHours: 12, reason: '技術内容を理解して流れ・構造を説明する1図の基準' };
   }
-  if (input.isExplodedView || includesAny(text, ['分解図', '分解状態', '爆発図'])) {
-    if (dense || includesAny(text, ['30部品', '40部品', '50部品', '部品多数', '複雑'])) {
-      return { key: 'exploded_complex', label: '複雑な分解図', baseHours: 6, reason: '30〜50部品程度の複雑な分解図基準' };
-    }
-    return { key: 'exploded', label: '分解図', baseHours: 3, reason: '10部品程度の標準分解図基準' };
-  }
   if (includesAny(text, ['車体透過', '自動車構造', 'バッテリー', 'モーター']) && includesAny(text, ['車', '車両', '自動車', 'ev'])) {
     return { key: 'vehicle_structure', label: '自動車構造図', baseHours: 5, reason: '車体透過＋主要部品配置の自動車構造図基準' };
   }
@@ -89,11 +97,15 @@ function chooseCategory(input: MasterEstimateInput, text: string): MasterCategor
       (sourceType === 'reference_drawing' && includesAny(text, ['新規作図', '描き起こし', '別アングル']))) {
     return { key: 'new_state', label: '写真にない状態を作図', baseHours: 8, reason: '複数写真・指示から写真にない状態を新規作図する基準' };
   }
-  if (style === 'real' || workType === 'realistic_illustration') {
-    return { key: 'real', label: 'リアルイラスト', baseHours: 10, reason: '質感・光沢・陰影まで表現するリアルイラスト基準' };
-  }
+  // v2: 表現指定はAI推測よりユーザー入力を優先。colorをrealへ勝手に格上げしない。
   if (style === 'color') {
-    return { key: 'color', label: 'カラーイラスト', baseHours: 4, reason: '製品写真を基にした標準カラーイラスト基準' };
+    return { key: 'color', label: 'カラーイラスト', baseHours: 4, reason: 'ユーザー指定のカラー表現を優先した標準カラーイラスト基準' };
+  }
+  if (style === 'real') {
+    return { key: 'real', label: 'リアルイラスト', baseHours: 10, reason: 'ユーザー指定のリアル表現（質感・光沢・陰影）基準' };
+  }
+  if (workType === 'realistic_illustration') {
+    return { key: 'real', label: 'リアルイラスト', baseHours: 10, reason: 'AIがリアル表現と判定した場合の基準' };
   }
   if (includesAny(text, ['断面', '透過', '内部構造', 'カットモデル'])) {
     return { key: 'structure', label: '構造説明', baseHours: 6, reason: '外装透過・一部カットで内部構造を説明する基準' };
@@ -132,8 +144,25 @@ export function calculateMasterEstimate(input: MasterEstimateInput) {
   add('angle', '別アングル作図', 2,
     category.key !== 'new_state' && includesAny(text, ['別アングル', '視点変更', '背面', '側面']));
   add('detail', '部分拡大図追加', 2, includesAny(text, ['拡大図', '詳細図', '部分図']));
+  // v2: 「リアルイラスト」の通常の製品ディテールは基準10hに含める。
+  // 内部機構・多数部品など、構造理解そのものが追加作業になる場合だけ加算。
+  const trulyComplexStructure = includesAny(text, ['内部機構', '内部部品', '多数部品', '30部品', '40部品', '50部品']) ||
+    (includesAny(text, ['複雑な機械', '複雑な構造']) && !includesAny(text, ['複雑な構造解析は不要', '構造解析は不要']));
   add('complex_machine', '複雑な機械構造', 5,
-    !categoryIncludesComplexity && includesAny(text, ['複雑な機械', '複雑な構造', '配管', '部品多数']));
+    !categoryIncludesComplexity && category.key !== 'real' && category.key !== 'concept' && trulyComplexStructure);
+
+  // v2: 概念図は「描画量」より情報設計・環境・接続関係の整理が工数を支配する。
+  // 10件検証の実績33h案件を基準に、独立した加算要素として扱う。
+  if (category.key === 'concept') {
+    add('concept_information_design', '情報整理・構成設計', 6,
+      includesAny(text, ['情報整理', 'レイアウト', '配置図', 'プレゼン', 'ポンチ絵', '技術内容']));
+    add('concept_environment', '背景・環境表現', 5,
+      includesAny(text, ['海底', '海面', '地中', '地層', '背景', '環境', '地形']));
+    add('concept_connections', '配管・ケーブル・流れの整理', 5,
+      includesAny(text, ['配管', 'ケーブル', '配線', '流れ', '接続']));
+    add('concept_multi_equipment', '複数設備・構成要素', 5,
+      includesAny(text, ['複数機器', '複数設備', '設備配置', '複数の設備', '複数の機器']));
+  }
   add('multi_people_env', '複数人物＋周辺環境', 6,
     includesAny(text, ['複数人物', '2人', '3人', '二人', '三人']) && includesAny(text, ['背景', '周辺', '台車', '周辺機器']));
   add('cutaway', '断面・透過表現', 3,
@@ -151,6 +180,7 @@ export function calculateMasterEstimate(input: MasterEstimateInput) {
   if (category.key !== 'photo') matchScore += 4;
   if (adjustments.length <= 2) matchScore += 3;
   if (adjustments.length >= 4) matchScore -= 8;
+  if (category.key === 'concept' && adjustments.length >= 3) matchScore -= 5;
   matchScore = clamp(matchScore, 55, 95);
 
   return {
