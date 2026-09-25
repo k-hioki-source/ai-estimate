@@ -123,7 +123,9 @@ function chooseCategory(input: MasterEstimateInput, text: string): MasterCategor
 }
 
 export function calculateMasterEstimate(input: MasterEstimateInput) {
-  const text = normalize(`${input.notes || ''} ${input.aiSummary || ''}`);
+  const userText = normalize(input.notes || '');
+  const aiText = normalize(input.aiSummary || '');
+  const text = normalize(`${userText} ${aiText}`);
   const category = chooseCategory(input, text);
   const adjustments: Adjustment[] = [];
   const add = (key: string, label: string, hours: number, condition: boolean) => {
@@ -165,8 +167,17 @@ export function calculateMasterEstimate(input: MasterEstimateInput) {
   }
   add('multi_people_env', '複数人物＋周辺環境', 6,
     includesAny(text, ['複数人物', '2人', '3人', '二人', '三人']) && includesAny(text, ['背景', '周辺', '台車', '周辺機器']));
+  // v2.1: 断面・透過補正は明示的な制作指示がある場合だけ加算する。
+  // AI要約の「内部構造が少ない」「透過は不要」のような否定文をキーワード一致で拾わない。
+  const userExplicitCutaway = includesAny(userText, ['断面図', '断面を', '断面で', '透過図', '透過表現', '透過して', 'カットモデル', '内部構造を表示', '内部構造を見せ']);
+  const aiMentionsCutaway = includesAny(aiText, ['断面図', '断面表現', '透過図', '透過表現', 'カットモデル']);
+  const aiNegatesCutaway = includesAny(aiText, [
+    '断面ではない', '断面不要', '断面は不要', '断面表現は不要',
+    '透過ではない', '透過不要', '透過は不要', '透過表現は不要',
+    '内部構造が少ない', '内部構造は少ない', '内部構造なし', '内部構造はない',
+  ]);
   add('cutaway', '断面・透過表現', 3,
-    !categoryIncludesStructure && includesAny(text, ['断面', '透過', '内部構造', 'カットモデル']));
+    !categoryIncludesStructure && (userExplicitCutaway || (aiMentionsCutaway && !aiNegatesCutaway)));
 
   const adjustmentHours = adjustments.reduce((sum, item) => sum + item.hours, 0);
   const hours = round1(category.baseHours + adjustmentHours);
