@@ -78,8 +78,11 @@ function chooseCategory(input: MasterEstimateInput, text: string): MasterCategor
   if (workType === '3d_conversion') {
     return { key: '3dcg_modeling', label: '3DCG・モデリング', baseHours: 24, reason: '2D/PDF図面から立体構造を再構築する基準' };
   }
-  if (includesAny(text, ['特許', '意匠図', '技術図面'])) {
-    return { key: 'patent', label: '特許・技術図面', baseHours: 6, reason: '写真・資料からモノクロ技術図面1図の基準' };
+  // v2.2: 特許・技術図面はユーザーが明示した場合を優先する。
+  // AI要約が「技術図面タイプ」と表現しただけでは、color指定を特許図面へ上書きしない。
+  const userExplicitPatentDrawing = includesAny(normalize(input.notes || ''), ['特許', '特許図面', '意匠図', '技術図面']);
+  if (userExplicitPatentDrawing) {
+    return { key: 'patent', label: '特許・技術図面', baseHours: 6, reason: 'ユーザーが特許・技術図面を明示したため、その制作基準を優先' };
   }
   if (workType === 'concept_diagram' || includesAny(text, ['サイエンス', '概念図', 'システム図', 'フロー図'])) {
     return { key: 'concept', label: 'サイエンス・概念図', baseHours: 12, reason: '技術内容を理解して流れ・構造を説明する1図の基準' };
@@ -93,9 +96,10 @@ function chooseCategory(input: MasterEstimateInput, text: string): MasterCategor
   if (includesAny(text, ['ポンチ絵', 'ラフ', '手描き指示']) && sourceType === 'reference_drawing') {
     return { key: 'rough_drawing', label: 'ポンチ絵から作図', baseHours: 8, reason: '手描き指示＋写真から整ったイラストにする基準' };
   }
-  if (includesAny(text, ['写真にない', 'カバーを外', '別状態', '見えない部分']) ||
-      (sourceType === 'reference_drawing' && includesAny(text, ['新規作図', '描き起こし', '別アングル']))) {
-    return { key: 'new_state', label: '写真にない状態を作図', baseHours: 8, reason: '複数写真・指示から写真にない状態を新規作図する基準' };
+  // v2.2: 「写真にない状態」はユーザーの依頼文に明示された場合だけ選ぶ。
+  // AI要約の一般的な「新規作図」「描き起こし」では標準カラー等を上書きしない。
+  if (includesAny(normalize(input.notes || ''), ['写真にない', 'カバーを外', '別状態', '見えない部分', '別アングル', '視点変更'])) {
+    return { key: 'new_state', label: '写真にない状態を作図', baseHours: 8, reason: 'ユーザー指示に写真にない状態・別アングル等が明示されたため' };
   }
   // v2: 表現指定はAI推測よりユーザー入力を優先。colorをrealへ勝手に格上げしない。
   if (style === 'color') {
@@ -139,8 +143,11 @@ export function calculateMasterEstimate(input: MasterEstimateInput) {
 
   add('person', '人物追加（1名）', 1,
     !categoryIncludesPerson && includesAny(text, ['人物', '作業者', '男性', '女性', '手を入', '手で操作']));
+  // v2.2: 標準カラー/リアルの基準工数には通常の描き起こし・形状整理を含める。
+  // AI要約に「新規作図」と書かれただけで二重加算しない。
   add('new_drawing', '構造整理・新規作図', 0.5,
-    !categoryIncludesStructure && includesAny(text, ['構造整理', '新規作図', '簡略化']));
+    !categoryIncludesStructure && !['color', 'real'].includes(category.key) &&
+    includesAny(userText, ['構造整理', '新規作図', '簡略化']));
   add('two_panels', '2コマ化', 1, includesAny(text, ['2コマ', '2 コマ', '二コマ']));
   add('three_panels', '3コマ化', 4, includesAny(text, ['3コマ', '3 コマ', '三コマ']));
   add('angle', '別アングル作図', 2,
