@@ -26,6 +26,8 @@ type MasterCategory = {
 };
 
 const round1 = (n: number) => Math.round(n * 10) / 10;
+// 顧客向け参考工数は0.5h単位で切り上げる。
+const ceilHalf = (n: number) => Math.ceil(n * 2) / 2;
 const clamp = (n: number, min: number, max: number) => Math.max(min, Math.min(max, n));
 
 function includesAny(text: string, words: string[]) {
@@ -49,7 +51,7 @@ function chooseCategory(input: MasterEstimateInput, text: string): MasterCategor
   // v2: ユーザーがフォームで指定した制作条件とAIの明示的な作業タイプを優先する。
   // AI要約に「内部構造が少ない」等の否定文が含まれても、キーワードだけで構造図へ誤分類しない。
   if (sourceType === 'photo_trace' && workType === 'simple_trace' && style === 'line') {
-    return { key: 'photo', label: '写真トレース', baseHours: 1.5, reason: '簡易写真トレース判定を優先（単体・線画・構造作図なし）' };
+    return { key: 'photo_simple', label: '写真トレース・簡単', baseHours: 1, reason: '簡易写真トレース判定を優先（単体・線画・構造作図なし）' };
   }
 
   // 「分解図」は technical_drawing より具体的な制作カテゴリなので最優先。
@@ -121,7 +123,7 @@ function chooseCategory(input: MasterEstimateInput, text: string): MasterCategor
     return { key: 'manual', label: '取説イラスト', baseHours: 2.5, reason: '写真・既存資料から手・製品・操作状態を作図する基準' };
   }
   if (sourceType === 'photo_trace' && dense) {
-    return { key: 'photo_complex', label: '写真トレース・複雑', baseHours: 4, reason: '細部の多い機械・製品の写真トレース基準' };
+    return { key: 'photo_complex', label: '写真トレース・複雑', baseHours: 5, reason: '細部・部品・線量の多い機械・製品の写真トレース基準' };
   }
   return { key: 'photo', label: '写真トレース', baseHours: 1.5, reason: '工業製品1点・背景なし・形状変更なしの写真トレース基準' };
 }
@@ -223,7 +225,7 @@ export function calculateIntegratedEstimate(input: {
 }) {
   const values = [input.systemHours, input.aiHours || 0, input.masterHours].filter((v) => v > 0);
   if (values.length < 2) {
-    return { hours: round1(input.systemHours), agreementScore: 70, level: '中', spreadRate: 0 };
+    return { hours: ceilHalf(Math.max(1, input.systemHours)), agreementScore: 70, level: '中', spreadRate: 0 };
   }
 
   const max = Math.max(...values);
@@ -236,11 +238,20 @@ export function calculateIntegratedEstimate(input: {
   const systemWeight = hasAi ? 0.35 : 0.45;
   const aiWeight = hasAi ? 0.25 : 0;
   const masterWeight = hasAi ? 0.40 : 0.55;
-  const hours = round1(
+  const weightedHours =
     input.systemHours * systemWeight +
     (input.aiHours || 0) * aiWeight +
-    input.masterHours * masterWeight
-  );
+    input.masterHours * masterWeight;
+
+  // 安値防止ガード：AI独自推定と工数マスターの両方が現行システムより高い場合、
+  // 現行の低い値に引っ張られすぎないよう、AIとマスターの低い方を下限にする。
+  // 例: 現行2.5h / AI5h / マスター5h -> 下限5h。
+  const antiLowFloor = hasAi && (input.aiHours || 0) > input.systemHours && input.masterHours > input.systemHours
+    ? Math.min(input.aiHours || input.masterHours, input.masterHours)
+    : 0;
+
+  // 最低1hを維持し、最終参考工数は0.5h単位で切り上げる。
+  const hours = ceilHalf(Math.max(1, weightedHours, antiLowFloor));
 
   let agreementScore = Math.round(100 - spreadRate * 70);
   agreementScore = Math.round((agreementScore * 0.7) + (input.masterMatchScore * 0.3));
