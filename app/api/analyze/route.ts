@@ -833,7 +833,7 @@ if (minimumHours > 0 && estimate.hours < minimumHours) {
 
 // -----------------------------
 // 第3エンジン：クリサポ工数マスター
-// 現行価格はまだ変更せず、比較・検証用として並走させる。
+// 現行・AI・工数マスターを並走させ、統合工数を顧客表示価格に採用する。
 // -----------------------------
 const masterEstimate = calculateMasterEstimate({
   sourceType: input.sourceType,
@@ -859,6 +859,14 @@ const integratedEstimate = calculateIntegratedEstimate({
   masterHours: masterEstimate.hours,
   masterMatchScore: masterEstimate.matchScore,
 });
+
+// -----------------------------
+// 顧客表示：3エンジン統合工数を正式採用
+// -----------------------------
+const customerEstimatedHours = integratedEstimate.hours;
+const customerUnitPrice =
+  Math.round((customerEstimatedHours * estimate.hourlyRate) / 100) * 100;
+const customerTotalPrice = customerUnitPrice * input.quantity;
 
 // estimateMatchはここで1回だけ
 const estimateMatch = calculateEstimateMatch({
@@ -959,11 +967,11 @@ let comment =
   quantity: input.quantity,
   notes: input.notes,
   complexityScore: analysis.difficultyScore,
-  totalPrice: estimate.totalPrice,
+  totalPrice: customerTotalPrice,
   requestFormalQuote: input.requestFormalQuote,
 
   workType: workType,
-estimatedHours: estimate.hours,
+estimatedHours: customerEstimatedHours,
   systemHours: estimate.hours,
   aiEstimatedHours: analysis.estimatedHours,
   masterEstimatedHours: masterEstimate.hours,
@@ -994,7 +1002,7 @@ confidenceComment: confidence.comment,
       consultationMessage: consultation.message,
       showIllustrationReferencePrice,
       illustrationReferencePrice: showIllustrationReferencePrice
-        ? estimate.totalPrice
+        ? customerTotalPrice
         : null,
 
       input: {
@@ -1018,22 +1026,22 @@ estimatedHoursMax: analysis.estimatedHoursMax,
 
       // ▼ 見積
       estimate: {
-        total: estimate.totalPrice,
-        subtotal: estimate.unitPrice,
+        total: customerTotalPrice,
+        subtotal: customerUnitPrice,
         sourceType: input.sourceType,
         deliveryDays: '3〜5営業日',
-        basePrice: estimate.unitPrice,
+        basePrice: customerUnitPrice,
         hourlyRate: estimate.hourlyRate,
 
         // ★ フロント表示用
-        estimatedHours: estimate.hours,
-        adjustedHours: estimate.hours,
+        estimatedHours: customerEstimatedHours,
+        adjustedHours: customerEstimatedHours,
 
         quantity: input.quantity,
       },
       confidence,
 
-      // ▼ 3エンジン比較（検証用。現時点では顧客表示価格に未反映）
+      // ▼ 3エンジン比較（統合工数を顧客表示価格に採用）
       estimateEngines: {
         system: { hours: estimate.hours },
         ai: {
@@ -1043,7 +1051,7 @@ estimatedHoursMax: analysis.estimatedHoursMax,
         },
         master: masterEstimate,
         integrated: integratedEstimate,
-        priceUses: 'system',
+        priceUses: 'integrated',
       },
       
     });
