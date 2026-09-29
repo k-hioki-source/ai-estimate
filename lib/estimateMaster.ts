@@ -54,12 +54,14 @@ function chooseCategory(input: MasterEstimateInput, text: string): MasterCategor
     return { key: 'photo_simple', label: '写真トレース・簡単', baseHours: 1, reason: '簡易写真トレース判定を優先（単体・線画・構造作図なし）' };
   }
 
-  // 「分解図」は technical_drawing より具体的な制作カテゴリなので最優先。
-  if (input.isExplodedView || includesAny(text, ['分解図', '分解状態', '爆発図'])) {
-    if (dense || (input.difficultyScore || 0) >= 60 || includesAny(text, ['30部品', '40部品', '50部品', '部品多数', '部品点数', '複雑'])) {
-      return { key: 'exploded_complex', label: '複雑な分解図', baseHours: 6, reason: '複雑な機械・部品構成を含む分解図基準' };
+  // 分解図はユーザー入力または明示的なフラグで指定された場合だけ判定する。
+  // AI要約に「分解図ではない」等が含まれた場合のキーワード誤検出を防ぐ。
+  const userExplicitExploded = includesAny(normalize(input.notes || ''), ['分解図', '分解状態', '爆発図']);
+  if (input.isExplodedView || userExplicitExploded) {
+    if (dense || (input.difficultyScore || 0) >= 60 || includesAny(normalize(input.notes || ''), ['30部品', '40部品', '50部品', '部品多数', '部品点数', '複雑'])) {
+      return { key: 'exploded_complex', label: '複雑な分解図', baseHours: 6, reason: '明示された分解図で、複雑な機械・部品構成を含む基準' };
     }
-    return { key: 'exploded', label: '分解図', baseHours: 3, reason: '10部品程度の標準分解図基準' };
+    return { key: 'exploded', label: '分解図', baseHours: 3, reason: 'ユーザー指定または分解図フラグによる標準分解図基準' };
   }
 
   if (includesAny(text, ['cgアニメーション', '3dcgアニメーション', '3dアニメーション'])) {
