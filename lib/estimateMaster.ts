@@ -58,10 +58,18 @@ function chooseCategory(input: MasterEstimateInput, text: string): MasterCategor
   // AI要約に「分解図ではない」等が含まれた場合のキーワード誤検出を防ぐ。
   const userExplicitExploded = includesAny(normalize(input.notes || ''), ['分解図', '分解状態', '爆発図']);
   if (input.isExplodedView || userExplicitExploded) {
-    if (dense || (input.difficultyScore || 0) >= 60 || includesAny(normalize(input.notes || ''), ['30部品', '40部品', '50部品', '部品多数', '部品点数', '複雑'])) {
-      return { key: 'exploded_complex', label: '複雑な分解図', baseHours: 6, reason: '明示された分解図で、複雑な機械・部品構成を含む基準' };
+    const complexExploded =
+      dense ||
+      (input.difficultyScore || 0) >= 60 ||
+      (input.usage === 'parts' && (input.difficultyScore || 0) >= 50) ||
+      input.hasLeaderLines === true ||
+      input.hasPartNumbers === true ||
+      includesAny(normalize(input.notes || ''), ['30部品', '40部品', '50部品', '部品多数', '部品点数', '複雑']);
+
+    if (complexExploded) {
+      return { key: 'exploded_complex', label: '分解図・高密度', baseHours: 6, reason: '線量・部品・番号・引出線などが多い分解図トレースの基準' };
     }
-    return { key: 'exploded', label: '分解図', baseHours: 3, reason: 'ユーザー指定または分解図フラグによる標準分解図基準' };
+    return { key: 'exploded', label: '分解図・標準', baseHours: 3, reason: '比較的単純な分解図トレースの基準' };
   }
 
   if (includesAny(text, ['cgアニメーション', '3dcgアニメーション', '3dアニメーション'])) {
@@ -110,7 +118,10 @@ function chooseCategory(input: MasterEstimateInput, text: string): MasterCategor
     return { key: 'color', label: 'カラーイラスト', baseHours: 4, reason: 'ユーザー指定のカラー表現を優先した標準カラーイラスト基準' };
   }
   if (style === 'real') {
-    return { key: 'real', label: 'リアルイラスト', baseHours: 10, reason: 'ユーザー指定のリアル表現（質感・光沢・陰影）基準' };
+    if (sourceType === 'photo_trace') {
+      return { key: 'real_photo', label: 'リアルイラスト・写真トレース', baseHours: 6, reason: '単体製品の写真を基に質感・光沢・陰影を再現するリアルイラスト基準' };
+    }
+    return { key: 'real', label: 'リアルイラスト', baseHours: 10, reason: '資料から形状を構成するリアル表現（質感・光沢・陰影）基準' };
   }
   if (workType === 'realistic_illustration') {
     return { key: 'real', label: 'リアルイラスト', baseHours: 10, reason: 'AIがリアル表現と判定した場合の基準' };
@@ -120,6 +131,14 @@ function chooseCategory(input: MasterEstimateInput, text: string): MasterCategor
   }
   if (input.usage === 'manual' && sourceType === 'cad_conversion') {
     return { key: 'manual_cad', label: '取説イラスト・CAD', baseHours: 2.5, reason: 'CAD/XVLから不要部品を整理する取説線画基準' };
+  }
+  if (
+    input.usage === 'manual' &&
+    sourceType === 'reference_drawing' &&
+    style === 'line' &&
+    (dense || (input.difficultyScore || 0) >= 60)
+  ) {
+    return { key: 'manual_dense', label: '取説イラスト・高密度', baseHours: 6, reason: '複数部品・細部・線量の多い取説用線画を新規作図する基準' };
   }
   if (input.usage === 'manual' && (includesAny(text, ['手', '操作', '作業者', '人物']) || sourceType === 'reference_drawing')) {
     return { key: 'manual', label: '取説イラスト', baseHours: 2.5, reason: '写真・既存資料から手・製品・操作状態を作図する基準' };
@@ -143,21 +162,21 @@ export function calculateMasterEstimate(input: MasterEstimateInput) {
   // 基準カテゴリに既に含まれる要素は二重加算しない。
   const categoryIncludesPerson = ['manual', 'rough_drawing'].includes(category.key);
   const categoryIncludesStructure = ['structure', 'vehicle_structure', '3dcg_structure', 'new_state'].includes(category.key);
-  const categoryIncludesComplexity = ['photo_complex', 'exploded_complex', '3dcg_modeling'].includes(category.key);
+  const categoryIncludesComplexity = ['photo_complex', 'exploded_complex', 'manual_dense', '3dcg_modeling'].includes(category.key);
 
   add('person', '人物追加（1名）', 1,
     !categoryIncludesPerson && includesAny(text, ['人物', '作業者', '男性', '女性', '手を入', '手で操作']));
   // v2.2: 標準カラー/リアルの基準工数には通常の描き起こし・形状整理を含める。
   // AI要約に「新規作図」と書かれただけで二重加算しない。
   add('new_drawing', '構造整理・新規作図', 0.5,
-    !categoryIncludesStructure && !['color', 'real'].includes(category.key) &&
+    !categoryIncludesStructure && !['color', 'real', 'real_photo'].includes(category.key) &&
     includesAny(userText, ['構造整理', '新規作図', '簡略化']));
   add('two_panels', '2コマ化', 1, includesAny(text, ['2コマ', '2 コマ', '二コマ']));
   add('three_panels', '3コマ化', 4, includesAny(text, ['3コマ', '3 コマ', '三コマ']));
   add('angle', '別アングル作図', 2,
     category.key !== 'new_state' && includesAny(text, ['別アングル', '視点変更', '背面', '側面']));
   add('detail', '部分拡大図追加', 2, includesAny(text, ['拡大図', '詳細図', '部分図']));
-  // v2: 「リアルイラスト」の通常の製品ディテールは基準10hに含める。
+  // v3: リアルイラストの通常の製品ディテールは各カテゴリの基準工数に含める。
   // 内部機構・多数部品など、構造理解そのものが追加作業になる場合だけ加算。
   const trulyComplexStructure = includesAny(text, ['内部機構', '内部部品', '多数部品', '30部品', '40部品', '50部品']) ||
     (includesAny(text, ['複雑な機械', '複雑な構造']) && !includesAny(text, ['複雑な構造解析は不要', '構造解析は不要']));
@@ -252,8 +271,15 @@ export function calculateIntegratedEstimate(input: {
     ? Math.min(input.aiHours || input.masterHours, input.masterHours)
     : 0;
 
+  // 実績マスターの適合度が90%以上なら、社内実績に基づくマスター値を最終工数の基準にする。
+  // AI・現行値は一致度確認に残すが、過大・過小な値で顧客価格が引っ張られないようにする。
+  // 90%未満では従来どおり3エンジン加重＋安値防止ガードを使う。
+  const masterAnchoredHours = input.masterMatchScore >= 90 ? input.masterHours : 0;
+
   // 最低1hを維持し、最終参考工数は0.5h単位で切り上げる。
-  const hours = ceilHalf(Math.max(1, weightedHours, antiLowFloor));
+  const hours = masterAnchoredHours > 0
+    ? ceilHalf(Math.max(1, masterAnchoredHours))
+    : ceilHalf(Math.max(1, weightedHours, antiLowFloor));
 
   let agreementScore = Math.round(100 - spreadRate * 70);
   agreementScore = Math.round((agreementScore * 0.7) + (input.masterMatchScore * 0.3));
