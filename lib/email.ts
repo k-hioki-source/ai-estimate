@@ -153,7 +153,7 @@ AI独自推定：${payload.aiEstimatedHours ?? '-'}時間
 マスター適合度：${payload.masterMatchScore ?? '-'}%
 統合参考工数：${payload.integratedHours ?? '-'}時間
 3方式一致度：${payload.integratedAgreementScore ?? '-'}%（${payload.integratedAgreementLevel || '-'}）
-※現在の顧客表示価格は従来の現行システム工数を使用しています。
+※顧客表示価格は3エンジンの統合参考工数をもとに算出しています。
 
 ■AI見積り精度
 精度：${payload.confidenceScore ?? '-'}%
@@ -232,7 +232,7 @@ AI独自推定：${payload.aiEstimatedHours ?? '-'}時間
 マスター適合度：${payload.masterMatchScore ?? '-'}%
 統合参考工数：${payload.integratedHours ?? '-'}時間
 3方式一致度：${payload.integratedAgreementScore ?? '-'}%（${payload.integratedAgreementLevel || '-'}）
-※現在の顧客表示価格は従来の現行システム工数を使用しています。
+※顧客表示価格は3エンジンの統合参考工数をもとに算出しています。
 
 ■AI見積り精度
 精度：${payload.confidenceScore ?? '-'}%
