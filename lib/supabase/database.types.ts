@@ -21,6 +21,7 @@ export type Database = {
           address: string | null;
           created_at: string;
           updated_at: string;
+          role: 'customer' | 'admin';
         };
         Insert: {
           id: string;
@@ -33,6 +34,7 @@ export type Database = {
           address?: string | null;
           created_at?: string;
           updated_at?: string;
+          role?: 'customer' | 'admin';
         };
         Update: {
           company_name?: string | null;
@@ -43,6 +45,7 @@ export type Database = {
           postal_code?: string | null;
           address?: string | null;
           updated_at?: string;
+          role?: 'customer' | 'admin';
         };
         Relationships: [];
       };
