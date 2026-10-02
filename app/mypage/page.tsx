@@ -10,6 +10,18 @@ import type { Database } from '../../lib/supabase/database.types';
 type Estimate = Database['public']['Tables']['estimates']['Row'];
 type Project = Database['public']['Tables']['projects']['Row'];
 
+type ProjectFile = {
+  id: string; project_id: string; uploaded_by: string; file_name: string;
+  storage_path: string; mime_type: string | null; file_size: number | null;
+  file_type: 'reference' | 'review' | 'revision' | 'delivery';
+  created_at: string; signed_url?: string | null;
+};
+type ProjectMessage = {
+  id: string; project_id: string; user_id: string; message: string;
+  message_type: 'message' | 'revision_request' | 'approval' | 'system';
+  created_at: string;
+};
+
 type Profile = {
   company_name: string;
   department_name: string;
@@ -110,6 +122,12 @@ const [quoteError, setQuoteError] = useState('');
   const [orderingProjectId, setOrderingProjectId] = useState<string | null>(null);
 const [orderMessage, setOrderMessage] = useState('');
 const [orderError, setOrderError] = useState('');
+  const [projectFiles, setProjectFiles] = useState<Record<string, ProjectFile[]>>({});
+  const [projectMessages, setProjectMessages] = useState<Record<string, ProjectMessage[]>>({});
+  const [reviewComments, setReviewComments] = useState<Record<string, string>>({});
+  const [reviewingProjectId, setReviewingProjectId] = useState<string | null>(null);
+  const [reviewMessage, setReviewMessage] = useState('');
+  const [reviewError, setReviewError] = useState('');
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -217,7 +235,30 @@ const [orderError, setOrderError] = useState('');
         if (projectError) {
   console.error('Project load error:', projectError);
 } else {
-  setProjects(projectData ?? []);
+  const loadedProjects = projectData ?? [];
+  setProjects(loadedProjects);
+  if (loadedProjects.length > 0) {
+    const ids = loadedProjects.map((p) => p.id);
+    const [{ data: fd, error: fe }, { data: md, error: me }] = await Promise.all([
+      (supabase.from('project_files' as any) as any).select('*').in('project_id', ids).order('created_at', { ascending: false }),
+      (supabase.from('project_messages' as any) as any).select('*').in('project_id', ids).order('created_at', { ascending: true }),
+    ]);
+    if (fe) console.error('Project files load error:', fe);
+    else {
+      const grouped: Record<string, ProjectFile[]> = {};
+      for (const f of ((fd ?? []) as ProjectFile[])) {
+        const { data: signed } = await supabase.storage.from('project-files').createSignedUrl(f.storage_path, 60 * 60);
+        grouped[f.project_id] = [...(grouped[f.project_id] ?? []), { ...f, signed_url: signed?.signedUrl ?? null }];
+      }
+      setProjectFiles(grouped);
+    }
+    if (me) console.error('Project messages load error:', me);
+    else {
+      const grouped: Record<string, ProjectMessage[]> = {};
+      for (const m of ((md ?? []) as ProjectMessage[])) grouped[m.project_id] = [...(grouped[m.project_id] ?? []), m];
+      setProjectMessages(grouped);
+    }
+  }
 }
 }
 
@@ -430,6 +471,36 @@ async function orderProject(project: Project) {
     `案件 ${project.project_code} を正式に発注しました。`
   );
 }
+  async function submitProjectReview(project: Project, action: 'approval' | 'revision_request') {
+    if (!user || reviewingProjectId || project.status !== 'customer_review') return;
+    const comment = (reviewComments[project.id] ?? '').trim();
+    if (action === 'revision_request' && !comment) {
+      setReviewError('修正内容を入力してください。');
+      return;
+    }
+    if (!window.confirm(action === 'approval' ? 'この確認内容を承認しますか？' : '修正を依頼しますか？')) return;
+    setReviewingProjectId(project.id); setReviewMessage(''); setReviewError('');
+    const supabase = getSupabaseBrowserClient();
+    const { data: msg, error: msgError } = await (supabase.from('project_messages' as any) as any)
+      .insert({ project_id: project.id, user_id: user.id, message: action === 'approval' ? (comment || '確認内容を承認しました。') : comment, message_type: action })
+      .select('*').single();
+    if (msgError) {
+      console.error(msgError); setReviewingProjectId(null); setReviewError('確認結果を送信できませんでした。'); return;
+    }
+    if (action === 'revision_request') {
+      const { data: updated, error: updateError } = await supabase.from('projects').update({ status: 'revision' })
+        .eq('id', project.id).eq('user_id', user.id).eq('status', 'customer_review').select('*').single();
+      if (updateError) {
+        console.error(updateError); setReviewingProjectId(null); setReviewError('修正依頼のステータスを更新できませんでした。'); return;
+      }
+      setProjects((cur) => cur.map((p) => p.id === project.id ? updated : p));
+    }
+    setProjectMessages((cur) => ({ ...cur, [project.id]: [...(cur[project.id] ?? []), msg as ProjectMessage] }));
+    setReviewComments((cur) => ({ ...cur, [project.id]: '' }));
+    setReviewingProjectId(null);
+    setReviewMessage(action === 'approval' ? '確認内容を承認しました。' : '修正を依頼しました。');
+  }
+
   async function saveProfile(e: FormEvent) {
     e.preventDefault();
 
@@ -991,6 +1062,8 @@ async function orderProject(project: Project) {
     {orderMessage}
   </div>
 ) : null}
+  {reviewError ? <div className="errorBox" style={{ marginTop: '14px' }}>{reviewError}</div> : null}
+  {reviewMessage ? <div style={{ marginTop: '14px', padding: '12px 14px', borderRadius: '10px', background: '#eefbf3', color: '#16733b', fontWeight: 700 }}>{reviewMessage}</div> : null}
   {projects.length === 0 ? (
     <div
       style={{
@@ -1290,6 +1363,32 @@ async function orderProject(project: Project) {
   </div>
 ) : null}
             
+            {project.status === 'customer_review' ? (
+              <div style={{ marginTop: '18px', padding: '18px', borderRadius: '12px', border: '1px solid #cbd5e1', background: '#f8fafc' }}>
+                <div style={{ fontWeight: 800, fontSize: '16px' }}>制作内容をご確認ください</div>
+                <p style={{ margin: '7px 0 14px', color: '#475569', lineHeight: 1.7, fontSize: '14px' }}>
+                  確認用ファイルを開き、問題なければ承認してください。修正が必要な場合は内容を入力して修正依頼を送信してください。
+                </p>
+                {(projectFiles[project.id] ?? []).filter((f) => f.file_type === 'review' || f.file_type === 'revision').map((f) => (
+                  <div key={f.id} style={{ padding: '11px 12px', marginBottom: '8px', borderRadius: '10px', background: '#fff', border: '1px solid #e5eaf0', display: 'flex', justifyContent: 'space-between', gap: '12px' }}>
+                    <div><strong>{f.file_name}</strong><div style={{ color: '#64748b', fontSize: '12px' }}>{formatDate(f.created_at)}</div></div>
+                    {f.signed_url ? <a href={f.signed_url} target="_blank" rel="noreferrer">ファイルを開く →</a> : null}
+                  </div>
+                ))}
+                {(projectMessages[project.id] ?? []).some((m) => m.message_type === 'approval') ? (
+                  <div style={{ marginTop: '12px', padding: '13px 15px', borderRadius: '10px', background: '#eefbf3', color: '#16733b', fontWeight: 800 }}>✓ 確認内容を承認済みです</div>
+                ) : (
+                  <>
+                    <textarea value={reviewComments[project.id] ?? ''} onChange={(e) => setReviewComments((c) => ({ ...c, [project.id]: e.target.value }))} placeholder="修正が必要な場合は、修正箇所や内容をご記入ください。承認時のコメントは任意です。" rows={4} style={{ width: '100%', boxSizing: 'border-box', marginTop: '12px' }} />
+                    <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginTop: '12px' }}>
+                      <button type="button" className="primaryButton" disabled={reviewingProjectId === project.id} onClick={() => submitProjectReview(project, 'approval')}>この内容で承認する</button>
+                      <button type="button" disabled={reviewingProjectId === project.id} onClick={() => submitProjectReview(project, 'revision_request')} style={{ padding: '12px 18px', borderRadius: '10px', border: '1px solid #cbd5e1', background: '#fff', fontWeight: 700 }}>修正を依頼する</button>
+                    </div>
+                  </>
+                )}
+              </div>
+            ) : null}
+
             {sourceEstimate ? (
               <div
                 style={{
