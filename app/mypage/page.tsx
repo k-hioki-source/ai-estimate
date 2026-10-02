@@ -108,6 +108,33 @@ function projectStatusLabel(
   }
 }
 
+
+async function sendCsWorksNotification(
+  supabase: ReturnType<typeof getSupabaseBrowserClient>,
+  type: 'quote_presented' | 'ordered' | 'revision_requested' | 'delivered',
+  projectId: string,
+  message?: string
+) {
+  const { data: sessionData } = await supabase.auth.getSession();
+  const accessToken = sessionData.session?.access_token;
+  if (!accessToken) return false;
+
+  const response = await fetch('/api/cs-works/notify', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify({ type, projectId, message }),
+  });
+
+  if (!response.ok) {
+    console.error('CS Works notification failed:', await response.text());
+    return false;
+  }
+  return true;
+}
+
 export default function MyPage() {
   const router = useRouter();
 
@@ -459,8 +486,16 @@ async function orderProject(project: Project) {
     )
   );
 
+  const mailSent = await sendCsWorksNotification(
+    supabase,
+    'ordered',
+    project.id
+  );
+
   setOrderMessage(
-    `案件 ${project.project_code} を正式に発注しました。`
+    mailSent
+      ? `案件 ${project.project_code} を正式に発注しました。`
+      : `案件 ${project.project_code} を正式に発注しました。管理者へのメール通知のみ失敗しました。`
   );
 }
   async function submitProjectReview(project: Project, action: 'approval' | 'revision_request') {
@@ -489,6 +524,15 @@ async function orderProject(project: Project) {
         console.error(updateError); setReviewingProjectId(null); setReviewError('修正依頼のステータスを更新できませんでした。'); return;
       }
       setProjects((cur) => cur.map((p) => p.id === project.id ? updated : p));
+      const mailSent = await sendCsWorksNotification(
+        supabase,
+        'revision_requested',
+        project.id,
+        comment
+      );
+      if (!mailSent) {
+        console.error('Revision request email notification failed.');
+      }
     }
     setProjectMessages((cur) => ({ ...cur, [project.id]: [...(cur[project.id] ?? []), msg as ProjectMessage] }));
     setReviewComments((cur) => ({ ...cur, [project.id]: '' }));
