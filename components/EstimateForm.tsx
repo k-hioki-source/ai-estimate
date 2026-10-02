@@ -1704,6 +1704,13 @@ async function handleFormalQuoteRequest() {
   confidence={result.confidence?.score}
   aiComment={result.vision.reason}
   customerNotes={notes}
+  imageFile={
+    lastFormData?.get('image') instanceof File &&
+    (lastFormData.get('image') as File).size > 0
+      ? (lastFormData.get('image') as File)
+      : null
+  }
+  sampleImagePath={selectedSample}
   inputData={{
     productionMethod: selectedSourceType,
     usage: selectedUsage,
@@ -1716,11 +1723,15 @@ async function handleFormalQuoteRequest() {
     complexityScore: result.vision.complexityScore,
     partDensity: result.vision.partDensity,
     lineDifficulty: result.vision.lineDifficulty,
-    structureComplexity: result.vision.structureComplexity,
+    structureComplexity:
+      result.vision.structureComplexity,
     visionConfidence: result.vision.confidence,
-    estimatedHoursMin: result.vision.estimatedHoursMin,
-    estimatedHours: result.vision.estimatedHours,
-    estimatedHoursMax: result.vision.estimatedHoursMax,
+    estimatedHoursMin:
+      result.vision.estimatedHoursMin,
+    estimatedHours:
+      result.vision.estimatedHours,
+    estimatedHoursMax:
+      result.vision.estimatedHoursMax,
     confidence: result.confidence ?? null,
     estimateMatch: result.estimateMatch ?? null,
   }}
