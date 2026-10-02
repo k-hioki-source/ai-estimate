@@ -57,6 +57,45 @@ function formatDate(value: string) {
   }).format(new Date(value));
 }
 
+function projectStatusLabel(
+  status: Database['public']['Tables']['projects']['Row']['status']
+) {
+  switch (status) {
+    case 'quote_requested':
+      return '正式見積り依頼済み';
+
+    case 'quote_reviewing':
+      return '見積り確認中';
+
+    case 'quote_presented':
+      return '正式見積り提示済み';
+
+    case 'ordered':
+      return '発注済み';
+
+    case 'in_production':
+      return '制作中';
+
+    case 'customer_review':
+      return 'お客様確認中';
+
+    case 'revision':
+      return '修正対応中';
+
+    case 'delivered':
+      return '納品済み';
+
+    case 'completed':
+      return '完了';
+
+    case 'cancelled':
+      return 'キャンセル';
+
+    default:
+      return status;
+  }
+}
+
 export default function MyPage() {
   const router = useRouter();
 
@@ -88,23 +127,30 @@ const [quoteError, setQuoteError] = useState('');
       setUser(userData.user);
 
       const [
-        { data: profileData, error: profileError },
-        { data: estimateData, error: estimateError },
-      ] = await Promise.all([
-        supabase
-          .from('profiles')
-          .select(
-            'company_name, department_name, contact_name, phone, postal_code, address'
-          )
-          .eq('id', userData.user.id)
-          .single(),
+  { data: profileData, error: profileError },
+  { data: estimateData, error: estimateError },
+  { data: projectData, error: projectError },
+] = await Promise.all([
+  supabase
+    .from('profiles')
+    .select(
+      'company_name, department_name, contact_name, phone, postal_code, address'
+    )
+    .eq('id', userData.user.id)
+    .single(),
 
-        supabase
-          .from('estimates')
-          .select('*')
-          .eq('user_id', userData.user.id)
-          .order('created_at', { ascending: false }),
-      ]);
+  supabase
+    .from('estimates')
+    .select('*')
+    .eq('user_id', userData.user.id)
+    .order('created_at', { ascending: false }),
+
+  supabase
+    .from('projects')
+    .select('*')
+    .eq('user_id', userData.user.id)
+    .order('created_at', { ascending: false }),
+]);
 
       if (profileData) {
         setProfile({
@@ -165,6 +211,11 @@ const [quoteError, setQuoteError] = useState('');
   });
 
   setEstimateImages(imageMap);
+        if (projectError) {
+  console.error('Project load error:', projectError);
+} else {
+  setProjects(projectData ?? []);
+}
 }
 
       setLoading(false);
@@ -408,14 +459,28 @@ async function requestFormalQuote(estimate: Estimate) {
           </a>
         </section>
 
-        <section className="dashboardCard dashboardDisabled">
-          <div className="dashboardIcon">案件</div>
-          <h3>プロジェクト</h3>
-          <p>
-            正式依頼・制作状況・納品を管理する機能を追加予定です。
-          </p>
-          <span>準備中</span>
-        </section>
+        <section className="dashboardCard">
+  <div className="dashboardIcon">案件</div>
+
+  <h3>プロジェクト</h3>
+
+  <p>
+    正式見積りを依頼した案件の状況を確認できます。
+  </p>
+
+  {projects.length > 0 ? (
+    <a
+      className="dashboardLink"
+      href="#project-list"
+    >
+      {projects.length}件のプロジェクトを見る →
+    </a>
+  ) : (
+    <span className="muted">
+      現在進行中のプロジェクトはありません
+    </span>
+  )}
+</section>
       </div>
 
       <section
@@ -814,7 +879,270 @@ async function requestFormalQuote(estimate: Estimate) {
           </div>
         )}
       </section>
+<section
+  id="project-list"
+  className="authCard"
+  style={{
+    margin: '28px auto 0',
+    maxWidth: '100%',
+  }}
+>
+  <div className="authBrand">
+    PROJECTS
+  </div>
 
+  <h2>プロジェクト</h2>
+
+  <p className="muted">
+    正式見積りを依頼した案件の進行状況です。
+  </p>
+
+  {projects.length === 0 ? (
+    <div
+      style={{
+        marginTop: '20px',
+        padding: '24px',
+        borderRadius: '14px',
+        background: '#f6f8fb',
+      }}
+    >
+      <strong>
+        現在プロジェクトはありません。
+      </strong>
+
+      <p className="muted">
+        保存したAI概算見積りから
+        「正式見積りを依頼する」を押すと、
+        ここに案件が追加されます。
+      </p>
+    </div>
+  ) : (
+    <div
+      style={{
+        display: 'grid',
+        gap: '14px',
+        marginTop: '22px',
+      }}
+    >
+      {projects.map((project) => {
+        const sourceEstimate = estimates.find(
+          (estimate) =>
+            estimate.id === project.estimate_id
+        );
+
+        return (
+          <article
+            key={project.id}
+            style={{
+              padding: '20px',
+              border: '1px solid #dbe3ec',
+              borderRadius: '14px',
+              background: '#ffffff',
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                gap: '18px',
+                alignItems: 'center',
+              }}
+            >
+              <div
+                style={{
+                  width: '120px',
+                  height: '90px',
+                  flex: '0 0 120px',
+                  border:
+                    '1px solid #dbe3ec',
+                  borderRadius: '12px',
+                  overflow: 'hidden',
+                  background: '#f4f7fa',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                {sourceEstimate &&
+                estimateImages[sourceEstimate.id] ? (
+                  <img
+                    src={
+                      estimateImages[
+                        sourceEstimate.id
+                      ]
+                    }
+                    alt="プロジェクト参考画像"
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'contain',
+                      background: '#ffffff',
+                    }}
+                  />
+                ) : (
+                  <span
+                    style={{
+                      color: '#94a3b8',
+                      fontSize: '12px',
+                      fontWeight: 700,
+                    }}
+                  >
+                    画像なし
+                  </span>
+                )}
+              </div>
+
+              <div
+                style={{
+                  flex: 1,
+                  minWidth: 0,
+                }}
+              >
+                <div
+                  style={{
+                    color: '#64748b',
+                    fontSize: '12px',
+                    marginBottom: '4px',
+                  }}
+                >
+                  案件番号
+                </div>
+
+                <strong
+                  style={{
+                    fontSize: '17px',
+                    overflowWrap: 'anywhere',
+                  }}
+                >
+                  {project.project_code}
+                </strong>
+
+                <div
+                  style={{
+                    marginTop: '7px',
+                    fontWeight: 700,
+                  }}
+                >
+                  {project.title}
+                </div>
+
+                <div
+                  style={{
+                    marginTop: '10px',
+                    display: 'inline-flex',
+                    padding: '6px 10px',
+                    borderRadius: '999px',
+                    background: '#eefbf3',
+                    color: '#16733b',
+                    fontSize: '12px',
+                    fontWeight: 800,
+                  }}
+                >
+                  {projectStatusLabel(
+                    project.status
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns:
+                  'repeat(auto-fit, minmax(150px, 1fr))',
+                gap: '12px',
+                marginTop: '18px',
+                padding: '15px',
+                borderRadius: '12px',
+                background: '#f6f9fc',
+              }}
+            >
+              <div>
+                <div
+                  style={{
+                    color: '#64748b',
+                    fontSize: '12px',
+                  }}
+                >
+                  正式見積金額
+                </div>
+
+                <strong>
+                  {project.quoted_amount != null
+                    ? `${project.quoted_amount.toLocaleString()}円`
+                    : '確認中'}
+                </strong>
+              </div>
+
+              <div>
+                <div
+                  style={{
+                    color: '#64748b',
+                    fontSize: '12px',
+                  }}
+                >
+                  正式見積工数
+                </div>
+
+                <strong>
+                  {project.quoted_hours != null
+                    ? `${project.quoted_hours}時間`
+                    : '確認中'}
+                </strong>
+              </div>
+
+              <div>
+                <div
+                  style={{
+                    color: '#64748b',
+                    fontSize: '12px',
+                  }}
+                >
+                  確定納期
+                </div>
+
+                <strong>
+                  {project.confirmed_deadline
+                    ? formatDate(
+                        project.confirmed_deadline
+                      )
+                    : '未確定'}
+                </strong>
+              </div>
+
+              <div>
+                <div
+                  style={{
+                    color: '#64748b',
+                    fontSize: '12px',
+                  }}
+                >
+                  依頼日
+                </div>
+
+                <strong>
+                  {formatDate(project.created_at)}
+                </strong>
+              </div>
+            </div>
+
+            {sourceEstimate ? (
+              <div
+                style={{
+                  marginTop: '14px',
+                  color: '#64748b',
+                  fontSize: '12px',
+                }}
+              >
+                元のAI概算見積り：
+                {sourceEstimate.estimate_code}
+              </div>
+            ) : null}
+          </article>
+        );
+      })}
+    </div>
+  )}
+</section>
       <section
         className="authCard"
         style={{
