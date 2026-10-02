@@ -431,18 +431,10 @@ async function orderProject(project: Project) {
 
   const supabase = getSupabaseBrowserClient();
 
-  const orderedAt = new Date().toISOString();
-
-  const { data, error: updateError } = await supabase
-    .from('projects')
-    .update({
-      status: 'ordered',
-      ordered_at: orderedAt,
+  const { data, error: updateError } = await (supabase as any)
+    .rpc('order_project', {
+      p_project_id: project.id,
     })
-    .eq('id', project.id)
-    .eq('user_id', user.id)
-    .eq('status', 'quote_presented')
-    .select('*')
     .single();
 
   setOrderingProjectId(null);
@@ -488,8 +480,11 @@ async function orderProject(project: Project) {
       console.error(msgError); setReviewingProjectId(null); setReviewError('確認結果を送信できませんでした。'); return;
     }
     if (action === 'revision_request') {
-      const { data: updated, error: updateError } = await supabase.from('projects').update({ status: 'revision' })
-        .eq('id', project.id).eq('user_id', user.id).eq('status', 'customer_review').select('*').single();
+      const { data: updated, error: updateError } = await (supabase as any)
+        .rpc('request_project_revision', {
+          p_project_id: project.id,
+        })
+        .single();
       if (updateError) {
         console.error(updateError); setReviewingProjectId(null); setReviewError('修正依頼のステータスを更新できませんでした。'); return;
       }
