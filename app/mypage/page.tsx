@@ -1363,7 +1363,24 @@ async function orderProject(project: Project) {
   </div>
 ) : null}
             
-            {project.status === 'customer_review' ? (
+            {(project.status === 'delivered' || project.status === 'completed') ? (
+  <div style={{ marginTop: '18px', padding: '18px', borderRadius: '12px', border: '1px solid #bbf7d0', background: '#f0fdf4' }}>
+    <div style={{ fontWeight: 800, fontSize: '16px', color: '#166534' }}>納品ファイル</div>
+    <p style={{ margin: '7px 0 14px', color: '#475569', lineHeight: 1.7, fontSize: '14px' }}>
+      制作が完了しました。下記から納品データを開くことができます。
+    </p>
+    {(projectFiles[project.id] ?? []).filter((f) => f.file_type === 'delivery').length ? (
+      (projectFiles[project.id] ?? []).filter((f) => f.file_type === 'delivery').map((f) => (
+        <div key={f.id} style={{ padding: '12px', marginTop: '8px', borderRadius: '10px', background: '#fff', border: '1px solid #dcfce7', display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center' }}>
+          <div><strong>{f.file_name}</strong><div style={{ color: '#64748b', fontSize: '12px', marginTop: '3px' }}>{formatDate(f.created_at)}</div></div>
+          {f.signed_url ? <a href={f.signed_url} target="_blank" rel="noreferrer" className="dashboardLink">納品ファイルを開く →</a> : null}
+        </div>
+      ))
+    ) : <div>納品ファイルを準備しています。</div>}
+  </div>
+) : null}
+
+{project.status === 'customer_review' ? (
               <div style={{ marginTop: '18px', padding: '18px', borderRadius: '12px', border: '1px solid #cbd5e1', background: '#f8fafc' }}>
                 <div style={{ fontWeight: 800, fontSize: '16px' }}>制作内容をご確認ください</div>
                 <p style={{ margin: '7px 0 14px', color: '#475569', lineHeight: 1.7, fontSize: '14px' }}>
