@@ -9,6 +9,19 @@ import type { Database } from '../../lib/supabase/database.types';
 type Project = Database['public']['Tables']['projects']['Row'];
 type Estimate = Database['public']['Tables']['estimates']['Row'];
 
+type ProjectFile = {
+  id: string;
+  project_id: string;
+  uploaded_by: string;
+  file_name: string;
+  storage_path: string;
+  mime_type: string | null;
+  file_size: number | null;
+  file_type: 'reference' | 'review' | 'revision' | 'delivery';
+  created_at: string;
+  signed_url?: string | null;
+};
+
 type Profile = {
   id: string;
   company_name: string | null;
@@ -69,6 +82,9 @@ export default function AdminPage() {
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [changingStatusId, setChangingStatusId] = useState<string | null>(null);
+  const [projectFiles, setProjectFiles] = useState<Record<string, ProjectFile[]>>({});
+  const [selectedFiles, setSelectedFiles] = useState<Record<string, File | null>>({});
+  const [uploadingProjectId, setUploadingProjectId] = useState<string | null>(null);
 
   const [forms, setForms] = useState<
     Record<
@@ -183,6 +199,29 @@ export default function AdminPage() {
         }));
 
       setProjects(combined);
+
+      if (loadedProjects.length > 0) {
+        const projectIds = loadedProjects.map((project) => project.id);
+        const { data: fileData, error: fileError } = await supabase
+          .from('project_files' as any)
+          .select('*')
+          .in('project_id', projectIds)
+          .order('created_at', { ascending: false });
+
+        if (fileError) {
+          console.error('Project files load error:', fileError);
+        } else {
+          const grouped: Record<string, ProjectFile[]> = {};
+          for (const file of ((fileData ?? []) as unknown as ProjectFile[])) {
+            const { data: signedData } = await supabase.storage
+              .from('project-files')
+              .createSignedUrl(file.storage_path, 60 * 60);
+            const item = { ...file, signed_url: signedData?.signedUrl ?? null };
+            grouped[file.project_id] = [...(grouped[file.project_id] ?? []), item];
+          }
+          setProjectFiles(grouped);
+        }
+      }
 
       const initialForms: typeof forms = {};
 
@@ -348,6 +387,82 @@ export default function AdminPage() {
     `案件 ${project.project_code} を「${statusLabel(nextStatus)}」に変更しました。`
   );
 }
+
+
+  async function uploadReviewFile(project: ProjectWithData) {
+    if (!user || uploadingProjectId) return;
+    const file = selectedFiles[project.id];
+    if (!file) {
+      setError('アップロードするファイルを選択してください。');
+      return;
+    }
+    if (file.size > 50 * 1024 * 1024) {
+      setError('ファイルサイズは50MB以下にしてください。');
+      return;
+    }
+
+    setUploadingProjectId(project.id);
+    setMessage('');
+    setError('');
+
+    const supabase = getSupabaseBrowserClient();
+    const safeName = file.name.replace(/[^a-zA-Z0-9._-]+/g, '_');
+    const storagePath = `${project.id}/${Date.now()}-${safeName}`;
+
+    const { error: storageError } = await supabase.storage
+      .from('project-files')
+      .upload(storagePath, file, {
+        cacheControl: '3600',
+        upsert: false,
+        contentType: file.type || undefined,
+      });
+
+    if (storageError) {
+      console.error('Project file storage upload error:', storageError);
+      setUploadingProjectId(null);
+      setError('ファイルをアップロードできませんでした。');
+      return;
+    }
+
+    const { data: fileRow, error: insertError } = await (supabase
+      .from('project_files' as any) as any)
+      .insert({
+        project_id: project.id,
+        uploaded_by: user.id,
+        file_name: file.name,
+        storage_path: storagePath,
+        mime_type: file.type || null,
+        file_size: file.size,
+        file_type: 'review',
+      })
+      .select('*')
+      .single();
+
+    if (insertError) {
+      console.error('Project file DB insert error:', insertError);
+      await supabase.storage.from('project-files').remove([storagePath]);
+      setUploadingProjectId(null);
+      setError('ファイル情報を保存できませんでした。');
+      return;
+    }
+
+    const { data: signedData } = await supabase.storage
+      .from('project-files')
+      .createSignedUrl(storagePath, 60 * 60);
+
+    const newFile: ProjectFile = {
+      ...(fileRow as ProjectFile),
+      signed_url: signedData?.signedUrl ?? null,
+    };
+
+    setProjectFiles((current) => ({
+      ...current,
+      [project.id]: [newFile, ...(current[project.id] ?? [])],
+    }));
+    setSelectedFiles((current) => ({ ...current, [project.id]: null }));
+    setUploadingProjectId(null);
+    setMessage(`案件 ${project.project_code} に確認ファイルをアップロードしました。`);
+  }
 
   if (loading) {
     return (
@@ -717,6 +832,72 @@ export default function AdminPage() {
         : '正式見積りを提示'}
   </button>
 ) : null}
+
+
+                  {(project.status === 'in_production' ||
+                    project.status === 'customer_review' ||
+                    project.status === 'revision') ? (
+                    <div style={{
+                      marginTop: '20px',
+                      padding: '16px',
+                      borderRadius: '12px',
+                      border: '1px solid #dbe3ec',
+                      background: '#f8fafc',
+                    }}>
+                      <div style={{ fontWeight: 800, marginBottom: '8px' }}>
+                        お客様確認用ファイル
+                      </div>
+                      <p style={{ margin: '0 0 12px', color: '#64748b', fontSize: '13px' }}>
+                        確認してもらう画像・PDFなどをアップロードできます（最大50MB）。
+                      </p>
+                      <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+                        <input
+                          type="file"
+                          onChange={(e) =>
+                            setSelectedFiles((current) => ({
+                              ...current,
+                              [project.id]: e.target.files?.[0] ?? null,
+                            }))
+                          }
+                        />
+                        <button
+                          type="button"
+                          className="primaryButton"
+                          disabled={uploadingProjectId === project.id || !selectedFiles[project.id]}
+                          onClick={() => uploadReviewFile(project)}
+                        >
+                          {uploadingProjectId === project.id ? 'アップロード中…' : '確認ファイルをアップロード'}
+                        </button>
+                      </div>
+
+                      {(projectFiles[project.id] ?? []).length > 0 ? (
+                        <div style={{ marginTop: '16px', display: 'grid', gap: '8px' }}>
+                          {(projectFiles[project.id] ?? []).map((file) => (
+                            <div key={file.id} style={{
+                              padding: '10px 12px',
+                              borderRadius: '10px',
+                              background: '#fff',
+                              border: '1px solid #e5eaf0',
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              gap: '12px',
+                            }}>
+                              <div>
+                                <strong>{file.file_name}</strong>
+                                <div style={{ color: '#64748b', fontSize: '12px', marginTop: '3px' }}>
+                                  {file.file_size != null ? `${(file.file_size / 1024 / 1024).toFixed(2)} MB` : ''}
+                                  {' ・ '}{formatDate(file.created_at)}
+                                </div>
+                              </div>
+                              {file.signed_url ? (
+                                <a href={file.signed_url} target="_blank" rel="noreferrer">開く</a>
+                              ) : null}
+                            </div>
+                          ))}
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : null}
 
                   {project.status === 'ordered' ? (
   <button
