@@ -20,7 +20,20 @@ type Props = {
   customerNotes: string;
   inputData: Json;
   analysisData: Json;
+
+  // サムネイル保存用
+  imageFile?: File | null;
+  sampleImagePath?: string | null;
 };
+
+function getExtension(file: File) {
+  const type = file.type.toLowerCase();
+
+  if (type === 'image/png') return 'png';
+  if (type === 'image/webp') return 'webp';
+
+  return 'jpg';
+}
 
 export default function EstimateSave({
   estimateId,
@@ -36,6 +49,8 @@ export default function EstimateSave({
   customerNotes,
   inputData,
   analysisData,
+  imageFile,
+  sampleImagePath,
 }: Props) {
   const [user, setUser] = useState<User | null>(null);
   const [checkingUser, setCheckingUser] = useState(true);
@@ -69,6 +84,76 @@ export default function EstimateSave({
     checkUser();
   }, [estimateId]);
 
+  async function uploadEstimateImage(
+    userId: string
+  ): Promise<string | null> {
+    const supabase = getSupabaseBrowserClient();
+
+    let fileToUpload: File | null = imageFile ?? null;
+
+    // サンプル画像の場合はブラウザから取得してFile化
+    if (!fileToUpload && sampleImagePath) {
+      try {
+        const response = await fetch(sampleImagePath);
+
+        if (!response.ok) {
+          throw new Error('サンプル画像を取得できませんでした。');
+        }
+
+        const blob = await response.blob();
+
+        let extension = 'jpg';
+
+        if (blob.type === 'image/png') {
+          extension = 'png';
+        } else if (blob.type === 'image/webp') {
+          extension = 'webp';
+        }
+
+        fileToUpload = new File(
+          [blob],
+          `reference.${extension}`,
+          {
+            type: blob.type || 'image/jpeg',
+          }
+        );
+      } catch (e) {
+        console.error('Sample image load error:', e);
+        return null;
+      }
+    }
+
+    if (!fileToUpload) {
+      return null;
+    }
+
+    const extension = getExtension(fileToUpload);
+
+    const storagePath =
+      `${userId}/${estimateId}/reference.${extension}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('estimate-images')
+      .upload(storagePath, fileToUpload, {
+        cacheControl: '3600',
+        upsert: true,
+        contentType: fileToUpload.type,
+      });
+
+    if (uploadError) {
+      console.error(
+        'Estimate image upload error:',
+        uploadError
+      );
+
+      throw new Error(
+        '参考画像を保存できませんでした。'
+      );
+    }
+
+    return storagePath;
+  }
+
   async function saveEstimate() {
     if (!user || saving || saved) return;
 
@@ -77,41 +162,61 @@ export default function EstimateSave({
 
     const supabase = getSupabaseBrowserClient();
 
-    const { error: saveError } = await supabase
-      .from('estimates')
-      .insert({
-        estimate_code: estimateId,
-        user_id: user.id,
-        production_method: productionMethod,
-        usage,
-        expression,
-        quantity,
-        estimated_hours: estimatedHours,
-        estimated_amount: estimatedAmount,
-        complexity_score: complexityScore,
-        confidence: confidence ?? null,
-        ai_comment: aiComment,
-        customer_notes: customerNotes,
-        input_data: inputData,
-        analysis_data: analysisData,
-        status: 'estimated',
-      });
+    try {
+      // ログインユーザーが保存を押した時だけ画像を保存
+      const imagePath = await uploadEstimateImage(
+        user.id
+      );
 
-    setSaving(false);
+      const { error: saveError } = await supabase
+        .from('estimates')
+        .insert({
+          estimate_code: estimateId,
+          user_id: user.id,
+          production_method: productionMethod,
+          usage,
+          expression,
+          quantity,
+          estimated_hours: estimatedHours,
+          estimated_amount: estimatedAmount,
+          image_path: imagePath,
+          complexity_score: complexityScore,
+          confidence: confidence ?? null,
+          ai_comment: aiComment,
+          customer_notes: customerNotes,
+          input_data: inputData,
+          analysis_data: analysisData,
+          status: 'estimated',
+        });
 
-    if (saveError) {
-      console.error('Estimate save error:', saveError);
+      if (saveError) {
+        console.error(
+          'Estimate save error:',
+          saveError
+        );
 
-      if (saveError.code === '23505') {
-        setSaved(true);
-        return;
+        if (saveError.code === '23505') {
+          setSaved(true);
+          return;
+        }
+
+        throw new Error(
+          '見積りを保存できませんでした。'
+        );
       }
 
-      setError('見積りを保存できませんでした。');
-      return;
-    }
+      setSaved(true);
+    } catch (e) {
+      console.error(e);
 
-    setSaved(true);
+      setError(
+        e instanceof Error
+          ? e.message
+          : '見積りを保存できませんでした。'
+      );
+    } finally {
+      setSaving(false);
+    }
   }
 
   if (checkingUser) {
@@ -120,14 +225,21 @@ export default function EstimateSave({
 
   if (!user) {
     return (
-      <div className="card" style={{ padding: '22px' }}>
-        <div className="eyebrow">CS Works</div>
+      <div
+        className="card"
+        style={{ padding: '22px' }}
+      >
+        <div className="eyebrow">
+          CS Works
+        </div>
+
         <h3 style={{ marginTop: '6px' }}>
           この見積りを保存できます
         </h3>
 
         <p className="muted">
-          無料会員登録すると、AI概算見積りをMy Pageに保存して、
+          無料会員登録すると、
+          AI概算見積りをMy Pageに保存して、
           後から確認できます。
         </p>
 
@@ -144,7 +256,10 @@ export default function EstimateSave({
         </Link>
 
         <p className="footerNote">
-          すでに会員の方は <Link href="/login">ログイン</Link>
+          すでに会員の方は{' '}
+          <Link href="/login">
+            ログイン
+          </Link>
         </p>
       </div>
     );
@@ -171,10 +286,14 @@ export default function EstimateSave({
         </div>
 
         <p className="muted">
-          このAI概算見積りはCS Worksに保存されています。
+          このAI概算見積りは
+          CS Worksに保存されています。
         </p>
 
-        <Link className="dashboardLink" href="/mypage">
+        <Link
+          className="dashboardLink"
+          href="/mypage"
+        >
           My Pageを見る →
         </Link>
       </div>
@@ -182,18 +301,28 @@ export default function EstimateSave({
   }
 
   return (
-    <div className="card" style={{ padding: '22px' }}>
-      <div className="eyebrow">CS Works</div>
+    <div
+      className="card"
+      style={{ padding: '22px' }}
+    >
+      <div className="eyebrow">
+        CS Works
+      </div>
 
       <h3 style={{ marginTop: '6px' }}>
         この見積りをMy Pageに保存
       </h3>
 
       <p className="muted">
-        見積り結果を保存しておくと、後からMy Pageで確認できます。
+        見積り結果と参考画像を保存しておくと、
+        後からMy Pageで確認できます。
       </p>
 
-      {error ? <div className="errorBox">{error}</div> : null}
+      {error ? (
+        <div className="errorBox">
+          {error}
+        </div>
+      ) : null}
 
       <button
         type="button"
@@ -201,7 +330,9 @@ export default function EstimateSave({
         onClick={saveEstimate}
         disabled={saving}
       >
-        {saving ? '保存中…' : 'この見積りを保存'}
+        {saving
+          ? '見積りと画像を保存中…'
+          : 'この見積りを保存'}
       </button>
     </div>
   );
