@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import HeaderLinks from "./HeaderLinks";
 import AiAssistant from "./estimate/AiAssistant";
+import EstimateSave from "./estimate/EstimateSave";
 type ApiResponse = {
   estimateId: string;
   requiresConsultation?: boolean;
@@ -1691,6 +1692,40 @@ async function handleFormalQuoteRequest() {
             }
           `}</style>
 
+          <EstimateSave
+  estimateId={result.estimateId}
+  productionMethod={selectedSourceType}
+  usage={selectedUsage}
+  expression={selectedStyle}
+  quantity={result.estimate.quantity}
+  estimatedHours={result.estimate.estimatedHours}
+  estimatedAmount={result.estimate.total}
+  complexityScore={result.vision.complexityScore}
+  confidence={result.confidence?.score}
+  aiComment={result.vision.reason}
+  customerNotes={notes}
+  inputData={{
+    productionMethod: selectedSourceType,
+    usage: selectedUsage,
+    expression: selectedStyle,
+    quantity: result.estimate.quantity,
+    notes,
+  }}
+  analysisData={{
+    subjectType: result.vision.subjectType,
+    complexityScore: result.vision.complexityScore,
+    partDensity: result.vision.partDensity,
+    lineDifficulty: result.vision.lineDifficulty,
+    structureComplexity: result.vision.structureComplexity,
+    visionConfidence: result.vision.confidence,
+    estimatedHoursMin: result.vision.estimatedHoursMin,
+    estimatedHours: result.vision.estimatedHours,
+    estimatedHoursMax: result.vision.estimatedHoursMax,
+    confidence: result.confidence ?? null,
+    estimateMatch: result.estimateMatch ?? null,
+  }}
+/>
+          
           <div className="ctaCard card">
             <div>
               <div className="eyebrow">
