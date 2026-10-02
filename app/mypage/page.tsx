@@ -62,6 +62,7 @@ export default function MyPage() {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile>(emptyProfile);
   const [estimates, setEstimates] = useState<Estimate[]>([]);
+  const [estimateImages, setEstimateImages] = useState<Record<string, string>>({});
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -116,10 +117,50 @@ export default function MyPage() {
       }
 
       if (estimateError) {
-        console.error('Estimate load error:', estimateError);
-      } else {
-        setEstimates(estimateData ?? []);
-      }
+  console.error('Estimate load error:', estimateError);
+} else {
+  const loadedEstimates = estimateData ?? [];
+
+  setEstimates(loadedEstimates);
+
+  const imageEntries = await Promise.all(
+    loadedEstimates
+      .filter((estimate) => Boolean(estimate.image_path))
+      .map(async (estimate) => {
+        const { data, error: imageError } = await supabase.storage
+          .from('estimate-images')
+          .createSignedUrl(
+            estimate.image_path as string,
+            60 * 60
+          );
+
+        if (imageError || !data?.signedUrl) {
+          console.error(
+            'Estimate image load error:',
+            imageError
+          );
+
+          return null;
+        }
+
+        return [
+          estimate.id,
+          data.signedUrl,
+        ] as const;
+      })
+  );
+
+  const imageMap: Record<string, string> = {};
+
+  imageEntries.forEach((entry) => {
+    if (!entry) return;
+
+    const [estimateId, signedUrl] = entry;
+    imageMap[estimateId] = signedUrl;
+  });
+
+  setEstimateImages(imageMap);
+}
 
       setLoading(false);
     }
@@ -298,37 +339,112 @@ export default function MyPage() {
                 }}
               >
                 <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    gap: '16px',
-                    flexWrap: 'wrap',
-                    marginBottom: '14px',
-                  }}
-                >
-                  <div>
-                    <div
-                      style={{
-                        color: '#64748b',
-                        fontSize: '12px',
-                        marginBottom: '4px',
-                      }}
-                    >
-                      見積ID
-                    </div>
+  style={{
+    display: 'flex',
+    gap: '18px',
+    alignItems: 'center',
+    marginBottom: '16px',
+  }}
+>
+  <div
+    style={{
+      width: '120px',
+      height: '90px',
+      flex: '0 0 120px',
+      border: '1px solid #dbe3ec',
+      borderRadius: '12px',
+      overflow: 'hidden',
+      background: '#f4f7fa',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+    }}
+  >
+    {estimateImages[estimate.id] ? (
+      <img
+        src={estimateImages[estimate.id]}
+        alt="見積り参考画像"
+        style={{
+          width: '100%',
+          height: '100%',
+          objectFit: 'contain',
+          background: '#ffffff',
+        }}
+      />
+    ) : (
+      <span
+        style={{
+          color: '#94a3b8',
+          fontSize: '12px',
+          fontWeight: 700,
+        }}
+      >
+        画像なし
+      </span>
+    )}
+  </div>
 
-                    <strong>{estimate.estimate_code}</strong>
-                  </div>
+  <div
+    style={{
+      flex: 1,
+      minWidth: 0,
+    }}
+  >
+    <div
+      style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        gap: '14px',
+        flexWrap: 'wrap',
+      }}
+    >
+      <div>
+        <div
+          style={{
+            color: '#64748b',
+            fontSize: '12px',
+            marginBottom: '4px',
+          }}
+        >
+          見積ID
+        </div>
 
-                  <div
-                    style={{
-                      color: '#64748b',
-                      fontSize: '13px',
-                    }}
-                  >
-                    {formatDate(estimate.created_at)}
-                  </div>
-                </div>
+        <strong
+          style={{
+            overflowWrap: 'anywhere',
+          }}
+        >
+          {estimate.estimate_code}
+        </strong>
+      </div>
+
+      <div
+        style={{
+          color: '#64748b',
+          fontSize: '13px',
+        }}
+      >
+        {formatDate(estimate.created_at)}
+      </div>
+    </div>
+
+    <div
+      style={{
+        marginTop: '10px',
+        color: '#475569',
+        fontSize: '13px',
+      }}
+    >
+      {productionMethodLabel(
+        estimate.production_method
+      )}
+      {' ／ '}
+      {expressionLabel(
+        estimate.expression
+      )}
+    </div>
+  </div>
+</div>
 
                 <div
                   style={{
