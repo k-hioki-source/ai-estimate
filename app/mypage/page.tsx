@@ -8,6 +8,7 @@ import { getSupabaseBrowserClient } from '../../lib/supabase/client';
 import type { Database } from '../../lib/supabase/database.types';
 
 type Estimate = Database['public']['Tables']['estimates']['Row'];
+type Project = Database['public']['Tables']['projects']['Row'];
 
 type Profile = {
   company_name: string;
@@ -63,6 +64,10 @@ export default function MyPage() {
   const [profile, setProfile] = useState<Profile>(emptyProfile);
   const [estimates, setEstimates] = useState<Estimate[]>([]);
   const [estimateImages, setEstimateImages] = useState<Record<string, string>>({});
+  const [projects, setProjects] = useState<Project[]>([]);
+const [requestingEstimateId, setRequestingEstimateId] = useState<string | null>(null);
+const [quoteMessage, setQuoteMessage] = useState('');
+const [quoteError, setQuoteError] = useState('');
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -174,6 +179,133 @@ export default function MyPage() {
       [field]: value,
     }));
   }
+
+  function createProjectCode() {
+  const now = new Date();
+
+  const date =
+    now.getFullYear().toString() +
+    String(now.getMonth() + 1).padStart(2, '0') +
+    String(now.getDate()).padStart(2, '0');
+
+  const random = Math.floor(100000 + Math.random() * 900000);
+
+  return `PRJ-${date}-${random}`;
+}
+
+async function requestFormalQuote(estimate: Estimate) {
+  if (!user || requestingEstimateId) return;
+
+  const confirmed = window.confirm(
+    `見積ID「${estimate.estimate_code}」の内容で正式見積りを依頼しますか？`
+  );
+
+  if (!confirmed) return;
+
+  setRequestingEstimateId(estimate.id);
+  setQuoteMessage('');
+  setQuoteError('');
+
+  const supabase = getSupabaseBrowserClient();
+
+  try {
+    // すでに案件化されていないか確認
+    const { data: existingProject, error: checkError } =
+      await supabase
+        .from('projects')
+        .select('*')
+        .eq('estimate_id', estimate.id)
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+    if (checkError) {
+      throw checkError;
+    }
+
+    if (existingProject) {
+      setProjects((current) => {
+        const exists = current.some(
+          (project) => project.id === existingProject.id
+        );
+
+        return exists
+          ? current
+          : [existingProject, ...current];
+      });
+
+      setQuoteMessage('この見積りはすでに正式見積り依頼済みです。');
+      return;
+    }
+
+    const projectCode = createProjectCode();
+
+    const title = [
+      productionMethodLabel(estimate.production_method),
+      expressionLabel(estimate.expression),
+    ].join('・');
+
+    const { data: newProject, error: projectError } =
+      await supabase
+        .from('projects')
+        .insert({
+          project_code: projectCode,
+          user_id: user.id,
+          estimate_id: estimate.id,
+          title,
+          description: estimate.customer_notes || null,
+          status: 'quote_requested',
+        })
+        .select('*')
+        .single();
+
+    if (projectError) {
+      throw projectError;
+    }
+
+    const { error: estimateError } = await supabase
+      .from('estimates')
+      .update({
+        status: 'quote_requested',
+      })
+      .eq('id', estimate.id)
+      .eq('user_id', user.id);
+
+    if (estimateError) {
+      console.error(
+        'Estimate status update error:',
+        estimateError
+      );
+    }
+
+    setProjects((current) => [
+      newProject,
+      ...current,
+    ]);
+
+    setEstimates((current) =>
+      current.map((item) =>
+        item.id === estimate.id
+          ? {
+              ...item,
+              status: 'quote_requested',
+            }
+          : item
+      )
+    );
+
+    setQuoteMessage(
+      `正式見積りを依頼しました。案件番号：${projectCode}`
+    );
+  } catch (e) {
+    console.error('Formal quote request error:', e);
+
+    setQuoteError(
+      '正式見積りの依頼を送信できませんでした。'
+    );
+  } finally {
+    setRequestingEstimateId(null);
+  }
+}
 
   async function saveProfile(e: FormEvent) {
     e.preventDefault();
@@ -300,6 +432,27 @@ export default function MyPage() {
         <p className="muted">
           My Pageに保存したAI概算見積りです。
         </p>
+
+        {quoteError ? (
+  <div className="errorBox">
+    {quoteError}
+  </div>
+) : null}
+
+{quoteMessage ? (
+  <div
+    style={{
+      marginTop: '14px',
+      padding: '12px 14px',
+      borderRadius: '10px',
+      background: '#eefbf3',
+      color: '#16733b',
+      fontWeight: 700,
+    }}
+  >
+    {quoteMessage}
+  </div>
+) : null}
 
         {estimates.length === 0 ? (
           <div
@@ -619,6 +772,43 @@ export default function MyPage() {
                     ? `${estimate.confidence}%`
                     : '―'}
                 </div>
+
+                <div
+  style={{
+    marginTop: '18px',
+    paddingTop: '18px',
+    borderTop: '1px solid #e5eaf0',
+  }}
+>
+  {estimate.status === 'quote_requested' ||
+  projects.some(
+    (project) => project.estimate_id === estimate.id
+  ) ? (
+    <div
+      style={{
+        padding: '13px 16px',
+        borderRadius: '10px',
+        background: '#eefbf3',
+        color: '#16733b',
+        fontWeight: 700,
+      }}
+    >
+      ✓ 正式見積り依頼済み
+    </div>
+  ) : (
+    <button
+      type="button"
+      className="primaryButton"
+      onClick={() => requestFormalQuote(estimate)}
+      disabled={requestingEstimateId === estimate.id}
+    >
+      {requestingEstimateId === estimate.id
+        ? '依頼を送信中…'
+        : '正式見積りを依頼する'}
+    </button>
+  )}
+</div>
+                
               </article>
             ))}
           </div>
