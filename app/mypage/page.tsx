@@ -57,15 +57,17 @@ export default function MyPage() {
         .single();
 
       if (profileData) {
-        setProfile({
-          company_name: profileData.company_name ?? '',
-          department_name: profileData.department_name ?? '',
-          contact_name: profileData.contact_name ?? '',
-          phone: profileData.phone ?? '',
-          postal_code: profileData.postal_code ?? '',
-          address: profileData.address ?? '',
-        });
-      }
+  const savedProfile = profileData as Profile;
+
+  setProfile({
+    company_name: savedProfile.company_name ?? '',
+    department_name: savedProfile.department_name ?? '',
+    contact_name: savedProfile.contact_name ?? '',
+    phone: savedProfile.phone ?? '',
+    postal_code: savedProfile.postal_code ?? '',
+    address: savedProfile.address ?? '',
+  });
+}
 
       if (profileError) {
         console.error('Profile load error:', profileError);
