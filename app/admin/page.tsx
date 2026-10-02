@@ -22,6 +22,15 @@ type ProjectFile = {
   signed_url?: string | null;
 };
 
+type ProjectMessage = {
+  id: string;
+  project_id: string;
+  user_id: string;
+  message: string;
+  message_type: 'message' | 'revision_request' | 'approval' | 'system';
+  created_at: string;
+};
+
 type Profile = {
   id: string;
   company_name: string | null;
@@ -83,6 +92,7 @@ export default function AdminPage() {
   const [error, setError] = useState('');
   const [changingStatusId, setChangingStatusId] = useState<string | null>(null);
   const [projectFiles, setProjectFiles] = useState<Record<string, ProjectFile[]>>({});
+  const [projectMessages, setProjectMessages] = useState<Record<string, ProjectMessage[]>>({});
   const [selectedFiles, setSelectedFiles] = useState<Record<string, File | null>>({});
   const [uploadingProjectId, setUploadingProjectId] = useState<string | null>(null);
 
@@ -220,6 +230,31 @@ export default function AdminPage() {
             grouped[file.project_id] = [...(grouped[file.project_id] ?? []), item];
           }
           setProjectFiles(grouped);
+        }
+      }
+
+      if (loadedProjects.length > 0) {
+        const projectIds = loadedProjects.map((project) => project.id);
+        const { data: messageData, error: messageError } = await (
+          supabase.from('project_messages' as any) as any
+        )
+          .select('*')
+          .in('project_id', projectIds)
+          .order('created_at', { ascending: true });
+
+        if (messageError) {
+          console.error('Project messages load error:', messageError);
+        } else {
+          const groupedMessages: Record<string, ProjectMessage[]> = {};
+
+          for (const item of ((messageData ?? []) as ProjectMessage[])) {
+            groupedMessages[item.project_id] = [
+              ...(groupedMessages[item.project_id] ?? []),
+              item,
+            ];
+          }
+
+          setProjectMessages(groupedMessages);
         }
       }
 
@@ -433,7 +468,7 @@ export default function AdminPage() {
         storage_path: storagePath,
         mime_type: file.type || null,
         file_size: file.size,
-        file_type: 'review',
+        file_type: project.status === 'revision' ? 'revision' : 'review',
       })
       .select('*')
       .single();
@@ -834,6 +869,80 @@ export default function AdminPage() {
 ) : null}
 
 
+                  {(projectMessages[project.id] ?? []).length > 0 ? (
+                    <div
+                      style={{
+                        marginTop: '20px',
+                        padding: '16px',
+                        borderRadius: '12px',
+                        border: '1px solid #dbe3ec',
+                        background: '#ffffff',
+                      }}
+                    >
+                      <div style={{ fontWeight: 800, marginBottom: '10px' }}>
+                        お客様からの確認結果・コメント
+                      </div>
+
+                      <div style={{ display: 'grid', gap: '10px' }}>
+                        {(projectMessages[project.id] ?? []).map((item) => (
+                          <div
+                            key={item.id}
+                            style={{
+                              padding: '12px 14px',
+                              borderRadius: '10px',
+                              background:
+                                item.message_type === 'revision_request'
+                                  ? '#fff7ed'
+                                  : item.message_type === 'approval'
+                                    ? '#eefbf3'
+                                    : '#f8fafc',
+                              border: '1px solid #e5eaf0',
+                            }}
+                          >
+                            <div
+                              style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                gap: '12px',
+                                flexWrap: 'wrap',
+                                marginBottom: '6px',
+                              }}
+                            >
+                              <strong>
+                                {item.message_type === 'revision_request'
+                                  ? '修正依頼'
+                                  : item.message_type === 'approval'
+                                    ? '承認'
+                                    : item.message_type === 'system'
+                                      ? 'システム'
+                                      : 'メッセージ'}
+                              </strong>
+
+                              <span
+                                style={{
+                                  color: '#64748b',
+                                  fontSize: '12px',
+                                }}
+                              >
+                                {formatDate(item.created_at)}
+                              </span>
+                            </div>
+
+                            <div
+                              style={{
+                                whiteSpace: 'pre-wrap',
+                                lineHeight: 1.7,
+                                color: '#334155',
+                              }}
+                            >
+                              {item.message}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+
                   {(project.status === 'in_production' ||
                     project.status === 'customer_review' ||
                     project.status === 'revision') ? (
@@ -845,10 +954,14 @@ export default function AdminPage() {
                       background: '#f8fafc',
                     }}>
                       <div style={{ fontWeight: 800, marginBottom: '8px' }}>
-                        お客様確認用ファイル
+                        {project.status === 'revision'
+                          ? '修正版ファイル'
+                          : 'お客様確認用ファイル'}
                       </div>
                       <p style={{ margin: '0 0 12px', color: '#64748b', fontSize: '13px' }}>
-                        確認してもらう画像・PDFなどをアップロードできます（最大50MB）。
+                        {project.status === 'revision'
+                          ? '修正した画像・PDFなどをアップロードできます（最大50MB）。'
+                          : '確認してもらう画像・PDFなどをアップロードできます（最大50MB）。'}
                       </p>
                       <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
                         <input
