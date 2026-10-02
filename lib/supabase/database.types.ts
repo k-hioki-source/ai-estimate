@@ -59,6 +59,7 @@ export type Database = {
           estimated_hours: number | null;
           estimated_amount: number | null;
           complexity_score: number | null;
+          image_path: string | null;
           confidence: number | null;
           ai_comment: string | null;
           customer_notes: string | null;
@@ -84,6 +85,7 @@ export type Database = {
           estimated_hours?: number | null;
           estimated_amount?: number | null;
           complexity_score?: number | null;
+          image_path?: string | null;
           confidence?: number | null;
           ai_comment?: string | null;
           customer_notes?: string | null;
@@ -106,6 +108,7 @@ export type Database = {
           estimated_hours?: number | null;
           estimated_amount?: number | null;
           complexity_score?: number | null;
+          image_path?: string | null;
           confidence?: number | null;
           ai_comment?: string | null;
           customer_notes?: string | null;
