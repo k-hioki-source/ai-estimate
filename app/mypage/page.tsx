@@ -107,6 +107,9 @@ export default function MyPage() {
 const [requestingEstimateId, setRequestingEstimateId] = useState<string | null>(null);
 const [quoteMessage, setQuoteMessage] = useState('');
 const [quoteError, setQuoteError] = useState('');
+  const [orderingProjectId, setOrderingProjectId] = useState<string | null>(null);
+const [orderMessage, setOrderMessage] = useState('');
+const [orderError, setOrderError] = useState('');
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -357,7 +360,76 @@ async function requestFormalQuote(estimate: Estimate) {
     setRequestingEstimateId(null);
   }
 }
+async function orderProject(project: Project) {
+  if (!user || orderingProjectId) return;
 
+  if (
+    project.status !== 'quote_presented' ||
+    project.quoted_amount == null ||
+    project.quoted_hours == null ||
+    !project.confirmed_deadline
+  ) {
+    setOrderError(
+      '正式見積りの内容が確定していないため発注できません。'
+    );
+    return;
+  }
+
+  const confirmed = window.confirm(
+    `案件「${project.project_code}」を正式に発注しますか？\n\n` +
+      `金額：${project.quoted_amount.toLocaleString()}円\n` +
+      `工数：${project.quoted_hours}時間\n` +
+      `納期：${formatDate(project.confirmed_deadline)}`
+  );
+
+  if (!confirmed) return;
+
+  setOrderingProjectId(project.id);
+  setOrderMessage('');
+  setOrderError('');
+
+  const supabase = getSupabaseBrowserClient();
+
+  const orderedAt = new Date().toISOString();
+
+  const { data, error: updateError } = await supabase
+    .from('projects')
+    .update({
+      status: 'ordered',
+      ordered_at: orderedAt,
+    })
+    .eq('id', project.id)
+    .eq('user_id', user.id)
+    .eq('status', 'quote_presented')
+    .select('*')
+    .single();
+
+  setOrderingProjectId(null);
+
+  if (updateError) {
+    console.error(
+      'Project order error:',
+      updateError
+    );
+
+    setOrderError(
+      '発注処理を完了できませんでした。'
+    );
+    return;
+  }
+
+  setProjects((current) =>
+    current.map((item) =>
+      item.id === project.id
+        ? data
+        : item
+    )
+  );
+
+  setOrderMessage(
+    `案件 ${project.project_code} を正式に発注しました。`
+  );
+}
   async function saveProfile(e: FormEvent) {
     e.preventDefault();
 
@@ -896,7 +968,29 @@ async function requestFormalQuote(estimate: Estimate) {
   <p className="muted">
     正式見積りを依頼した案件の進行状況です。
   </p>
+{orderError ? (
+  <div
+    className="errorBox"
+    style={{ marginTop: '14px' }}
+  >
+    {orderError}
+  </div>
+) : null}
 
+{orderMessage ? (
+  <div
+    style={{
+      marginTop: '14px',
+      padding: '12px 14px',
+      borderRadius: '10px',
+      background: '#eefbf3',
+      color: '#16733b',
+      fontWeight: 700,
+    }}
+  >
+    {orderMessage}
+  </div>
+) : null}
   {projects.length === 0 ? (
     <div
       style={{
@@ -1125,6 +1219,77 @@ async function requestFormalQuote(estimate: Estimate) {
               </div>
             </div>
 
+            {project.status === 'quote_presented' ? (
+  <div
+    style={{
+      marginTop: '18px',
+      padding: '18px',
+      borderRadius: '12px',
+      border: '1px solid #dbe3ec',
+      background: '#ffffff',
+    }}
+  >
+    <div
+      style={{
+        fontWeight: 800,
+        fontSize: '16px',
+        marginBottom: '7px',
+      }}
+    >
+      正式見積りをご確認ください
+    </div>
+
+    <p
+      style={{
+        margin: '0 0 16px',
+        color: '#475569',
+        lineHeight: 1.7,
+        fontSize: '14px',
+      }}
+    >
+      上記の正式見積金額・工数・納期をご確認のうえ、
+      問題なければ発注してください。
+    </p>
+
+    <button
+      type="button"
+      className="primaryButton"
+      onClick={() => orderProject(project)}
+      disabled={orderingProjectId === project.id}
+    >
+      {orderingProjectId === project.id
+        ? '発注処理中…'
+        : 'この内容で発注する'}
+    </button>
+  </div>
+) : null}
+
+{project.status === 'ordered' ? (
+  <div
+    style={{
+      marginTop: '18px',
+      padding: '14px 16px',
+      borderRadius: '12px',
+      background: '#eefbf3',
+      color: '#16733b',
+      fontWeight: 800,
+    }}
+  >
+    ✓ 発注済み
+    {project.ordered_at ? (
+      <div
+        style={{
+          marginTop: '4px',
+          fontSize: '12px',
+          fontWeight: 500,
+        }}
+      >
+        発注日：{formatDate(project.ordered_at)}
+      </div>
+    ) : null}
+  </div>
+) : null}
+            
             {sourceEstimate ? (
               <div
                 style={{
