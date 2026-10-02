@@ -81,6 +81,33 @@ function statusLabel(status: Project['status']) {
   }
 }
 
+
+async function sendCsWorksNotification(
+  supabase: ReturnType<typeof getSupabaseBrowserClient>,
+  type: 'quote_presented' | 'ordered' | 'revision_requested' | 'delivered',
+  projectId: string,
+  message?: string
+) {
+  const { data: sessionData } = await supabase.auth.getSession();
+  const accessToken = sessionData.session?.access_token;
+  if (!accessToken) return false;
+
+  const response = await fetch('/api/cs-works/notify', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify({ type, projectId, message }),
+  });
+
+  if (!response.ok) {
+    console.error('CS Works notification failed:', await response.text());
+    return false;
+  }
+  return true;
+}
+
 export default function AdminPage() {
   const router = useRouter();
 
@@ -362,8 +389,16 @@ export default function AdminPage() {
       )
     );
 
+    const mailSent = await sendCsWorksNotification(
+      supabase,
+      'quote_presented',
+      project.id
+    );
+
     setMessage(
-      `案件 ${project.project_code} の正式見積りを提示しました。`
+      mailSent
+        ? `案件 ${project.project_code} の正式見積りを提示し、お客様へメール通知しました。`
+        : `案件 ${project.project_code} の正式見積りを提示しました。メール通知のみ失敗しました。`
     );
   }
   async function changeProjectStatus(
@@ -418,8 +453,21 @@ export default function AdminPage() {
     )
   );
 
+  let mailSent = true;
+  if (nextStatus === 'delivered') {
+    mailSent = await sendCsWorksNotification(
+      supabase,
+      'delivered',
+      project.id
+    );
+  }
+
   setMessage(
-    `案件 ${project.project_code} を「${statusLabel(nextStatus)}」に変更しました。`
+    nextStatus === 'delivered'
+      ? mailSent
+        ? `案件 ${project.project_code} を納品済みに変更し、お客様へメール通知しました。`
+        : `案件 ${project.project_code} を納品済みに変更しました。メール通知のみ失敗しました。`
+      : `案件 ${project.project_code} を「${statusLabel(nextStatus)}」に変更しました。`
   );
 }
 
