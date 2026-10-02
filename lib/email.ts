@@ -362,3 +362,163 @@ https://www.create-support.co.jp/
 
   return { ok: true, estimateId };
 }
+
+// =========================================================
+// CS Works メール通知
+// =========================================================
+
+export type CsWorksMailPayload = {
+  type: 'quote_presented' | 'ordered' | 'revision_requested' | 'delivered';
+  projectCode: string;
+  projectTitle?: string;
+  customerName?: string;
+  customerEmail?: string;
+  quotedAmount?: number | null;
+  confirmedDeadline?: string | null;
+  message?: string;
+};
+
+export async function sendCsWorksEmail(payload: CsWorksMailPayload) {
+  const apiKey = process.env.RESEND_API_KEY;
+  const toAdmin = process.env.NOTIFY_TO_EMAIL || 'k-hioki@create-support.co.jp';
+  const from = process.env.FROM_EMAIL || 'onboarding@resend.dev';
+  const myPageUrl = 'https://estimate.create-support.co.jp/mypage';
+
+  if (!apiKey) {
+    console.log('RESEND_API_KEY is missing:', payload);
+    return { ok: false };
+  }
+
+  const resend = new Resend(apiKey);
+  const projectName = payload.projectTitle
+    ? `${payload.projectCode} / ${payload.projectTitle}`
+    : payload.projectCode;
+
+  if (payload.type === 'quote_presented' || payload.type === 'delivered') {
+    if (!payload.customerEmail) {
+      return { ok: false, error: 'customerEmail is required' };
+    }
+
+    const isQuote = payload.type === 'quote_presented';
+
+    const result = await resend.emails.send({
+      from,
+      to: payload.customerEmail,
+      subject: isQuote
+        ? `【CS Works】正式見積りをご確認ください（${payload.projectCode}）`
+        : `【CS Works】納品ファイルをご確認ください（${payload.projectCode}）`,
+      text: isQuote
+        ? `${payload.customerName || 'お客様'} 様
+
+いつもお世話になっております。
+株式会社クリエイトサポートです。
+
+ご依頼いただいた案件の正式見積りをご用意しました。
+
+■案件
+${projectName}
+
+■正式見積金額
+${payload.quotedAmount != null ? `${payload.quotedAmount.toLocaleString()}円` : '-'}
+
+■納期
+${payload.confirmedDeadline || '-'}
+
+下記のCS Works My Pageから内容をご確認いただき、
+問題なければ発注手続きをお願いいたします。
+
+${myPageUrl}
+
+━━━━━━━━━━━━━━━━
+株式会社クリエイトサポート
+CS Works
+https://www.create-support.co.jp/
+━━━━━━━━━━━━━━━━
+`
+        : `${payload.customerName || 'お客様'} 様
+
+いつもお世話になっております。
+株式会社クリエイトサポートです。
+
+ご依頼いただいた案件の制作が完了し、納品ファイルを登録しました。
+
+■案件
+${projectName}
+
+下記のCS Works My Pageから納品ファイルをご確認いただけます。
+
+${myPageUrl}
+
+━━━━━━━━━━━━━━━━
+株式会社クリエイトサポート
+CS Works
+https://www.create-support.co.jp/
+━━━━━━━━━━━━━━━━
+`,
+    });
+
+    if (result.error) {
+      console.error('CS Works お客様宛てメール送信失敗', result.error);
+      return { ok: false, error: result.error };
+    }
+
+    return { ok: true, emailId: result.data?.id };
+  }
+
+  const isOrder = payload.type === 'ordered';
+
+  const result = await resend.emails.send({
+    from,
+    to: toAdmin,
+    subject: isOrder
+      ? `【CS Works】正式発注がありました（${payload.projectCode}）`
+      : `【CS Works】修正依頼がありました（${payload.projectCode}）`,
+    text: isOrder
+      ? `CS Worksから正式発注がありました。
+
+■案件
+${projectName}
+
+■お客様
+${payload.customerName || '-'}
+
+■メール
+${payload.customerEmail || '-'}
+
+■受注金額
+${payload.quotedAmount != null ? `${payload.quotedAmount.toLocaleString()}円` : '-'}
+
+■納期
+${payload.confirmedDeadline || '-'}
+
+管理画面で案件をご確認ください。
+
+https://estimate.create-support.co.jp/admin
+`
+      : `CS Worksから修正依頼がありました。
+
+■案件
+${projectName}
+
+■お客様
+${payload.customerName || '-'}
+
+■メール
+${payload.customerEmail || '-'}
+
+■修正内容
+${payload.message || '-'}
+
+管理画面で内容をご確認ください。
+
+https://estimate.create-support.co.jp/admin
+`,
+  });
+
+  if (result.error) {
+    console.error('CS Works 管理者宛てメール送信失敗', result.error);
+    return { ok: false, error: result.error };
+  }
+
+  return { ok: true, emailId: result.data?.id };
+}
