@@ -424,7 +424,7 @@ export default function AdminPage() {
 }
 
 
-  async function uploadReviewFile(project: ProjectWithData) {
+  async function uploadProjectFile(project: ProjectWithData, fileType: 'review' | 'revision' | 'delivery') {
     if (!user || uploadingProjectId) return;
     const file = selectedFiles[project.id];
     if (!file) {
@@ -468,7 +468,7 @@ export default function AdminPage() {
         storage_path: storagePath,
         mime_type: file.type || null,
         file_size: file.size,
-        file_type: project.status === 'revision' ? 'revision' : 'review',
+        file_type: fileType,
       })
       .select('*')
       .single();
@@ -496,7 +496,9 @@ export default function AdminPage() {
     }));
     setSelectedFiles((current) => ({ ...current, [project.id]: null }));
     setUploadingProjectId(null);
-    setMessage(`案件 ${project.project_code} に確認ファイルをアップロードしました。`);
+    setMessage(fileType === 'delivery'
+      ? `案件 ${project.project_code} に納品ファイルをアップロードしました。`
+      : `案件 ${project.project_code} に確認ファイルをアップロードしました。`);
   }
 
   if (loading) {
@@ -977,7 +979,7 @@ export default function AdminPage() {
                           type="button"
                           className="primaryButton"
                           disabled={uploadingProjectId === project.id || !selectedFiles[project.id]}
-                          onClick={() => uploadReviewFile(project)}
+                          onClick={() => uploadProjectFile(project, project.status === 'revision' ? 'revision' : 'review')}
                         >
                           {uploadingProjectId === project.id ? 'アップロード中…' : '確認ファイルをアップロード'}
                         </button>
@@ -1064,16 +1066,7 @@ export default function AdminPage() {
       修正対応へ
     </button>
 
-    <button
-      type="button"
-      className="primaryButton"
-      disabled={changingStatusId === project.id}
-      onClick={() =>
-        changeProjectStatus(project, 'delivered')
-      }
-    >
-      納品済みにする
-    </button>
+    
   </div>
 ) : null}
 
@@ -1091,6 +1084,37 @@ export default function AdminPage() {
       ? '変更中…'
       : '再度お客様確認へ'}
   </button>
+) : null}
+
+{project.status === 'customer_review' &&
+(projectMessages[project.id] ?? []).some((item) => item.message_type === 'approval') ? (
+  <div style={{ marginTop: '20px', padding: '16px', borderRadius: '12px', border: '1px solid #bbf7d0', background: '#f0fdf4' }}>
+    <div style={{ fontWeight: 800, marginBottom: '8px' }}>最終納品ファイル</div>
+    <p style={{ margin: '0 0 12px', color: '#475569', fontSize: '13px' }}>
+      お客様承認後の最終データをアップロードしてください（最大50MB）。
+    </p>
+    <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+      <input type="file" onChange={(e) => setSelectedFiles((c) => ({ ...c, [project.id]: e.target.files?.[0] ?? null }))} />
+      <button type="button" className="primaryButton"
+        disabled={uploadingProjectId === project.id || !selectedFiles[project.id]}
+        onClick={() => uploadProjectFile(project, 'delivery')}>
+        {uploadingProjectId === project.id ? 'アップロード中…' : '納品ファイルをアップロード'}
+      </button>
+    </div>
+    {(projectFiles[project.id] ?? []).filter((f) => f.file_type === 'delivery').map((f) => (
+      <div key={f.id} style={{ marginTop: '10px', padding: '10px 12px', borderRadius: '10px', background: '#fff', border: '1px solid #dcfce7', display: 'flex', justifyContent: 'space-between', gap: '12px' }}>
+        <strong>{f.file_name}</strong>
+        {f.signed_url ? <a href={f.signed_url} target="_blank" rel="noreferrer">開く</a> : null}
+      </div>
+    ))}
+    {(projectFiles[project.id] ?? []).some((f) => f.file_type === 'delivery') ? (
+      <button type="button" className="primaryButton" style={{ marginTop: '14px' }}
+        disabled={changingStatusId === project.id}
+        onClick={() => changeProjectStatus(project, 'delivered')}>
+        お客様へ納品する
+      </button>
+    ) : null}
+  </div>
 ) : null}
 
 {project.status === 'delivered' ? (
