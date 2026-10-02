@@ -68,6 +68,7 @@ export default function AdminPage() {
   const [savingId, setSavingId] = useState<string | null>(null);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [changingStatusId, setChangingStatusId] = useState<string | null>(null);
 
   const [forms, setForms] = useState<
     Record<
@@ -291,6 +292,62 @@ export default function AdminPage() {
       `案件 ${project.project_code} の正式見積りを提示しました。`
     );
   }
+  async function changeProjectStatus(
+  project: ProjectWithData,
+  nextStatus: Project['status']
+) {
+  if (changingStatusId) return;
+
+  const confirmed = window.confirm(
+    `案件「${project.project_code}」を「${statusLabel(nextStatus)}」に変更しますか？`
+  );
+
+  if (!confirmed) return;
+
+  setChangingStatusId(project.id);
+  setMessage('');
+  setError('');
+
+  const supabase = getSupabaseBrowserClient();
+
+  const updateData: Database['public']['Tables']['projects']['Update'] = {
+    status: nextStatus,
+  };
+
+  if (nextStatus === 'completed') {
+    updateData.completed_at = new Date().toISOString();
+  }
+
+  const { data, error: updateError } = await supabase
+    .from('projects')
+    .update(updateData)
+    .eq('id', project.id)
+    .select('*')
+    .single();
+
+  setChangingStatusId(null);
+
+  if (updateError) {
+    console.error('Project status update error:', updateError);
+    setError('案件ステータスを変更できませんでした。');
+    return;
+  }
+
+  setProjects((current) =>
+    current.map((item) =>
+      item.id === project.id
+        ? {
+            ...item,
+            ...data,
+          }
+        : item
+    )
+  );
+
+  setMessage(
+    `案件 ${project.project_code} を「${statusLabel(nextStatus)}」に変更しました。`
+  );
+}
 
   if (loading) {
     return (
@@ -301,6 +358,7 @@ export default function AdminPage() {
       </main>
     );
   }
+
 
   return (
     <main className="myPageShell">
@@ -638,24 +696,150 @@ export default function AdminPage() {
                     </div>
                   </div>
 
-                  <button
-                    type="button"
-                    className="primaryButton"
-                    style={{
-                      marginTop: '18px',
-                    }}
-                    disabled={savingId === project.id}
-                    onClick={() =>
-                      presentQuote(project)
-                    }
-                  >
-                    {savingId === project.id
-                      ? '保存中…'
-                      : project.status ===
-                          'quote_presented'
-                        ? '正式見積りを更新'
-                        : '正式見積りを提示'}
-                  </button>
+                  {(
+  project.status === 'quote_requested' ||
+  project.status === 'quote_reviewing' ||
+  project.status === 'quote_presented'
+) ? (
+  <button
+    type="button"
+    className="primaryButton"
+    style={{
+      marginTop: '18px',
+    }}
+    disabled={savingId === project.id}
+    onClick={() => presentQuote(project)}
+  >
+    {savingId === project.id
+      ? '保存中…'
+      : project.status === 'quote_presented'
+        ? '正式見積りを更新'
+        : '正式見積りを提示'}
+  </button>
+) : null}
+
+                  {project.status === 'ordered' ? (
+  <button
+    type="button"
+    className="primaryButton"
+    style={{ marginTop: '12px' }}
+    disabled={changingStatusId === project.id}
+    onClick={() =>
+      changeProjectStatus(project, 'in_production')
+    }
+  >
+    {changingStatusId === project.id
+      ? '変更中…'
+      : '制作を開始する'}
+  </button>
+) : null}
+
+{project.status === 'in_production' ? (
+  <button
+    type="button"
+    className="primaryButton"
+    style={{ marginTop: '12px' }}
+    disabled={changingStatusId === project.id}
+    onClick={() =>
+      changeProjectStatus(project, 'customer_review')
+    }
+  >
+    {changingStatusId === project.id
+      ? '変更中…'
+      : 'お客様確認へ進める'}
+  </button>
+) : null}
+
+{project.status === 'customer_review' ? (
+  <div
+    style={{
+      display: 'flex',
+      gap: '10px',
+      flexWrap: 'wrap',
+      marginTop: '12px',
+    }}
+  >
+    <button
+      type="button"
+      className="primaryButton"
+      disabled={changingStatusId === project.id}
+      onClick={() =>
+        changeProjectStatus(project, 'revision')
+      }
+    >
+      修正対応へ
+    </button>
+
+    <button
+      type="button"
+      className="primaryButton"
+      disabled={changingStatusId === project.id}
+      onClick={() =>
+        changeProjectStatus(project, 'delivered')
+      }
+    >
+      納品済みにする
+    </button>
+  </div>
+) : null}
+
+{project.status === 'revision' ? (
+  <button
+    type="button"
+    className="primaryButton"
+    style={{ marginTop: '12px' }}
+    disabled={changingStatusId === project.id}
+    onClick={() =>
+      changeProjectStatus(project, 'customer_review')
+    }
+  >
+    {changingStatusId === project.id
+      ? '変更中…'
+      : '再度お客様確認へ'}
+  </button>
+) : null}
+
+{project.status === 'delivered' ? (
+  <button
+    type="button"
+    className="primaryButton"
+    style={{ marginTop: '12px' }}
+    disabled={changingStatusId === project.id}
+    onClick={() =>
+      changeProjectStatus(project, 'completed')
+    }
+  >
+    {changingStatusId === project.id
+      ? '変更中…'
+      : '案件を完了する'}
+  </button>
+) : null}
+
+{project.status === 'completed' ? (
+  <div
+    style={{
+      marginTop: '14px',
+      padding: '13px 15px',
+      borderRadius: '10px',
+      background: '#eefbf3',
+      color: '#16733b',
+      fontWeight: 800,
+    }}
+  >
+    ✓ この案件は完了しています
+    {project.completed_at ? (
+      <div
+        style={{
+          marginTop: '4px',
+          fontSize: '12px',
+          fontWeight: 500,
+        }}
+      >
+        完了日：{formatDate(project.completed_at)}
+      </div>
+    ) : null}
+  </div>
+) : null}
 
                   <div
                     style={{
