@@ -34,7 +34,7 @@ export default function AdminPage(){
   <header className="myPageHeader"><div><div className="authBrand">CS Works ADMIN</div><h1>案件管理</h1></div><button className="logoutButton" onClick={()=>router.push('/mypage')}>My Page</button></header>
   <section className="welcomeCard"><span className="statusDot"/> 管理者<h2>プロジェクト</h2><p>進行中の案件を中心に、検索・絞り込みして管理できます。</p></section>
   {error?<div className="errorBox" style={{marginTop:20}}>{error}</div>:null}
-  <section className="authCard adminProjectList" style={{margin:'28px auto 0',maxWidth:'100%'}}>
+  <section className="adminProjectList">
    <div style={{display:'flex',justifyContent:'space-between',gap:16,flexWrap:'wrap',alignItems:'end'}}><div><div className="authBrand">PROJECTS</div><h2>案件一覧</h2><p className="muted">全{projects.length}件 ／ 表示{visible.length}件</p></div><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="案件番号・会社名・案件名で検索" style={{width:'min(360px, 100%)'}}/></div>
    <div className="desktopFilters adminFilters">{filters.map(([v,l])=>{const zero=counts[v]===0;return <button key={v} type="button" onClick={()=>setFilter(v)} className={`adminFilterButton ${filter===v?'isActive':''} ${zero?'isZero':''}`}>{l} <span>{counts[v]}</span></button>})}</div>
    <div className="mobileControls">
@@ -72,6 +72,7 @@ export default function AdminPage(){
    </tbody></table>{!visible.length?<div style={{padding:28,textAlign:'center',color:'#64748b'}}>該当する案件はありません。</div>:null}</div>
   </section>
   <style jsx>{`
+    .adminProjectList{box-sizing:border-box;width:100%;margin:28px 0 0;padding:30px 32px;border:1px solid #e2e8f0;border-radius:20px;background:#fff;box-shadow:0 12px 34px rgba(15,23,42,.06)}
     .adminFilters{display:flex;gap:8px;flex-wrap:wrap;margin-top:18px}
     .adminFilterButton{border:1px solid #dbe3ec;border-radius:999px;padding:8px 13px;background:#fff;color:#334155;font-weight:700;cursor:pointer;white-space:nowrap}
     .adminFilterButton span{font-variant-numeric:tabular-nums}
@@ -93,7 +94,8 @@ export default function AdminPage(){
     @media (min-width:900px){
       :global(.myPageShell){max-width:1440px!important}
     }
-    @media (max-width:999px){
+    @media (max-width:1099px){
+      .adminProjectList{padding:22px 20px;border-radius:16px}
       .desktopFilters,.adminTableWrap{display:none}
       :global(.adminProjectList input){width:100%!important}
       .mobileControls,.mobileProjectList{display:block}
@@ -110,6 +112,9 @@ export default function AdminPage(){
       .mobileProjectMeta{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:12px;padding-top:10px;border-top:1px solid #eef2f7;color:#64748b;font-size:12px}
       .mobileProjectMeta strong{margin-left:auto;color:#0f172a}
       .mobileEmpty{padding:24px;text-align:center;color:#64748b}
+    }
+    @media (max-width:600px){
+      .adminProjectList{padding:18px 14px;border-radius:14px}
     }
   `}</style>
  </main>
