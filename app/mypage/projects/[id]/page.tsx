@@ -35,6 +35,12 @@ type ProjectDelivery = {
   delivery_code: string;
 };
 
+type ProjectInvoice = {
+  id: string;
+  project_id: string;
+  invoice_code: string;
+};
+
 type Profile = {
   company_name: string;
   department_name: string;
@@ -178,6 +184,7 @@ const [orderError, setOrderError] = useState('');
   const [archiveError, setArchiveError] = useState('');
   const [projectOrder, setProjectOrder] = useState<ProjectOrder | null>(null);
   const [projectDelivery, setProjectDelivery] = useState<ProjectDelivery | null>(null);
+  const [projectInvoice, setProjectInvoice] = useState<ProjectInvoice | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -294,6 +301,7 @@ const [orderError, setOrderError] = useState('');
     const [
       { data: orderData, error: orderLoadError },
       { data: deliveryData, error: deliveryLoadError },
+      { data: invoiceData, error: invoiceLoadError },
     ] = await Promise.all([
       (supabase.from('project_orders' as any) as any)
         .select('id, project_id, order_code')
@@ -303,6 +311,10 @@ const [orderError, setOrderError] = useState('');
         .select('id, project_id, delivery_code')
         .eq('project_id', loadedProjects[0].id)
         .maybeSingle(),
+      (supabase.from('project_invoices' as any) as any)
+        .select('id, project_id, invoice_code')
+        .eq('project_id', loadedProjects[0].id)
+        .maybeSingle(),
     ]);
 
     if (orderLoadError) console.error('Project order load error:', orderLoadError);
@@ -310,6 +322,9 @@ const [orderError, setOrderError] = useState('');
 
     if (deliveryLoadError) console.error('Project delivery load error:', deliveryLoadError);
     else setProjectDelivery((deliveryData ?? null) as ProjectDelivery | null);
+
+    if (invoiceLoadError) console.error('Project invoice load error:', invoiceLoadError);
+    else setProjectInvoice((invoiceData ?? null) as ProjectInvoice | null);
     const [{ data: fd, error: fe }, { data: md, error: me }] = await Promise.all([
       (supabase.from('project_files' as any) as any).select('*').in('project_id', ids).order('created_at', { ascending: false }),
       (supabase.from('project_messages' as any) as any).select('*').in('project_id', ids).order('created_at', { ascending: true }),
@@ -1165,6 +1180,16 @@ async function orderProject(project: Project) {
                     納品書を表示
                   </button>
                 ) : null}
+
+                {projectInvoice ? (
+                  <button
+                    type="button"
+                    className="invoiceDocumentButton"
+                    onClick={() => router.push(`/mypage/projects/${project.id}/invoice`)}
+                  >
+                    請求書を表示
+                  </button>
+                ) : null}
               </section>
             </div>
 
@@ -1343,6 +1368,8 @@ async function orderProject(project: Project) {
         .orderDocumentButton:hover { background: #f0fdf4; }
         .deliveryDocumentButton { margin-top: 14px; width: auto !important; padding: 11px 16px; border: 1px solid #86efac; border-radius: 10px; background: #fff; color: #166534; font-weight: 900; cursor: pointer; }
         .deliveryDocumentButton:hover { background: #f0fdf4; }
+        .invoiceDocumentButton { margin-top: 14px; margin-left: 8px; width: auto !important; padding: 11px 16px; border: 1px solid #93c5fd; border-radius: 10px; background: #fff; color: #1d4ed8; font-weight: 900; cursor: pointer; }
+        .invoiceDocumentButton:hover { background: #eff6ff; }
         .stateCard.neutral { background: #f8fafc; }
         .stateCard.attention { background: #fffaf2; border-color: #fed7aa; }
         .stateCard.progress { background: #eff6ff; border-color: #bfdbfe; }
