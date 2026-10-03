@@ -218,10 +218,33 @@ export default function ProjectOrderPage() {
           .priceTable{width:100%}
         }
         @media print{
-          @page{size:A4;margin:12mm}
-          .orderPage{background:#fff;padding:0}
+          @page{size:A4 portrait;margin:9mm 11mm}
+          html,body{margin:0!important;padding:0!important;background:#fff!important}
+          .orderPage{min-height:0;background:#fff;padding:0;font-size:11px}
           .noPrint{display:none!important}
-          .document{max-width:none;min-height:0;margin:0;padding:0;box-shadow:none}
+          .document{width:100%;max-width:none;min-height:0;margin:0;padding:0;box-shadow:none}
+          .documentHeader{gap:18px;padding-bottom:12px}
+          .documentHeader h1{font-size:26px;letter-spacing:.24em}
+          .documentMeta{gap:4px;font-size:10px}
+          .documentMeta div{grid-template-columns:62px 1fr;gap:8px}
+          .parties{gap:28px;margin-top:18px}
+          .recipient strong{font-size:16px}
+          .recipient p{margin-top:12px;line-height:1.5}
+          .issuer{max-width:320px;font-size:10px;line-height:1.45}
+          .issuerTitle{font-size:9px;margin-bottom:3px}
+          .issuer strong{font-size:12px}
+          .amountBox{margin-top:20px;padding:12px 16px;break-inside:avoid}
+          .amountBox strong{font-size:22px}
+          .detailTable{margin-top:16px;break-inside:avoid}
+          .detailTable th,.detailTable td,.priceTable th,.priceTable td{padding:7px 9px}
+          .detailTable th{width:150px;font-size:10px}
+          .description{margin-top:16px;break-inside:avoid}
+          .description h2{font-size:11px;margin:0 0 6px}
+          .description p{min-height:0;padding:9px;line-height:1.5;font-size:10px}
+          .priceSection{margin-top:16px;break-inside:avoid}
+          .priceTable{width:330px}
+          .priceTable .total th,.priceTable .total td{font-size:12px}
+          .documentFooter{margin-top:22px;padding-top:9px;font-size:8px;break-inside:avoid}
         }
       `}</style>
     </main>
