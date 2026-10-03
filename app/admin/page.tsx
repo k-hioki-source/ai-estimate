@@ -36,7 +36,12 @@ export default function AdminPage(){
   {error?<div className="errorBox" style={{marginTop:20}}>{error}</div>:null}
   <section className="adminProjectList">
    <div style={{display:'flex',justifyContent:'space-between',gap:16,flexWrap:'wrap',alignItems:'end'}}><div><div className="authBrand">PROJECTS</div><h2>案件一覧</h2><p className="muted">全{projects.length}件 ／ 表示{visible.length}件</p></div><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="案件番号・会社名・案件名で検索" style={{width:'min(360px, 100%)'}}/></div>
-   <div className="desktopFilters adminFilters">{filters.map(([v,l])=>{const zero=counts[v]===0;return <button key={v} type="button" onClick={()=>setFilter(v)} className={`adminFilterButton ${filter===v?'isActive':''} ${zero?'isZero':''}`}>{l} <span>{counts[v]}</span></button>})}</div>
+   <div className="desktopFilters adminFilters">
+     <button type="button" onClick={()=>setFilter('active')} className={`adminFilterButton ${filter==='active'?'isActive':''}`}>進行中 <span>{counts.active}</span></button>
+     <button type="button" onClick={()=>setFilter('needs_action')} className={`adminFilterButton ${filter==='needs_action'?'isActive':''}`}>要対応 <span>{projects.filter(p=>p.status==='quote_requested'||p.status==='revision').length}</span></button>
+     <button type="button" onClick={()=>setFilter('all')} className={`adminFilterButton ${filter==='all'?'isActive':''}`}>すべて <span>{counts.all}</span></button>
+     {filters.filter(([v])=>!['active','all'].includes(v) && counts[v]>0).map(([v,l])=><button key={v} type="button" onClick={()=>setFilter(v)} className={`adminFilterButton ${filter===v?'isActive':''}`}>{l} <span>{counts[v]}</span></button>)}
+   </div>
    <div className="mobileControls">
      <div className="mobileQuickFilters">
        <button type="button" onClick={()=>setFilter('active')} className={`adminFilterButton ${filter==='active'?'isActive':''}`}>進行中 {counts.active}</button>
@@ -74,7 +79,7 @@ export default function AdminPage(){
   <style jsx>{`
     .adminProjectList{box-sizing:border-box;width:100%;margin:28px 0 0;padding:30px 32px;border:1px solid #e2e8f0;border-radius:20px;background:#fff;box-shadow:0 12px 34px rgba(15,23,42,.06)}
     .adminFilters{display:flex;gap:8px;flex-wrap:wrap;margin-top:18px}
-    .adminFilterButton{border:1px solid #dbe3ec;border-radius:999px;padding:8px 13px;background:#fff;color:#334155;font-weight:700;cursor:pointer;white-space:nowrap}
+    .adminFilterButton{width:auto!important;max-width:none!important;display:inline-flex!important;align-items:center;justify-content:center;gap:4px;flex:0 0 auto!important;border:1px solid #dbe3ec;border-radius:999px;padding:8px 13px;background:#fff;color:#334155;font-weight:700;cursor:pointer;white-space:nowrap}
     .adminFilterButton span{font-variant-numeric:tabular-nums}
     .adminFilterButton.isActive{background:#0f172a;color:#fff;border-color:#0f172a}
     .adminFilterButton.isZero:not(.isActive){opacity:.42}
