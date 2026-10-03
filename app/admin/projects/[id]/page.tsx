@@ -10,7 +10,8 @@ type Project = Omit<Database['public']['Tables']['projects']['Row'], 'status'> &
   status:
     | Database['public']['Tables']['projects']['Row']['status']
     | 'approved'
-    | 'invoice_requested';
+    | 'invoice_requested'
+    | 'invoiced';
 };
 type Estimate = Database['public']['Tables']['estimates']['Row'];
 
@@ -43,6 +44,15 @@ type Profile = {
   department_name: string | null;
   contact_name: string | null;
   email: string | null;
+};
+
+type ProjectInvoice = {
+  id: string;
+  project_id: string;
+  invoice_code: string;
+  invoice_date: string;
+  payment_due_date: string | null;
+  total_amount: number;
 };
 
 type ProjectWithData = Project & {
@@ -82,6 +92,8 @@ function statusLabel(status: Project['status']) {
       return '納品済み・請求書発行待ち';
     case 'invoice_requested':
       return '請求書発行依頼あり';
+    case 'invoiced':
+      return '請求済み・入金待ち';
     case 'completed':
       return '完了';
     case 'cancelled':
@@ -132,6 +144,7 @@ export default function AdminPage() {
   const [changingStatusId, setChangingStatusId] = useState<string | null>(null);
   const [projectFiles, setProjectFiles] = useState<Record<string, ProjectFile[]>>({});
   const [projectMessages, setProjectMessages] = useState<Record<string, ProjectMessage[]>>({});
+  const [projectInvoices, setProjectInvoices] = useState<Record<string, ProjectInvoice | null>>({});
   const [selectedFiles, setSelectedFiles] = useState<Record<string, File | null>>({});
   const [uploadingProjectId, setUploadingProjectId] = useState<string | null>(null);
   const [chatText, setChatText] = useState('');
@@ -306,6 +319,25 @@ export default function AdminPage() {
           }
 
           setProjectMessages(groupedMessages);
+        }
+      }
+
+      if (loadedProjects.length > 0) {
+        const projectIds = loadedProjects.map((project) => project.id);
+        const { data: invoiceData, error: invoiceError } = await (
+          supabase.from('project_invoices' as any) as any
+        )
+          .select('id, project_id, invoice_code, invoice_date, payment_due_date, total_amount')
+          .in('project_id', projectIds);
+
+        if (invoiceError) {
+          console.error('Project invoice load error:', invoiceError);
+        } else {
+          const invoiceMap: Record<string, ProjectInvoice | null> = {};
+          for (const invoice of ((invoiceData ?? []) as ProjectInvoice[])) {
+            invoiceMap[invoice.project_id] = invoice;
+          }
+          setProjectInvoices(invoiceMap);
         }
       }
 
@@ -514,6 +546,44 @@ export default function AdminPage() {
 }
 
 
+  async function confirmProjectPayment(project: ProjectWithData) {
+    if (changingStatusId) return;
+
+    const invoice = projectInvoices[project.id];
+    const confirmed = window.confirm(
+      `案件「${project.project_code}」の入金を確認済みにして、案件を完了しますか？`
+    );
+    if (!confirmed) return;
+
+    setChangingStatusId(project.id);
+    setMessage('');
+    setError('');
+
+    const supabase = getSupabaseBrowserClient();
+    const { data, error: paymentError } = await (supabase as any)
+      .rpc('confirm_project_payment', { p_project_id: project.id })
+      .single();
+
+    setChangingStatusId(null);
+
+    if (paymentError || !data) {
+      console.error('Payment confirmation error:', paymentError);
+      setError('入金確認または案件完了処理に失敗しました。');
+      return;
+    }
+
+    setProjects((current) =>
+      current.map((item) =>
+        item.id === project.id ? { ...item, ...(data as Project) } : item
+      )
+    );
+
+    setMessage(
+      `案件 ${project.project_code} の入金を確認し、案件を完了しました。` +
+      (invoice?.invoice_code ? `（${invoice.invoice_code}）` : '')
+    );
+  }
+
   async function uploadProjectFile(project: ProjectWithData, fileType: 'review' | 'revision' | 'delivery') {
     if (!user || uploadingProjectId) return;
     const file = selectedFiles[project.id];
@@ -644,6 +714,7 @@ export default function AdminPage() {
   const files = project ? (projectFiles[project.id] ?? []) : [];
   const messages = project ? (projectMessages[project.id] ?? []) : [];
   const form = project ? forms[project.id] : undefined;
+  const invoice = project ? (projectInvoices[project.id] ?? null) : null;
 
   const reviewFiles = files.filter(
     (file) => file.file_type === 'review' || file.file_type === 'revision'
@@ -1062,6 +1133,40 @@ export default function AdminPage() {
                   </div>
                 ) : null}
 
+                {project.status === 'invoiced' ? (
+                  <div className={`stateCard paymentWaiting ${
+                    invoice?.payment_due_date &&
+                    new Date(`${invoice.payment_due_date}T23:59:59`).getTime() < Date.now()
+                      ? 'overdue'
+                      : ''
+                  }`}>
+                    <strong>
+                      {invoice?.payment_due_date &&
+                      new Date(`${invoice.payment_due_date}T23:59:59`).getTime() < Date.now()
+                        ? '支払期限超過・未入金'
+                        : '請求済み・入金待ち'}
+                    </strong>
+                    <p>
+                      {invoice?.payment_due_date
+                        ? `支払期限：${formatDate(invoice.payment_due_date)}`
+                        : '支払期限を確認してください。'}
+                      {invoice?.total_amount != null
+                        ? ` ／ 請求額：${invoice.total_amount.toLocaleString()}円`
+                        : ''}
+                    </p>
+                    <button
+                      type="button"
+                      className="primaryButton actionButton"
+                      disabled={changingStatusId === project.id}
+                      onClick={() => confirmProjectPayment(project)}
+                    >
+                      {changingStatusId === project.id
+                        ? '処理中…'
+                        : '入金確認・案件完了'}
+                    </button>
+                  </div>
+                ) : null}
+
                 {project.status === 'completed' ? (
                   <div className="stateCard success">
                     <strong>✓ この案件は完了しています</strong>
@@ -1246,6 +1351,7 @@ export default function AdminPage() {
                         'approved',
                         'delivered',
                         'invoice_requested',
+                        'invoiced',
                         'completed',
                       ].includes(project.status)
                         ? 'done'
@@ -1264,6 +1370,7 @@ export default function AdminPage() {
                         'approved',
                         'delivered',
                         'invoice_requested',
+                        'invoiced',
                         'completed',
                       ].includes(project.status)
                         ? 'done'
@@ -1281,6 +1388,7 @@ export default function AdminPage() {
                         'approved',
                         'delivered',
                         'invoice_requested',
+                        'invoiced',
                         'completed',
                       ].includes(project.status)
                         ? 'done'
@@ -1291,7 +1399,7 @@ export default function AdminPage() {
                   </div>
                   <div
                     className={
-                      ['customer_review', 'revision', 'approved', 'delivered', 'invoice_requested', 'completed'].includes(
+                      ['customer_review', 'revision', 'approved', 'delivered', 'invoice_requested', 'invoiced', 'completed'].includes(
                         project.status
                       )
                         ? 'done'
@@ -1302,7 +1410,7 @@ export default function AdminPage() {
                   </div>
                   <div
                     className={
-                      ['delivered', 'invoice_requested', 'completed'].includes(project.status)
+                      ['delivered', 'invoice_requested', 'invoiced', 'completed'].includes(project.status)
                         ? 'done'
                         : ''
                     }
@@ -1311,12 +1419,17 @@ export default function AdminPage() {
                   </div>
                   <div
                     className={
-                      ['invoice_requested', 'completed'].includes(project.status)
+                      ['invoice_requested', 'invoiced', 'completed'].includes(project.status)
                         ? 'done'
                         : ''
                     }
                   >
                     請求
+                  </div>
+                  <div
+                    className={['completed'].includes(project.status) ? 'done' : ''}
+                  >
+                    入金
                   </div>
                 </div>
               </div>
@@ -1416,6 +1529,10 @@ export default function AdminPage() {
         .stateCard.success { background: #f0fdf4; border-color: #bbf7d0; color: #166534; }
         .stateCard.invoiceRequest { background: #fef2f2; border-color: #fecaca; color: #991b1b; }
         .stateCard.invoiceRequest p { color: #7f1d1d; }
+        .stateCard.paymentWaiting { background: #fff7ed; border-color: #fdba74; color: #9a3412; }
+        .stateCard.paymentWaiting p { color: #7c2d12; }
+        .stateCard.paymentWaiting.overdue { background: #fef2f2; border-color: #fca5a5; color: #991b1b; }
+        .stateCard.paymentWaiting.overdue p { color: #7f1d1d; }
         .workPanel, .deliveryPanel { display: grid; gap: 14px; }
         .uploadPanel { padding: 16px; border-radius: 13px; border: 1px solid #dbe3ec; background: #f8fafc; }
         .uploadPanel > p { margin: 6px 0 12px; color: #64748b; font-size: 13px; }
