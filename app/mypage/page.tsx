@@ -9,7 +9,7 @@ import type { Database } from '../../lib/supabase/database.types';
 
 type Estimate = Database['public']['Tables']['estimates']['Row'];
 type ProjectBase = Database['public']['Tables']['projects']['Row'];
-type Project = ProjectBase & { unread_messages?: number };
+type Project = ProjectBase & { unread_messages?: number; archived_at?: string | null };
 type Profile = {
   company_name: string; department_name: string; contact_name: string;
   phone: string; postal_code: string; address: string;
@@ -27,7 +27,7 @@ export default function MyPage(){
  const [user,setUser]=useState<User|null>(null); const [profile,setProfile]=useState<Profile>(emptyProfile);
  const [estimates,setEstimates]=useState<Estimate[]>([]); const [projects,setProjects]=useState<Project[]>([]);
  const [loading,setLoading]=useState(true); const [saving,setSaving]=useState(false); const [message,setMessage]=useState(''); const [error,setError]=useState('');
- const [projectFilter,setProjectFilter]=useState<'active'|'all'|'completed'>('active'); const [projectSearch,setProjectSearch]=useState('');
+ const [projectFilter,setProjectFilter]=useState<'active'|'all'|'completed'|'archived'>('active'); const [projectSearch,setProjectSearch]=useState('');
  const [estimateSearch,setEstimateSearch]=useState('');
 
  useEffect(()=>{(async()=>{
@@ -58,9 +58,13 @@ export default function MyPage(){
     setLoading(false);
  })()},[router]);
 
- const visibleProjects=useMemo(()=>{const q=projectSearch.trim().toLowerCase();return projects.filter(p=>(projectFilter==='all'||(projectFilter==='active'?active.has(p.status):p.status==='completed'))&&(!q||[p.project_code,p.title].some(v=>(v??'').toLowerCase().includes(q))))},[projects,projectFilter,projectSearch]);
+ const visibleProjects=useMemo(()=>{const q=projectSearch.trim().toLowerCase();return projects.filter(p=>{
+    const archived=Boolean(p.archived_at);
+    const matchesFilter=projectFilter==='archived'?archived:!archived&&(projectFilter==='all'||(projectFilter==='active'?active.has(p.status):p.status==='completed'));
+    return matchesFilter&&(!q||[p.project_code,p.title].some(v=>(v??'').toLowerCase().includes(q)));
+  })},[projects,projectFilter,projectSearch]);
  const visibleEstimates=useMemo(()=>{const q=estimateSearch.trim().toLowerCase();return estimates.filter(e=>!q||[e.estimate_code,production(e.production_method),expression(e.expression)].some(v=>v.toLowerCase().includes(q)))},[estimates,estimateSearch]);
- const actionCount=projects.filter(p=>p.status==='quote_presented'||p.status==='customer_review'||p.status==='delivered').length;
+ const actionCount=projects.filter(p=>!p.archived_at&&(p.status==='quote_presented'||p.status==='customer_review'||p.status==='delivered')).length;
 
  function updateProfile(k:keyof Profile,v:string){setProfile(c=>({...c,[k]:v}))}
  async function saveProfile(ev:FormEvent){ev.preventDefault();if(!user)return;setSaving(true);setMessage('');setError('');const {error:er}=await getSupabaseBrowserClient().from('profiles').update(profile).eq('id',user.id);setSaving(false);if(er){setError('お客様情報を保存できませんでした。');return}setMessage('お客様情報を保存しました。')}
@@ -75,15 +79,16 @@ export default function MyPage(){
    <div className="myPageGrid">
      <section className="dashboardCard"><div className="dashboardIcon">AI</div><h3>AI概算見積り</h3><p>新しい制作内容をAIで概算見積りできます。</p><Link className="dashboardLink" href="/">新しい見積りを作成 →</Link></section>
      <section className="dashboardCard"><div className="dashboardIcon">見積</div><h3>見積り履歴</h3><p>保存済みのAI概算見積りを確認できます。</p><a className="dashboardLink" href="#estimate-history">{estimates.length}件の見積りを見る →</a></section>
-     <section className="dashboardCard"><div className="dashboardIcon">案件</div><h3>プロジェクト</h3><p>正式見積り・制作・確認・納品の状況を確認できます。</p><a className="dashboardLink" href="#project-list">{projects.length}件のプロジェクトを見る →{projects.reduce((sum,p)=>sum+(p.unread_messages??0),0)>0?`（💬 未読 ${projects.reduce((sum,p)=>sum+(p.unread_messages??0),0)}件）`:actionCount?`（確認事項 ${actionCount}件）`:''}</a></section>
+     <section className="dashboardCard"><div className="dashboardIcon">案件</div><h3>プロジェクト</h3><p>正式見積り・制作・確認・納品の状況を確認できます。</p><a className="dashboardLink" href="#project-list">{projects.filter(p=>!p.archived_at).length}件のプロジェクトを見る →{projects.filter(p=>!p.archived_at).reduce((sum,p)=>sum+(p.unread_messages??0),0)>0?`（💬 未読 ${projects.filter(p=>!p.archived_at).reduce((sum,p)=>sum+(p.unread_messages??0),0)}件）`:actionCount?`（確認事項 ${actionCount}件）`:''}</a></section>
    </div>
 
    <section id="project-list" className="widePanel">
      <div className="sectionHead"><div><div className="authBrand">PROJECTS</div><h2>プロジェクト</h2><p className="muted">進行中の案件を中心に表示します。案件を選ぶと詳細・発注・確認・納品へ進めます。</p></div><input value={projectSearch} onChange={e=>setProjectSearch(e.target.value)} placeholder="案件番号・案件名で検索"/></div>
      <div className="filters">
-       <button className={projectFilter==='active'?'active':''} onClick={()=>setProjectFilter('active')}>進行中 {projects.filter(p=>active.has(p.status)).length}</button>
-       <button className={projectFilter==='all'?'active':''} onClick={()=>setProjectFilter('all')}>すべて {projects.length}</button>
-       <button className={projectFilter==='completed'?'active':''} onClick={()=>setProjectFilter('completed')}>完了 {projects.filter(p=>p.status==='completed').length}</button>
+       <button className={projectFilter==='active'?'active':''} onClick={()=>setProjectFilter('active')}>進行中 {projects.filter(p=>!p.archived_at&&active.has(p.status)).length}</button>
+        <button className={projectFilter==='all'?'active':''} onClick={()=>setProjectFilter('all')}>すべて {projects.filter(p=>!p.archived_at).length}</button>
+        <button className={projectFilter==='completed'?'active':''} onClick={()=>setProjectFilter('completed')}>完了 {projects.filter(p=>!p.archived_at&&p.status==='completed').length}</button>
+        <button className={projectFilter==='archived'?'active':''} onClick={()=>setProjectFilter('archived')}>アーカイブ {projects.filter(p=>Boolean(p.archived_at)).length}</button>
      </div>
      <div className="projectTableWrap"><table><thead><tr><th>案件番号</th><th>案件名</th><th>ステータス</th><th>メッセージ</th><th>正式見積</th><th>納期</th><th>更新日</th><th></th></tr></thead><tbody>
        {visibleProjects.map(p=><tr key={p.id} onClick={()=>router.push(`/mypage/projects/${p.id}`)}><td><strong>{p.project_code}</strong></td><td>{p.title}</td><td><span className={`badge ${p.status==='quote_presented'||p.status==='customer_review'?'attention':''}`}>{statusLabel(p.status)}</span></td><td>{(p.unread_messages??0)>0?<span className="messageBadge">💬 {p.unread_messages}</span>:<span className="noMessage">―</span>}</td><td>{p.quoted_amount!=null?`${p.quoted_amount.toLocaleString()}円`:'―'}</td><td>{fmt(p.confirmed_deadline)}</td><td>{fmt(p.updated_at)}</td><td><strong>詳細 →</strong></td></tr>)}
