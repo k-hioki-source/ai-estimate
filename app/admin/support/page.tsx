@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { getSupabaseBrowserClient } from '../../lib/supabase/client';
+import { getSupabaseBrowserClient } from '../../../lib/supabase/client';
 
 type Thread = {
   id: string;
