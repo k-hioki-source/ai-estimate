@@ -288,6 +288,13 @@ const [orderError, setOrderError] = useState('');
     }
     if (me) console.error('Project messages load error:', me);
     else {
+      await (supabase.from('project_messages' as any) as any)
+        .update({ read_by_customer_at: new Date().toISOString() })
+        .in('project_id', ids)
+        .eq('message_type', 'message')
+        .eq('sender_type', 'admin')
+        .is('read_by_customer_at', null);
+
       const grouped: Record<string, ProjectMessage[]> = {};
       for (const m of ((md ?? []) as ProjectMessage[])) grouped[m.project_id] = [...(grouped[m.project_id] ?? []), m];
       setProjectMessages(grouped);
