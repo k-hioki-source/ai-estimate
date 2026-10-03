@@ -34,13 +34,40 @@ export default function AdminPage(){
   <header className="myPageHeader"><div><div className="authBrand">CS Works ADMIN</div><h1>案件管理</h1></div><button className="logoutButton" onClick={()=>router.push('/mypage')}>My Page</button></header>
   <section className="welcomeCard"><span className="statusDot"/> 管理者<h2>プロジェクト</h2><p>進行中の案件を中心に、検索・絞り込みして管理できます。</p></section>
   {error?<div className="errorBox" style={{marginTop:20}}>{error}</div>:null}
-  <section className="authCard" style={{margin:'28px auto 0',maxWidth:'100%'}}>
+  <section className="authCard adminProjectList" style={{margin:'28px auto 0',maxWidth:'100%'}}>
    <div style={{display:'flex',justifyContent:'space-between',gap:16,flexWrap:'wrap',alignItems:'end'}}><div><div className="authBrand">PROJECTS</div><h2>案件一覧</h2><p className="muted">全{projects.length}件 ／ 表示{visible.length}件</p></div><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="案件番号・会社名・案件名で検索" style={{width:'min(360px, 100%)'}}/></div>
-   <div style={{display:'flex',gap:8,flexWrap:'wrap',marginTop:16}}>{filters.map(([v,l])=><button key={v} type="button" onClick={()=>setFilter(v)} style={{border:'1px solid #dbe3ec',borderRadius:999,padding:'8px 12px',background:filter===v?'#0f172a':'#fff',color:filter===v?'#fff':'#334155',fontWeight:700,cursor:'pointer'}}>{l} {counts[v]}</button>)}</div>
-   <div style={{overflowX:'auto',marginTop:20}}><table style={{width:'100%',borderCollapse:'collapse',minWidth:900}}><thead><tr style={{background:'#f8fafc',textAlign:'left'}}>{['案件番号','会社名','案件名','ステータス','正式見積','納期','更新日',''].map(h=><th key={h} style={{padding:'12px 10px',borderBottom:'1px solid #dbe3ec',fontSize:13}}>{h}</th>)}</tr></thead><tbody>
-   {visible.map(p=><tr key={p.id} onClick={()=>router.push(`/admin/projects/${p.id}`)} style={{cursor:'pointer'}}><td style={cell}><strong>{p.project_code}</strong></td><td style={cell}>{p.customer?.company_name||'未登録'}</td><td style={cell}>{p.title}</td><td style={cell}><span style={{padding:'5px 9px',borderRadius:999,background:'#eefbf3',color:'#16733b',fontSize:12,fontWeight:800}}>{label(p.status)}</span></td><td style={cell}>{p.quoted_amount!=null?`${p.quoted_amount.toLocaleString()}円`:'―'}</td><td style={cell}>{fmt(p.confirmed_deadline)}</td><td style={cell}>{fmt(p.updated_at)}</td><td style={cell}><strong>詳細 →</strong></td></tr>)}
+   <div className="adminFilters">{filters.map(([v,l])=>{const zero=counts[v]===0;return <button key={v} type="button" onClick={()=>setFilter(v)} className={`adminFilterButton ${filter===v?'isActive':''} ${zero?'isZero':''}`}>{l} <span>{counts[v]}</span></button>})}</div>
+   <div className="adminTableWrap"><table className="adminTable"><thead><tr style={{background:'#f8fafc',textAlign:'left'}}>{['案件番号','会社名','案件名','ステータス','正式見積','納期','更新日',''].map(h=><th key={h} style={{padding:'12px 10px',borderBottom:'1px solid #dbe3ec',fontSize:13}}>{h}</th>)}</tr></thead><tbody>
+   {visible.map(p=><tr key={p.id} onClick={()=>router.push(`/admin/projects/${p.id}`)} style={{cursor:'pointer'}}><td style={cell}><strong>{p.project_code}</strong></td><td style={cell}>{p.customer?.company_name||'未登録'}</td><td style={cell}>{p.title}</td><td style={cell}><span className={`statusBadge ${p.status==='quote_requested'||p.status==='revision'?'needsAction':''}`}>{label(p.status)}</span>{p.status==='quote_requested'||p.status==='revision'?<div className="actionHint">要対応</div>:null}</td><td style={cell}>{p.quoted_amount!=null?`${p.quoted_amount.toLocaleString()}円`:'―'}</td><td style={cell}>{fmt(p.confirmed_deadline)}</td><td style={cell}>{fmt(p.updated_at)}</td><td style={cell}><strong>詳細 →</strong></td></tr>)}
    </tbody></table>{!visible.length?<div style={{padding:28,textAlign:'center',color:'#64748b'}}>該当する案件はありません。</div>:null}</div>
   </section>
+  <style jsx>{`
+    .adminFilters{display:flex;gap:8px;flex-wrap:wrap;margin-top:18px}
+    .adminFilterButton{border:1px solid #dbe3ec;border-radius:999px;padding:8px 13px;background:#fff;color:#334155;font-weight:700;cursor:pointer;white-space:nowrap}
+    .adminFilterButton span{font-variant-numeric:tabular-nums}
+    .adminFilterButton.isActive{background:#0f172a;color:#fff;border-color:#0f172a}
+    .adminFilterButton.isZero:not(.isActive){opacity:.42}
+    .adminTableWrap{overflow-x:auto;margin-top:20px}
+    .adminTable{width:100%;border-collapse:collapse;min-width:1050px}
+    .adminTable th:nth-child(1){width:175px}
+    .adminTable th:nth-child(2){width:190px}
+    .adminTable th:nth-child(3){min-width:260px}
+    .adminTable th:nth-child(4){width:145px}
+    .adminTable th:nth-child(5){width:115px}
+    .adminTable th:nth-child(6){width:110px}
+    .adminTable th:nth-child(7){width:110px}
+    .statusBadge{display:inline-block;padding:5px 9px;border-radius:999px;background:#eefbf3;color:#16733b;font-size:12px;font-weight:800;white-space:nowrap}
+    .statusBadge.needsAction{background:#fff7ed;color:#c2410c}
+    .actionHint{margin-top:4px;color:#c2410c;font-size:11px;font-weight:800}
+    @media (min-width:900px){
+      :global(.myPageShell){max-width:1440px!important}
+    }
+    @media (max-width:700px){
+      .adminFilters{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+      .adminFilterButton{width:100%;padding:9px 8px}
+      .adminTable{min-width:900px}
+    }
+  `}</style>
  </main>
 }
 const cell={padding:'14px 10px',borderBottom:'1px solid #e5eaf0'} as const;
