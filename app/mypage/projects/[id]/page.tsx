@@ -8,7 +8,7 @@ import { getSupabaseBrowserClient } from '../../../../lib/supabase/client';
 import type { Database } from '../../../../lib/supabase/database.types';
 
 type Estimate = Database['public']['Tables']['estimates']['Row'];
-type Project = Database['public']['Tables']['projects']['Row'];
+type Project = Database['public']['Tables']['projects']['Row'] & { archived_at?: string | null };
 
 type ProjectFile = {
   id: string; project_id: string; uploaded_by: string; file_name: string;
@@ -161,6 +161,9 @@ const [orderError, setOrderError] = useState('');
   const [chatText, setChatText] = useState('');
   const [sendingChat, setSendingChat] = useState(false);
   const [chatError, setChatError] = useState('');
+  const [archiving, setArchiving] = useState(false);
+  const [archiveMessage, setArchiveMessage] = useState('');
+  const [archiveError, setArchiveError] = useState('');
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -592,6 +595,25 @@ async function orderProject(project: Project) {
     setChatText('');
   }
 
+  async function toggleArchiveProject(project: Project) {
+    if (!user || archiving) return;
+    const restoring = Boolean(project.archived_at);
+    if (!restoring && !['completed', 'cancelled'].includes(project.status)) return;
+    if (!window.confirm(restoring ? `案件「${project.project_code}」をアーカイブから戻しますか？` : `案件「${project.project_code}」をアーカイブしますか？\n\n案件・メッセージ・ファイルは削除されません。`)) return;
+    setArchiving(true); setArchiveMessage(''); setArchiveError('');
+    const supabase = getSupabaseBrowserClient();
+    const { data, error: archiveUpdateError } = await (supabase as any)
+      .rpc(restoring ? 'restore_project' : 'archive_project', { p_project_id: project.id }).single();
+    setArchiving(false);
+    if (archiveUpdateError) {
+      console.error('Project archive error:', archiveUpdateError);
+      setArchiveError(restoring ? 'アーカイブから戻せませんでした。' : 'アーカイブできませんでした。');
+      return;
+    }
+    setProjects((current) => current.map((item) => item.id === project.id ? (data as Project) : item));
+    setArchiveMessage(restoring ? 'アーカイブから戻しました。' : 'この案件をアーカイブしました。');
+  }
+
   async function saveProfile(e: FormEvent) {
     e.preventDefault();
 
@@ -720,6 +742,8 @@ async function orderProject(project: Project) {
           {orderMessage ? <div className="successBox noticeBox">{orderMessage}</div> : null}
           {reviewError ? <div className="errorBox noticeBox">{reviewError}</div> : null}
           {reviewMessage ? <div className="successBox noticeBox">{reviewMessage}</div> : null}
+          {archiveError ? <div className="errorBox noticeBox">{archiveError}</div> : null}
+          {archiveMessage ? <div className="successBox noticeBox">{archiveMessage}</div> : null}
 
           <div className="detailLayout">
             <div className="detailMain">
@@ -1182,6 +1206,16 @@ async function orderProject(project: Project) {
                   </div>
                 </dl>
               </div>
+              {(project.archived_at || ['completed', 'cancelled'].includes(project.status)) ? (
+                <div className="sideCard archiveCard">
+                  <span className="sideLabel">案件の整理</span>
+                  <strong>{project.archived_at ? 'アーカイブ済み' : '完了した案件'}</strong>
+                  <p>{project.archived_at ? '案件データは保存されています。必要な場合は通常の一覧へ戻せます。' : '通常の一覧から非表示にできます。メッセージや納品ファイルは削除されません。'}</p>
+                  <button type="button" className="archiveButton" disabled={archiving} onClick={() => toggleArchiveProject(project)}>
+                    {archiving ? '処理中…' : project.archived_at ? 'アーカイブから戻す' : 'この案件をアーカイブ'}
+                  </button>
+                </div>
+              ) : null}
             </aside>
           </div>
         </>
@@ -1212,7 +1246,12 @@ async function orderProject(project: Project) {
         .successBox { padding: 12px 14px; border-radius: 10px; background: #eefbf3; color: #16733b; font-weight: 700; }
         .detailLayout { display: grid; grid-template-columns: minmax(0,1fr) 280px; gap: 22px; margin-top: 22px; align-items: start; }
         .detailMain { display: grid; gap: 18px; min-width: 0; }
-        .detailSection, .sideCard, .projectDetailPanel {
+        .detailSection, .sideCard,
+         .archiveCard p { margin: -6px 0 14px; color: #64748b; font-size: 12px; line-height: 1.65; }
+         .archiveButton { width: 100% !important; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 10px; background: #fff; color: #334155; font-weight: 800; cursor: pointer; }
+         .archiveButton:hover { background: #f8fafc; }
+         .archiveButton:disabled { opacity: .55; cursor: default; }
+ .projectDetailPanel {
           border: 1px solid #e2e8f0;
           border-radius: 18px;
           background: #fff;
