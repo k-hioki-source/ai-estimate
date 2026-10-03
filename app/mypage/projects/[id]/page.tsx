@@ -88,9 +88,7 @@ function formatDate(value: string) {
   }).format(new Date(value));
 }
 
-function projectStatusLabel(
-  status: Database['public']['Tables']['projects']['Row']['status']
-) {
+function projectStatusLabel(status: string) {
   switch (status) {
     case 'quote_requested':
       return '正式見積り依頼済み';
