@@ -7,7 +7,7 @@ import type { Database } from '../../lib/supabase/database.types';
 
 type Project = Database['public']['Tables']['projects']['Row'];
 type Profile = { id:string; company_name:string|null; contact_name:string|null; email:string|null };
-type ProjectWithData = Project & { customer?: Profile|null };
+type ProjectWithData = Project & { customer?: Profile|null; unread_messages?: number };
 
 function fmt(v:string|null){ if(!v)return '―'; return new Intl.DateTimeFormat('ja-JP',{year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(v)); }
 function label(s:Project['status']){ return ({quote_requested:'正式見積り依頼',quote_reviewing:'見積り確認中',quote_presented:'正式見積り提示済み',ordered:'発注済み',in_production:'制作中',customer_review:'お客様確認中',revision:'修正対応中',delivered:'納品済み',completed:'完了',cancelled:'キャンセル'} as Record<string,string>)[s]||s; }
@@ -65,15 +65,15 @@ export default function AdminPage(){
    </div>
    <div className="mobileProjectList">
      {visible.map(p=><button type="button" key={p.id} className="mobileProjectCard" onClick={()=>router.push(`/admin/projects/${p.id}`)}>
-       <div className="mobileProjectTop"><strong>{p.project_code}</strong><span className={`statusBadge ${p.status==='quote_requested'||p.status==='revision'?'needsAction':''}`}>{label(p.status)}</span></div>
+       <div className="mobileProjectTop"><strong>{p.project_code}</strong><div className="mobileBadges"><span className={`statusBadge ${p.status==='quote_requested'||p.status==='revision'?'needsAction':''}`}>{label(p.status)}</span>{(p.unread_messages??0)>0?<span className="messageBadge">💬 {p.unread_messages}</span>:null}</div></div>
        <div className="mobileProjectTitle">{p.title}</div>
        <div className="mobileProjectCompany">{p.customer?.company_name||'会社名未登録'}</div>
        <div className="mobileProjectMeta"><span>{p.quoted_amount!=null?`${p.quoted_amount.toLocaleString()}円`:'見積未確定'}</span><span>納期 {fmt(p.confirmed_deadline)}</span><strong>詳細 →</strong></div>
      </button>)}
      {!visible.length?<div className="mobileEmpty">該当する案件はありません。</div>:null}
    </div>
-   <div className="adminTableWrap"><table className="adminTable"><thead><tr style={{background:'#f8fafc',textAlign:'left'}}>{['案件番号','会社名','案件名','ステータス','正式見積','納期','更新日',''].map(h=><th key={h} style={{padding:'12px 10px',borderBottom:'1px solid #dbe3ec',fontSize:13}}>{h}</th>)}</tr></thead><tbody>
-   {visible.map(p=><tr key={p.id} onClick={()=>router.push(`/admin/projects/${p.id}`)} style={{cursor:'pointer'}}><td style={cell}><strong>{p.project_code}</strong></td><td style={cell}>{p.customer?.company_name||'未登録'}</td><td style={cell}>{p.title}</td><td style={cell}><span className={`statusBadge ${p.status==='quote_requested'||p.status==='revision'?'needsAction':''}`}>{label(p.status)}</span>{p.status==='quote_requested'||p.status==='revision'?<div className="actionHint">要対応</div>:null}</td><td style={cell}>{p.quoted_amount!=null?`${p.quoted_amount.toLocaleString()}円`:'―'}</td><td style={cell}>{fmt(p.confirmed_deadline)}</td><td style={cell}>{fmt(p.updated_at)}</td><td style={cell}><strong>詳細 →</strong></td></tr>)}
+   <div className="adminTableWrap"><table className="adminTable"><thead><tr style={{background:'#f8fafc',textAlign:'left'}}>{['案件番号','会社名','案件名','ステータス','メッセージ','正式見積','納期','更新日',''].map(h=><th key={h} style={{padding:'12px 10px',borderBottom:'1px solid #dbe3ec',fontSize:13}}>{h}</th>)}</tr></thead><tbody>
+   {visible.map(p=><tr key={p.id} onClick={()=>router.push(`/admin/projects/${p.id}`)} style={{cursor:'pointer'}}><td style={cell}><strong>{p.project_code}</strong></td><td style={cell}>{p.customer?.company_name||'未登録'}</td><td style={cell}>{p.title}</td><td style={cell}><span className={`statusBadge ${p.status==='quote_requested'||p.status==='revision'?'needsAction':''}`}>{label(p.status)}</span>{p.status==='quote_requested'||p.status==='revision'?<div className="actionHint">要対応</div>:null}</td><td style={cell}>{(p.unread_messages??0)>0?<span className="messageBadge">💬 {p.unread_messages}</span>:<span className="noMessage">―</span>}</td><td style={cell}>{p.quoted_amount!=null?`${p.quoted_amount.toLocaleString()}円`:'―'}</td><td style={cell}>{fmt(p.confirmed_deadline)}</td><td style={cell}>{fmt(p.updated_at)}</td><td style={cell}><strong>詳細 →</strong></td></tr>)}
    </tbody></table>{!visible.length?<div style={{padding:28,textAlign:'center',color:'#64748b'}}>該当する案件はありません。</div>:null}</div>
   </section>
   <style jsx>{`
@@ -96,6 +96,9 @@ export default function AdminPage(){
     .statusBadge{display:inline-block;padding:5px 9px;border-radius:999px;background:#eefbf3;color:#16733b;font-size:12px;font-weight:800;white-space:nowrap}
     .statusBadge.needsAction{background:#fff7ed;color:#c2410c}
     .actionHint{margin-top:4px;color:#c2410c;font-size:11px;font-weight:800}
+     .messageBadge{display:inline-flex;align-items:center;gap:3px;padding:5px 9px;border-radius:999px;background:#eff6ff;color:#1d4ed8;font-size:12px;font-weight:900;white-space:nowrap}
+     .noMessage{color:#94a3b8}
+     .mobileBadges{display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
     @media (min-width:900px){
       :global(.myPageShell){max-width:1440px!important}
     }
