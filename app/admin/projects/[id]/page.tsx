@@ -280,6 +280,14 @@ export default function AdminPage() {
         } else {
           const groupedMessages: Record<string, ProjectMessage[]> = {};
 
+          // 案件詳細を開いた時点で、お客様からの通常メッセージを既読にする
+          await (supabase.from('project_messages' as any) as any)
+            .update({ read_by_admin_at: new Date().toISOString() })
+            .in('project_id', projectIds)
+            .eq('message_type', 'message')
+            .neq('user_id', userData.user.id)
+            .is('read_by_admin_at', null);
+
           for (const item of ((messageData ?? []) as ProjectMessage[])) {
             groupedMessages[item.project_id] = [
               ...(groupedMessages[item.project_id] ?? []),
