@@ -19,6 +19,7 @@ type ProjectFile = {
 type ProjectMessage = {
   id: string; project_id: string; user_id: string; message: string;
   message_type: 'message' | 'revision_request' | 'approval' | 'system';
+  sender_type: 'customer' | 'admin' | 'system';
   created_at: string;
 };
 
