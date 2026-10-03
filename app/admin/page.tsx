@@ -93,8 +93,9 @@ export default function AdminPage(){
     @media (min-width:900px){
       :global(.myPageShell){max-width:1440px!important}
     }
-    @media (max-width:700px){
+    @media (max-width:999px){
       .desktopFilters,.adminTableWrap{display:none}
+      :global(.adminProjectList input){width:100%!important}
       .mobileControls,.mobileProjectList{display:block}
       .mobileControls{margin-top:18px}
       .mobileQuickFilters{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
