@@ -510,7 +510,7 @@ export default function AdminPage() {
       nextStatus === 'delivered'
         ? '納品処理または納品書の作成に失敗しました。'
         : nextStatus === 'completed'
-          ? '案件完了処理または請求書の作成に失敗しました。'
+          ? '請求書の作成に失敗しました。'
           : '案件ステータスを変更できませんでした。'
     );
     return;
@@ -1129,7 +1129,7 @@ export default function AdminPage() {
                 {project.status === 'invoice_requested' ? (
                   <div className="stateCard invoiceRequest">
                     <strong>請求書発行依頼があります</strong>
-                    <p>「案件終了・請求書発行」を押すと、請求書を作成して案件を完了します。</p>
+                    <p>「請求書を発行する」を押すと請求書を作成し、案件は入金待ちになります。</p>
                     <button
                       type="button"
                       className="primaryButton actionButton"
@@ -1138,7 +1138,7 @@ export default function AdminPage() {
                     >
                       {changingStatusId === project.id
                         ? '請求書発行中…'
-                        : '案件終了・請求書発行'}
+                        : '請求書を発行する'}
                     </button>
                   </div>
                 ) : null}
