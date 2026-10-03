@@ -142,34 +142,34 @@ export default function InvoicePage() {
         .toolbar{max-width:900px;margin:0 auto 16px;display:flex;justify-content:space-between}
         .toolbar button{padding:10px 16px;border:1px solid #cbd5e1;border-radius:9px;background:#fff;font-weight:800;cursor:pointer}
         .toolbar .print{background:#173d83;color:#fff;border-color:#173d83}
-        .paper{box-sizing:border-box;width:210mm;min-height:297mm;margin:auto;background:#fff;padding:17mm 17mm 15mm;box-shadow:0 12px 35px rgba(15,23,42,.12)}
-        header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #173d83;padding-bottom:9mm}
+        .paper{box-sizing:border-box;width:210mm;min-height:297mm;margin:auto;background:#fff;padding:13mm 15mm 11mm;box-shadow:0 12px 35px rgba(15,23,42,.12)}
+        header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #173d83;padding-bottom:6mm}
         .english{font-size:11px;letter-spacing:.22em;font-weight:900;color:#6b7b98}
         h1{font-size:30px;letter-spacing:.22em;margin:5px 0 0}
         .docmeta{display:grid;gap:7px;text-align:right;font-size:11px}
         .docmeta span{display:block;color:#64748b;margin-bottom:2px}.docmeta strong{font-size:12px}
-        .top{display:grid;grid-template-columns:1fr 1fr;gap:14mm;margin-top:10mm;min-height:48mm}
+        .top{display:grid;grid-template-columns:1fr 1fr;gap:14mm;margin-top:5mm;min-height:40mm}
         .customer h2{font-size:19px;border-bottom:1px solid #172033;padding-bottom:5px;margin:8px 0}
         .customer p{margin:3px 0;font-size:11px}.customer .greeting{margin-top:13px}.address{font-size:10px;color:#64748b;line-height:1.6}
         .issuer{position:relative;display:flex;justify-content:flex-end;align-items:flex-start;gap:5px}
         .issuerText{display:grid;text-align:left;font-size:10px;line-height:1.65;min-width:57mm}.issuerText strong{font-size:14px;margin-bottom:3px}
         .issuer img{width:27mm;height:27mm;object-fit:contain;margin-top:1mm}
-        .amount{margin:6mm 0 7mm;padding:5mm 6mm;background:#f4f7fb;border-left:5px solid #173d83;display:flex;align-items:end;justify-content:space-between}
+        .amount{margin:4mm 0 5mm;padding:5mm 6mm;background:#f4f7fb;border-left:5px solid #173d83;display:flex;align-items:end;justify-content:space-between}
         .amount span{font-size:12px;font-weight:800}.amount strong{font-size:27px;color:#173d83}
-        .project{display:grid;grid-template-columns:1fr 2fr;border:1px solid #d8dee8;margin-bottom:6mm}
+        .project{display:grid;grid-template-columns:1fr 2fr;border:1px solid #d8dee8;margin-bottom:4mm}
         .project div{padding:3mm;border-right:1px solid #d8dee8}.project div:nth-child(2){border-right:0}.project .wide{grid-column:1/-1;border-top:1px solid #d8dee8;border-right:0}
         .project span{display:block;font-size:9px;color:#64748b;margin-bottom:2px}.project strong{font-size:11px;white-space:pre-wrap}
-        table{width:100%;border-collapse:collapse;font-size:11px}th,td{border:1px solid #cfd6e0;padding:3.2mm;text-align:left}
+        table{width:100%;border-collapse:collapse;font-size:11px}th,td{border:1px solid #cfd6e0;padding:2.6mm;text-align:left}
         thead th{background:#173d83;color:#fff}th:nth-child(n+2),td:nth-child(n+2){text-align:right}
         tfoot th{background:#f8fafc;text-align:right}.total th,.total td{font-size:13px;font-weight:900;background:#eef4ff}
-        .payment{margin-top:7mm;border:1px solid #d8dee8;padding:5mm;display:grid;grid-template-columns:1fr 2fr;gap:8mm}
+        .payment{margin-top:5mm;border:1px solid #d8dee8;padding:4mm;display:grid;grid-template-columns:1fr 2fr;gap:8mm}
         .label{display:block;font-size:9px;color:#64748b;font-weight:800;margin-bottom:4px}.payment strong{font-size:11px}.bank p{font-size:10px;margin:4px 0 0}
-        footer{margin-top:8mm;border-top:1px solid #e2e8f0;padding-top:4mm;color:#64748b;font-size:9px;line-height:1.6}
+        footer{margin-top:5mm;border-top:1px solid #e2e8f0;padding-top:4mm;color:#64748b;font-size:9px;line-height:1.6}
         footer p{margin:2px 0}
         @media(max-width:900px){.screen{padding:10px;overflow:auto}.paper{transform-origin:top left}.toolbar{width:210mm}}
         @media print{
           @page{size:A4;margin:0}
-          .screen{background:#fff;padding:0}.toolbar{display:none}.paper{width:210mm;height:297mm;min-height:0;margin:0;padding:17mm 17mm 15mm;box-shadow:none;overflow:hidden}
+          .screen{background:#fff;padding:0}.toolbar{display:none}.paper{width:210mm;height:297mm;min-height:0;margin:0;padding:13mm 15mm 11mm;box-shadow:none;overflow:hidden}
         }
       `}</style>
     </main>
