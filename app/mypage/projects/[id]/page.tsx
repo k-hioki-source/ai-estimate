@@ -998,11 +998,11 @@ async function orderProject(project: Project) {
                     messages
                       .filter((item) => item.message_type === 'message')
                       .map((item) => {
-                        const mine = item.user_id === user?.id;
+                        const mine = item.sender_type === 'customer';
                         return (
                           <div className={`chatRow ${mine ? 'mine' : 'other'}`} key={item.id}>
                             <div className="chatMeta">
-                              <strong>{mine ? 'お客様' : 'クリエイトサポート'}</strong>
+                              <strong>{item.sender_type === 'customer' ? 'お客様' : 'クリエイトサポート'}</strong>
                               <span>{formatDate(item.created_at)}</span>
                             </div>
                             <div className="chatBubble">{item.message}</div>
