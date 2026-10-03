@@ -23,6 +23,12 @@ type ProjectMessage = {
   created_at: string;
 };
 
+type ProjectOrder = {
+  id: string;
+  project_id: string;
+  order_code: string;
+};
+
 type Profile = {
   company_name: string;
   department_name: string;
@@ -164,6 +170,7 @@ const [orderError, setOrderError] = useState('');
   const [archiving, setArchiving] = useState(false);
   const [archiveMessage, setArchiveMessage] = useState('');
   const [archiveError, setArchiveError] = useState('');
+  const [projectOrder, setProjectOrder] = useState<ProjectOrder | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -276,6 +283,14 @@ const [orderError, setOrderError] = useState('');
   setProjects(loadedProjects);
   if (loadedProjects.length > 0) {
     const ids = loadedProjects.map((p) => p.id);
+
+    const { data: orderData, error: orderLoadError } = await (supabase.from('project_orders' as any) as any)
+      .select('id, project_id, order_code')
+      .eq('project_id', loadedProjects[0].id)
+      .maybeSingle();
+
+    if (orderLoadError) console.error('Project order load error:', orderLoadError);
+    else setProjectOrder((orderData ?? null) as ProjectOrder | null);
     const [{ data: fd, error: fe }, { data: md, error: me }] = await Promise.all([
       (supabase.from('project_files' as any) as any).select('*').in('project_id', ids).order('created_at', { ascending: false }),
       (supabase.from('project_messages' as any) as any).select('*').in('project_id', ids).order('created_at', { ascending: true }),
@@ -502,6 +517,17 @@ async function orderProject(project: Project) {
         : item
     )
   );
+
+  const { data: generatedOrder, error: generatedOrderError } = await (supabase.from('project_orders' as any) as any)
+    .select('id, project_id, order_code')
+    .eq('project_id', project.id)
+    .maybeSingle();
+
+  if (generatedOrderError) {
+    console.error('Generated project order load error:', generatedOrderError);
+  } else {
+    setProjectOrder((generatedOrder ?? null) as ProjectOrder | null);
+  }
 
   const mailSent = await sendCsWorksNotification(
     supabase,
@@ -865,6 +891,15 @@ async function orderProject(project: Project) {
                         ? `発注日：${formatDate(project.ordered_at)}`
                         : '正式発注を受け付けています。'}
                     </p>
+                    {projectOrder ? (
+                      <button
+                        type="button"
+                        className="orderDocumentButton"
+                        onClick={() => router.push(`/mypage/projects/${project.id}/order`)}
+                      >
+                        発注書を表示
+                      </button>
+                    ) : null}
                   </div>
                 ) : null}
               </section>
@@ -1275,6 +1310,8 @@ async function orderProject(project: Project) {
         .stateCard strong { font-size: 16px; }
         .stateCard p { margin: 7px 0 0; color: #475569; line-height: 1.65; font-size: 13px; }
         .stateCard .primaryButton { margin-top: 14px; width: auto !important; }
+        .orderDocumentButton { margin-top: 14px; width: auto !important; padding: 11px 16px; border: 1px solid #86efac; border-radius: 10px; background: #fff; color: #166534; font-weight: 900; cursor: pointer; }
+        .orderDocumentButton:hover { background: #f0fdf4; }
         .stateCard.neutral { background: #f8fafc; }
         .stateCard.attention { background: #fffaf2; border-color: #fed7aa; }
         .stateCard.progress { background: #eff6ff; border-color: #bfdbfe; }
