@@ -1478,6 +1478,57 @@ export default function AdminPage() {
                   </div>
                 </dl>
               </div>
+
+              <div className="sideCard">
+                <span className="sideLabel">帳票</span>
+                <div className="documentLinks">
+                  {[
+                    'ordered',
+                    'in_production',
+                    'customer_review',
+                    'revision',
+                    'approved',
+                    'delivered',
+                    'invoice_requested',
+                    'invoiced',
+                    'completed',
+                  ].includes(project.status) ? (
+                    <button
+                      type="button"
+                      className="documentButton"
+                      onClick={() => router.push(`/mypage/projects/${project.id}/order`)}
+                    >
+                      発注書を表示
+                    </button>
+                  ) : (
+                    <div className="documentUnavailable">発注後に発注書を表示できます。</div>
+                  )}
+
+                  {['delivered', 'invoice_requested', 'invoiced', 'completed'].includes(project.status) ? (
+                    <button
+                      type="button"
+                      className="documentButton"
+                      onClick={() => router.push(`/mypage/projects/${project.id}/delivery`)}
+                    >
+                      納品書を表示
+                    </button>
+                  ) : (
+                    <div className="documentUnavailable">納品後に納品書を表示できます。</div>
+                  )}
+
+                  {['invoiced', 'completed'].includes(project.status) && invoice ? (
+                    <button
+                      type="button"
+                      className="documentButton"
+                      onClick={() => router.push(`/mypage/projects/${project.id}/invoice`)}
+                    >
+                      請求書を表示
+                    </button>
+                  ) : (
+                    <div className="documentUnavailable">請求書発行後に表示できます。</div>
+                  )}
+                </div>
+              </div>
             </aside>
           </div>
         </>
@@ -1591,6 +1642,10 @@ export default function AdminPage() {
         .sideCard dl div { padding-bottom: 11px; border-bottom: 1px solid #eef2f7; }
         .sideCard dt { color: #64748b; font-size: 11px; }
         .sideCard dd { margin: 4px 0 0; font-weight: 800; overflow-wrap: anywhere; }
+        .documentLinks { display: grid; gap: 9px; }
+        .documentButton { width: 100%; padding: 11px 12px; border: 1px solid #cbd5e1; border-radius: 10px; background: #fff; color: #0f172a; font-weight: 800; cursor: pointer; text-align: left; }
+        .documentButton:hover { background: #f8fafc; border-color: #94a3b8; }
+        .documentUnavailable { padding: 10px 11px; border-radius: 9px; background: #f8fafc; color: #94a3b8; font-size: 11px; line-height: 1.5; }
         .projectDetailPanel { margin-top: 24px; padding: 30px; }
         .emptyState { text-align: center; padding: 40px 10px; }
         .emptyState p { color: #64748b; }
