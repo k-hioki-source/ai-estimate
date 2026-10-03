@@ -137,7 +137,7 @@ function projectStatusLabel(status: string) {
       return '完了';
 
     case 'cancelled':
-      return 'キャンセル';
+      return '発注見送り';
 
     default:
       return status;
@@ -187,6 +187,9 @@ const [quoteError, setQuoteError] = useState('');
   const [orderingProjectId, setOrderingProjectId] = useState<string | null>(null);
 const [orderMessage, setOrderMessage] = useState('');
 const [orderError, setOrderError] = useState('');
+  const [decliningProjectId, setDecliningProjectId] = useState<string | null>(null);
+  const [declineMessage, setDeclineMessage] = useState('');
+  const [declineError, setDeclineError] = useState('');
   const [projectFiles, setProjectFiles] = useState<Record<string, ProjectFile[]>>({});
   const [projectMessages, setProjectMessages] = useState<Record<string, ProjectMessage[]>>({});
   const [reviewComments, setReviewComments] = useState<Record<string, string>>({});
@@ -595,7 +598,41 @@ async function orderProject(project: Project) {
       : `案件 ${project.project_code} を正式に発注しました。管理者へのメール通知のみ失敗しました。`
   );
 }
-  async function submitProjectReview(project: Project, action: 'approval' | 'revision_request') {
+  async function declineProjectOrder(project: Project) {
+  if (!user || decliningProjectId || project.status !== 'quote_presented') return;
+
+  if (!window.confirm(
+    `案件「${project.project_code}」の発注を見送りますか？\n\n案件データと正式見積りは履歴として残ります。`
+  )) return;
+
+  setDecliningProjectId(project.id);
+  setDeclineMessage('');
+  setDeclineError('');
+  setOrderError('');
+  setOrderMessage('');
+
+  const supabase = getSupabaseBrowserClient();
+  const { data, error: declineUpdateError } = await (supabase as any)
+    .rpc('decline_project_order', { p_project_id: project.id })
+    .single();
+
+  setDecliningProjectId(null);
+
+  if (declineUpdateError) {
+    console.error('Project decline error:', declineUpdateError);
+    setDeclineError('発注見送りの処理を完了できませんでした。');
+    return;
+  }
+
+  setProjects((current) =>
+    current.map((item) => item.id === project.id ? (data as Project) : item)
+  );
+  setDeclineMessage(
+    `案件 ${project.project_code} は「発注見送り」となりました。正式見積り・案件内容は履歴として保存されています。`
+  );
+}
+
+async function submitProjectReview(project: Project, action: 'approval' | 'revision_request') {
     if (!user || reviewingProjectId || project.status !== 'customer_review') return;
     const comment = (reviewComments[project.id] ?? '').trim();
     if (action === 'revision_request' && !comment) {
@@ -855,6 +892,8 @@ async function orderProject(project: Project) {
 
           {orderError ? <div className="errorBox noticeBox">{orderError}</div> : null}
           {orderMessage ? <div className="successBox noticeBox">{orderMessage}</div> : null}
+          {declineError ? <div className="errorBox noticeBox">{declineError}</div> : null}
+          {declineMessage ? <div className="successBox noticeBox">{declineMessage}</div> : null}
           {reviewError ? <div className="errorBox noticeBox">{reviewError}</div> : null}
           {reviewMessage ? <div className="successBox noticeBox">{reviewMessage}</div> : null}
           {invoiceRequestError ? <div className="errorBox noticeBox">{invoiceRequestError}</div> : null}
@@ -959,16 +998,31 @@ async function orderProject(project: Project) {
                     <p>
                       金額・工数・納期をご確認いただき、問題なければ発注してください。
                     </p>
-                    <button
-                      type="button"
-                      className="primaryButton"
-                      onClick={() => orderProject(project)}
-                      disabled={orderingProjectId === project.id}
-                    >
-                      {orderingProjectId === project.id
-                        ? '発注処理中…'
-                        : 'この内容で発注する'}
-                    </button>
+                    <div className="quoteDecisionActions">
+                      <button
+                        type="button"
+                        className="primaryButton"
+                        onClick={() => orderProject(project)}
+                        disabled={orderingProjectId === project.id || decliningProjectId === project.id}
+                      >
+                        {orderingProjectId === project.id ? '発注処理中…' : 'この内容で発注する'}
+                      </button>
+                      <button
+                        type="button"
+                        className="declineOrderButton"
+                        onClick={() => declineProjectOrder(project)}
+                        disabled={decliningProjectId === project.id || orderingProjectId === project.id}
+                      >
+                        {decliningProjectId === project.id ? '処理中…' : '今回は発注を見送る'}
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
+
+                {project.status === 'cancelled' ? (
+                  <div className="stateCard declined">
+                    <strong>今回は発注見送りとなりました</strong>
+                    <p>正式見積り・案件内容は履歴として保存されています。必要に応じてこの案件をアーカイブできます。</p>
                   </div>
                 ) : null}
 
@@ -1447,8 +1501,8 @@ async function orderProject(project: Project) {
               {(project.archived_at || ['completed', 'cancelled'].includes(project.status)) ? (
                 <div className="sideCard archiveCard">
                   <span className="sideLabel">案件の整理</span>
-                  <strong>{project.archived_at ? 'アーカイブ済み' : '完了した案件'}</strong>
-                  <p>{project.archived_at ? '案件データは保存されています。必要な場合は通常の一覧へ戻せます。' : '通常の一覧から非表示にできます。メッセージや納品ファイルは削除されません。'}</p>
+                  <strong>{project.archived_at ? 'アーカイブ済み' : project.status === 'cancelled' ? '発注見送りの案件' : '完了した案件'}</strong>
+                  <p>{project.archived_at ? '案件データは保存されています。必要な場合は通常の一覧へ戻せます。' : project.status === 'cancelled' ? '正式見積り・案件内容は保存されています。通常の一覧から非表示にできます。' : '通常の一覧から非表示にできます。メッセージや納品ファイルは削除されません。'}</p>
                   <button type="button" className="archiveButton" disabled={archiving} onClick={() => toggleArchiveProject(project)}>
                     {archiving ? '処理中…' : project.archived_at ? 'アーカイブから戻す' : 'この案件をアーカイブ'}
                   </button>
@@ -1513,6 +1567,12 @@ async function orderProject(project: Project) {
         .stateCard strong { font-size: 16px; }
         .stateCard p { margin: 7px 0 0; color: #475569; line-height: 1.65; font-size: 13px; }
         .stateCard .primaryButton { margin-top: 14px; width: auto !important; }
+        .quoteDecisionActions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 14px; }
+        .quoteDecisionActions .primaryButton { margin-top: 0; }
+        .declineOrderButton { width: auto !important; padding: 12px 18px; border: 1px solid #cbd5e1; border-radius: 10px; background: #fff; color: #64748b; font-weight: 800; cursor: pointer; }
+        .declineOrderButton:hover { background: #f8fafc; color: #334155; }
+        .declineOrderButton:disabled { opacity: .55; cursor: default; }
+        .stateCard.declined { background: #f8fafc; border-color: #cbd5e1; color: #475569; }
         .orderDocumentButton { margin-top: 14px; width: auto !important; padding: 11px 16px; border: 1px solid #86efac; border-radius: 10px; background: #fff; color: #166534; font-weight: 900; cursor: pointer; }
         .orderDocumentButton:hover { background: #f0fdf4; }
         .deliveryDocumentButton { margin-top: 14px; width: auto !important; padding: 11px 16px; border: 1px solid #86efac; border-radius: 10px; background: #fff; color: #166534; font-weight: 900; cursor: pointer; }
