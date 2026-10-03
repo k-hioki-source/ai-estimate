@@ -17,7 +17,7 @@ function expression(v:string|null){return v==='line'?'白黒線画':v==='color'?
 export default function EstimateDetailPage(){
  const router=useRouter(); const params=useParams<{id:string}>(); const estimateId=params.id;
  const [user,setUser]=useState<User|null>(null); const [estimate,setEstimate]=useState<Estimate|null>(null); const [project,setProject]=useState<Project|null>(null);
- const [imageUrl,setImageUrl]=useState<string|null>(null); const [loading,setLoading]=useState(true); const [requesting,setRequesting]=useState(false); const [error,setError]=useState('');
+ const [imageUrl,setImageUrl]=useState<string|null>(null); const [loading,setLoading]=useState(true); const [requesting,setRequesting]=useState(false); const [deleting,setDeleting]=useState(false); const [error,setError]=useState('');
 
  useEffect(()=>{(async()=>{
   const supabase=getSupabaseBrowserClient(); const {data:u}=await supabase.auth.getUser();
@@ -45,6 +45,63 @@ export default function EstimateDetailPage(){
   setProject(p);setEstimate({...estimate,status:'quote_requested'});setRequesting(false);
  }
 
+
+ async function deleteEstimate(){
+   if(!user||!estimate||project||deleting)return;
+
+   const confirmed=window.confirm(
+     `見積ID「${estimate.estimate_code}」を削除しますか？\n\nこの操作は元に戻せません。参考画像も削除されます。`
+   );
+   if(!confirmed)return;
+
+   setDeleting(true);setError('');
+   const supabase=getSupabaseBrowserClient();
+
+   // 直前に案件化されていないか再確認
+   const {data:linkedProject,error:checkError}=await supabase
+     .from('projects')
+     .select('id')
+     .eq('user_id',user.id)
+     .eq('estimate_id',estimate.id)
+     .limit(1)
+     .maybeSingle();
+
+   if(checkError){
+     console.error('Estimate delete check error:',checkError);
+     setError('削除前の確認に失敗しました。');
+     setDeleting(false);
+     return;
+   }
+   if(linkedProject){
+     setProject(linkedProject as Project);
+     setError('この見積りはすでにプロジェクトに使用されているため削除できません。');
+     setDeleting(false);
+     return;
+   }
+
+   // DB側でも「案件未使用」を検証して削除
+   const {data:deleted,error:deleteError}=await (supabase as any)
+     .rpc('delete_unused_estimate',{p_estimate_id:estimate.id});
+
+   if(deleteError||deleted!==true){
+     console.error('Estimate delete error:',deleteError);
+     setError('見積りを削除できませんでした。プロジェクトに使用されていないか確認してください。');
+     setDeleting(false);
+     return;
+   }
+
+   // DB削除成功後に参考画像を削除。失敗しても見積り削除自体は完了扱い。
+   if(estimate.image_path){
+     const {error:imageDeleteError}=await supabase.storage
+       .from('estimate-images')
+       .remove([estimate.image_path]);
+     if(imageDeleteError)console.error('Estimate image delete error:',imageDeleteError);
+   }
+
+   router.replace('/mypage');
+   router.refresh();
+ }
+
  if(loading)return <main className="authPage"><section className="authCard"><p>見積りを読み込んでいます…</p></section></main>;
  return <main className="myPageShell">
   <header className="myPageHeader"><div><div className="authBrand">CS Works</div><h1>見積り詳細</h1></div><button className="logoutButton" onClick={()=>router.push('/mypage')}>My Pageへ戻る</button></header>
@@ -69,6 +126,7 @@ export default function EstimateDetailPage(){
       {project?<button className="primaryButton" onClick={()=>router.push(`/mypage/projects/${project.id}`)}>プロジェクトを確認する</button>
       :<button className="primaryButton" disabled={requesting} onClick={requestQuote}>{requesting?'送信中…':'正式見積りを依頼する'}</button>}
       <button className="secondaryButton" onClick={()=>router.push('/mypage')}>見積り一覧へ戻る</button>
+      {!project?<button className="deleteButton" disabled={deleting||requesting} onClick={deleteEstimate}>{deleting?'削除中…':'この見積りを削除'}</button>:null}
     </div>
   </section>:null}
   <style jsx>{`
@@ -76,7 +134,7 @@ export default function EstimateDetailPage(){
    .detailHead{display:flex;justify-content:space-between;gap:20px;align-items:flex-start}.statusBadge{padding:7px 11px;border-radius:999px;background:#eefbf3;color:#16733b;font-size:12px;font-weight:800}
    .summaryGrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:24px}.summaryGrid div{padding:15px;border:1px solid #e5eaf0;border-radius:12px;background:#f8fafc}.summaryGrid span{display:block;color:#64748b;font-size:12px;margin-bottom:5px}.summaryGrid strong{font-size:15px}
    .block{margin-top:24px;padding-top:22px;border-top:1px solid #e5eaf0}.block h3{margin:0 0 10px}.block p{white-space:pre-wrap;line-height:1.7}.referenceImage{display:block;max-width:100%;max-height:520px;object-fit:contain;border:1px solid #e5eaf0;border-radius:12px}
-   .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:28px}.actions button{width:auto!important}.secondaryButton{padding:12px 18px;border:1px solid #dbe3ec;border-radius:10px;background:#fff;font-weight:800;cursor:pointer}
+   .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:28px}.actions button{width:auto!important}.secondaryButton{padding:12px 18px;border:1px solid #dbe3ec;border-radius:10px;background:#fff;font-weight:800;cursor:pointer}.deleteButton{margin-left:auto;padding:12px 18px;border:1px solid #fecaca;border-radius:10px;background:#fff;color:#b91c1c;font-weight:800;cursor:pointer}.deleteButton:hover{background:#fef2f2}.deleteButton:disabled{opacity:.55;cursor:default}
    @media(max-width:900px){.summaryGrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
    @media(max-width:600px){.detailPanel{padding:20px 15px;border-radius:14px}.summaryGrid{grid-template-columns:1fr}.detailHead{display:block}.statusBadge{display:inline-block;margin-top:8px}}
   `}</style>
