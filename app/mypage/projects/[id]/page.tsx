@@ -113,8 +113,14 @@ function projectStatusLabel(
     case 'revision':
       return '修正対応中';
 
+    case 'approved':
+      return '承認済み・納品待ち';
+
     case 'delivered':
-      return '納品済み';
+      return '納品済み・請求書発行待ち';
+
+    case 'invoice_requested':
+      return '請求書発行依頼済み';
 
     case 'completed':
       return '完了';
@@ -185,6 +191,9 @@ const [orderError, setOrderError] = useState('');
   const [projectOrder, setProjectOrder] = useState<ProjectOrder | null>(null);
   const [projectDelivery, setProjectDelivery] = useState<ProjectDelivery | null>(null);
   const [projectInvoice, setProjectInvoice] = useState<ProjectInvoice | null>(null);
+  const [requestingInvoice, setRequestingInvoice] = useState(false);
+  const [invoiceRequestMessage, setInvoiceRequestMessage] = useState('');
+  const [invoiceRequestError, setInvoiceRequestError] = useState('');
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -610,6 +619,14 @@ async function orderProject(project: Project) {
       if (!mailSent) {
         console.error('Revision request email notification failed.');
       }
+    } else {
+      const { data: updated, error: updateError } = await (supabase as any)
+        .rpc('approve_project', { p_project_id: project.id })
+        .single();
+      if (updateError) {
+        console.error(updateError); setReviewingProjectId(null); setReviewError('承認ステータスを更新できませんでした。'); return;
+      }
+      setProjects((cur) => cur.map((p) => p.id === project.id ? updated : p));
     }
     setProjectMessages((cur) => ({ ...cur, [project.id]: [...(cur[project.id] ?? []), msg as ProjectMessage] }));
     setReviewComments((cur) => ({ ...cur, [project.id]: '' }));
@@ -672,6 +689,33 @@ async function orderProject(project: Project) {
     }
     setProjects((current) => current.map((item) => item.id === project.id ? (data as Project) : item));
     setArchiveMessage(restoring ? 'アーカイブから戻しました。' : 'この案件をアーカイブしました。');
+  }
+
+  async function requestInvoice(project: Project) {
+    if (!user || requestingInvoice || project.status !== 'delivered') return;
+    if (!window.confirm('この案件の請求書発行を依頼しますか？\n\nお支払期限は請求日の翌月末です。')) return;
+
+    setRequestingInvoice(true);
+    setInvoiceRequestMessage('');
+    setInvoiceRequestError('');
+
+    const supabase = getSupabaseBrowserClient();
+    const { data, error: requestError } = await (supabase as any)
+      .rpc('request_project_invoice', { p_project_id: project.id })
+      .single();
+
+    setRequestingInvoice(false);
+
+    if (requestError) {
+      console.error('Invoice request error:', requestError);
+      setInvoiceRequestError('請求書の発行を依頼できませんでした。');
+      return;
+    }
+
+    setProjects((current) =>
+      current.map((item) => item.id === project.id ? (data as Project) : item)
+    );
+    setInvoiceRequestMessage('請求書の発行を依頼しました。');
   }
 
   async function saveProfile(e: FormEvent) {
@@ -802,6 +846,8 @@ async function orderProject(project: Project) {
           {orderMessage ? <div className="successBox noticeBox">{orderMessage}</div> : null}
           {reviewError ? <div className="errorBox noticeBox">{reviewError}</div> : null}
           {reviewMessage ? <div className="successBox noticeBox">{reviewMessage}</div> : null}
+          {invoiceRequestError ? <div className="errorBox noticeBox">{invoiceRequestError}</div> : null}
+          {invoiceRequestMessage ? <div className="successBox noticeBox">{invoiceRequestMessage}</div> : null}
           {archiveError ? <div className="errorBox noticeBox">{archiveError}</div> : null}
           {archiveMessage ? <div className="successBox noticeBox">{archiveMessage}</div> : null}
 
@@ -881,6 +927,11 @@ async function orderProject(project: Project) {
                   </div>
                 </div>
 
+                <div className="paymentTerms">
+                  <strong>お支払いについて</strong>
+                  <p>お支払いは請求書払いです。納品後に請求書発行をご依頼いただき、請求書発行日の翌月末までにお支払いください。</p>
+                </div>
+
                 {project.status === 'quote_requested' ||
                 project.status === 'quote_reviewing' ? (
                   <div className="stateCard neutral">
@@ -915,7 +966,9 @@ async function orderProject(project: Project) {
                   'in_production',
                   'customer_review',
                   'revision',
+                  'approved',
                   'delivered',
+                  'invoice_requested',
                   'completed',
                 ].includes(project.status) ? (
                   <div className="stateCard success">
@@ -1037,7 +1090,15 @@ async function orderProject(project: Project) {
                   </div>
                 ) : null}
 
+                {project.status === 'approved' ? (
+                  <div className="stateCard success">
+                    <strong>✓ 制作内容を承認済みです</strong>
+                    <p>クリエイトサポートからの納品をお待ちください。</p>
+                  </div>
+                ) : null}
+
                 {project.status === 'delivered' ||
+                project.status === 'invoice_requested' ||
                 project.status === 'completed' ? (
                   <div className="stateCard success">
                     <strong>制作・確認工程は完了しています</strong>
@@ -1181,6 +1242,28 @@ async function orderProject(project: Project) {
                   </button>
                 ) : null}
 
+                {project.status === 'delivered' ? (
+                  <div className="invoiceRequestCard">
+                    <strong>納品が完了しました</strong>
+                    <p>内容をご確認のうえ、請求書の発行をご依頼ください。お支払期限は請求日の翌月末です。</p>
+                    <button
+                      type="button"
+                      className="invoiceRequestButton"
+                      disabled={requestingInvoice}
+                      onClick={() => requestInvoice(project)}
+                    >
+                      {requestingInvoice ? '依頼処理中…' : '請求書の発行を依頼する'}
+                    </button>
+                  </div>
+                ) : null}
+
+                {project.status === 'invoice_requested' ? (
+                  <div className="stateCard attention invoiceWaiting">
+                    <strong>請求書発行を依頼済みです</strong>
+                    <p>クリエイトサポートで請求書を発行後、こちらから確認できるようになります。</p>
+                  </div>
+                ) : null}
+
                 {projectInvoice ? (
                   <button
                     type="button"
@@ -1207,7 +1290,9 @@ async function orderProject(project: Project) {
                         'in_production',
                         'customer_review',
                         'revision',
+                        'approved',
                         'delivered',
+                        'invoice_requested',
                         'completed',
                       ].includes(project.status)
                         ? 'done'
@@ -1223,7 +1308,9 @@ async function orderProject(project: Project) {
                         'in_production',
                         'customer_review',
                         'revision',
+                        'approved',
                         'delivered',
+                        'invoice_requested',
                         'completed',
                       ].includes(project.status)
                         ? 'done'
@@ -1238,7 +1325,9 @@ async function orderProject(project: Project) {
                         'in_production',
                         'customer_review',
                         'revision',
+                        'approved',
                         'delivered',
+                        'invoice_requested',
                         'completed',
                       ].includes(project.status)
                         ? 'done'
@@ -1249,7 +1338,7 @@ async function orderProject(project: Project) {
                   </div>
                   <div
                     className={
-                      ['customer_review', 'revision', 'delivered', 'completed'].includes(
+                      ['customer_review', 'revision', 'approved', 'delivered', 'invoice_requested', 'completed'].includes(
                         project.status
                       )
                         ? 'done'
@@ -1260,7 +1349,7 @@ async function orderProject(project: Project) {
                   </div>
                   <div
                     className={
-                      ['delivered', 'completed'].includes(project.status)
+                      ['delivered', 'invoice_requested', 'completed'].includes(project.status)
                         ? 'done'
                         : ''
                     }
@@ -1368,6 +1457,15 @@ async function orderProject(project: Project) {
         .orderDocumentButton:hover { background: #f0fdf4; }
         .deliveryDocumentButton { margin-top: 14px; width: auto !important; padding: 11px 16px; border: 1px solid #86efac; border-radius: 10px; background: #fff; color: #166534; font-weight: 900; cursor: pointer; }
         .deliveryDocumentButton:hover { background: #f0fdf4; }
+        .paymentTerms { margin-bottom: 14px; padding: 14px 16px; border: 1px solid #bfdbfe; border-radius: 12px; background: #eff6ff; }
+        .paymentTerms strong { color: #1e3a8a; font-size: 13px; }
+        .paymentTerms p { margin: 5px 0 0; color: #475569; font-size: 12px; line-height: 1.65; }
+        .invoiceRequestCard { margin-top: 16px; padding: 17px; border: 1px solid #93c5fd; border-radius: 13px; background: #eff6ff; }
+        .invoiceRequestCard strong { color: #1e3a8a; font-size: 15px; }
+        .invoiceRequestCard p { margin: 6px 0 12px; color: #475569; font-size: 12px; line-height: 1.65; }
+        .invoiceRequestButton { width: auto !important; padding: 11px 16px; border: 0; border-radius: 10px; background: #1d4ed8; color: #fff; font-weight: 900; cursor: pointer; }
+        .invoiceRequestButton:disabled { opacity: .55; cursor: default; }
+        .invoiceWaiting { margin-top: 16px; }
         .invoiceDocumentButton { margin-top: 14px; margin-left: 8px; width: auto !important; padding: 11px 16px; border: 1px solid #93c5fd; border-radius: 10px; background: #fff; color: #1d4ed8; font-weight: 900; cursor: pointer; }
         .invoiceDocumentButton:hover { background: #eff6ff; }
         .stateCard.neutral { background: #f8fafc; }
