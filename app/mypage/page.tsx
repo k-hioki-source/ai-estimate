@@ -8,7 +8,8 @@ import { getSupabaseBrowserClient } from '../../lib/supabase/client';
 import type { Database } from '../../lib/supabase/database.types';
 
 type Estimate = Database['public']['Tables']['estimates']['Row'];
-type Project = Database['public']['Tables']['projects']['Row'];
+type ProjectBase = Database['public']['Tables']['projects']['Row'];
+type Project = ProjectBase & { unread_messages?: number };
 type Profile = {
   company_name: string; department_name: string; contact_name: string;
   phone: string; postal_code: string; address: string;
@@ -38,7 +39,23 @@ export default function MyPage(){
      supabase.from('projects').select('*').eq('user_id',u.user.id).order('updated_at',{ascending:false}),
    ]);
    if(p)setProfile({company_name:p.company_name??'',department_name:p.department_name??'',contact_name:p.contact_name??'',phone:p.phone??'',postal_code:p.postal_code??'',address:p.address??''});
-   setEstimates(e??[]); setProjects(pr??[]); setLoading(false);
+   
+    const projectRows=(pr??[]) as ProjectBase[];
+    const projectIds=projectRows.map(project=>project.id);
+    const unreadByProject:Record<string,number>={};
+    if(projectIds.length){
+      const {data:messageData,error:messageError}=await (supabase.from('project_messages' as any) as any)
+        .select('project_id, sender_type, message_type, read_by_customer_at')
+        .in('project_id',projectIds)
+        .eq('message_type','message')
+        .eq('sender_type','admin')
+        .is('read_by_customer_at',null);
+      if(messageError) console.error('Customer unread message load error:',messageError);
+      else for(const item of (messageData??[])) unreadByProject[item.project_id]=(unreadByProject[item.project_id]??0)+1;
+    }
+    setEstimates(e??[]);
+    setProjects(projectRows.map(project=>({...project,unread_messages:unreadByProject[project.id]??0})));
+    setLoading(false);
  })()},[router]);
 
  const visibleProjects=useMemo(()=>{const q=projectSearch.trim().toLowerCase();return projects.filter(p=>(projectFilter==='all'||(projectFilter==='active'?active.has(p.status):p.status==='completed'))&&(!q||[p.project_code,p.title].some(v=>(v??'').toLowerCase().includes(q))))},[projects,projectFilter,projectSearch]);
@@ -58,7 +75,7 @@ export default function MyPage(){
    <div className="myPageGrid">
      <section className="dashboardCard"><div className="dashboardIcon">AI</div><h3>AI概算見積り</h3><p>新しい制作内容をAIで概算見積りできます。</p><Link className="dashboardLink" href="/">新しい見積りを作成 →</Link></section>
      <section className="dashboardCard"><div className="dashboardIcon">見積</div><h3>見積り履歴</h3><p>保存済みのAI概算見積りを確認できます。</p><a className="dashboardLink" href="#estimate-history">{estimates.length}件の見積りを見る →</a></section>
-     <section className="dashboardCard"><div className="dashboardIcon">案件</div><h3>プロジェクト</h3><p>正式見積り・制作・確認・納品の状況を確認できます。</p><a className="dashboardLink" href="#project-list">{projects.length}件のプロジェクトを見る →{actionCount?`（確認事項 ${actionCount}件）`:''}</a></section>
+     <section className="dashboardCard"><div className="dashboardIcon">案件</div><h3>プロジェクト</h3><p>正式見積り・制作・確認・納品の状況を確認できます。</p><a className="dashboardLink" href="#project-list">{projects.length}件のプロジェクトを見る →{projects.reduce((sum,p)=>sum+(p.unread_messages??0),0)>0?`（💬 未読 ${projects.reduce((sum,p)=>sum+(p.unread_messages??0),0)}件）`:actionCount?`（確認事項 ${actionCount}件）`:''}</a></section>
    </div>
 
    <section id="project-list" className="widePanel">
@@ -68,10 +85,10 @@ export default function MyPage(){
        <button className={projectFilter==='all'?'active':''} onClick={()=>setProjectFilter('all')}>すべて {projects.length}</button>
        <button className={projectFilter==='completed'?'active':''} onClick={()=>setProjectFilter('completed')}>完了 {projects.filter(p=>p.status==='completed').length}</button>
      </div>
-     <div className="projectTableWrap"><table><thead><tr><th>案件番号</th><th>案件名</th><th>ステータス</th><th>正式見積</th><th>納期</th><th>更新日</th><th></th></tr></thead><tbody>
-       {visibleProjects.map(p=><tr key={p.id} onClick={()=>router.push(`/mypage/projects/${p.id}`)}><td><strong>{p.project_code}</strong></td><td>{p.title}</td><td><span className={`badge ${p.status==='quote_presented'||p.status==='customer_review'?'attention':''}`}>{statusLabel(p.status)}</span></td><td>{p.quoted_amount!=null?`${p.quoted_amount.toLocaleString()}円`:'―'}</td><td>{fmt(p.confirmed_deadline)}</td><td>{fmt(p.updated_at)}</td><td><strong>詳細 →</strong></td></tr>)}
+     <div className="projectTableWrap"><table><thead><tr><th>案件番号</th><th>案件名</th><th>ステータス</th><th>メッセージ</th><th>正式見積</th><th>納期</th><th>更新日</th><th></th></tr></thead><tbody>
+       {visibleProjects.map(p=><tr key={p.id} onClick={()=>router.push(`/mypage/projects/${p.id}`)}><td><strong>{p.project_code}</strong></td><td>{p.title}</td><td><span className={`badge ${p.status==='quote_presented'||p.status==='customer_review'?'attention':''}`}>{statusLabel(p.status)}</span></td><td>{(p.unread_messages??0)>0?<span className="messageBadge">💬 {p.unread_messages}</span>:<span className="noMessage">―</span>}</td><td>{p.quoted_amount!=null?`${p.quoted_amount.toLocaleString()}円`:'―'}</td><td>{fmt(p.confirmed_deadline)}</td><td>{fmt(p.updated_at)}</td><td><strong>詳細 →</strong></td></tr>)}
      </tbody></table></div>
-     <div className="projectCards">{visibleProjects.map(p=><button key={p.id} onClick={()=>router.push(`/mypage/projects/${p.id}`)}><div className="cardTop"><strong>{p.project_code}</strong><span className={`badge ${p.status==='quote_presented'||p.status==='customer_review'?'attention':''}`}>{statusLabel(p.status)}</span></div><h3>{p.title}</h3><div className="cardMeta"><span>{p.quoted_amount!=null?`${p.quoted_amount.toLocaleString()}円`:'見積確認中'}</span><span>納期 {fmt(p.confirmed_deadline)}</span><strong>詳細 →</strong></div></button>)}</div>
+     <div className="projectCards">{visibleProjects.map(p=><button key={p.id} onClick={()=>router.push(`/mypage/projects/${p.id}`)}><div className="cardTop"><strong>{p.project_code}</strong><div className="cardBadges"><span className={`badge ${p.status==='quote_presented'||p.status==='customer_review'?'attention':''}`}>{statusLabel(p.status)}</span>{(p.unread_messages??0)>0?<span className="messageBadge">💬 {p.unread_messages}</span>:null}</div></div><h3>{p.title}</h3><div className="cardMeta"><span>{p.quoted_amount!=null?`${p.quoted_amount.toLocaleString()}円`:'見積確認中'}</span><span>納期 {fmt(p.confirmed_deadline)}</span><strong>詳細 →</strong></div></button>)}</div>
      {!visibleProjects.length?<div className="empty">該当するプロジェクトはありません。</div>:null}
    </section>
 
@@ -100,7 +117,7 @@ export default function MyPage(){
      .sectionHead{display:flex;justify-content:space-between;align-items:end;gap:20px;flex-wrap:wrap}.sectionHead input{width:min(360px,100%)}
      .filters{display:flex;gap:8px;flex-wrap:wrap;margin-top:18px}.filters button{width:auto!important;display:inline-flex!important;border:1px solid #dbe3ec;border-radius:999px;padding:8px 14px;background:#fff;font-weight:800;cursor:pointer}.filters button.active{background:#0f172a;color:#fff;border-color:#0f172a}
      .projectTableWrap{overflow-x:auto;margin-top:20px}.projectTableWrap table{width:100%;border-collapse:collapse;min-width:900px}.projectTableWrap th,.projectTableWrap td{padding:14px 10px;border-bottom:1px solid #e5eaf0;text-align:left}.projectTableWrap th{background:#f8fafc;font-size:13px}.projectTableWrap tr{cursor:pointer}
-     .badge{display:inline-block;padding:5px 9px;border-radius:999px;background:#eefbf3;color:#16733b;font-size:12px;font-weight:800;white-space:nowrap}.badge.attention{background:#fff7ed;color:#c2410c}
+     .badge{display:inline-block;padding:5px 9px;border-radius:999px;background:#eefbf3;color:#16733b;font-size:12px;font-weight:800;white-space:nowrap}.badge.attention{background:#fff7ed;color:#c2410c}.messageBadge{display:inline-flex;align-items:center;gap:3px;padding:5px 9px;border-radius:999px;background:#eff6ff;color:#1d4ed8;font-size:12px;font-weight:900;white-space:nowrap}.noMessage{color:#94a3b8}.cardBadges{display:flex;gap:6px;align-items:center;justify-content:flex-end;flex-wrap:wrap}
      .projectCards{display:none}.empty{padding:24px;text-align:center;color:#64748b}
      .estimateList{margin-top:20px}.estimateRow{width:100%!important;display:flex!important;justify-content:space-between;gap:18px;padding:16px 4px;border:0;border-bottom:1px solid #e5eaf0;background:transparent;color:#0f172a;text-align:left;cursor:pointer}.estimateRow:hover{background:#f8fafc}.estimateRow>div{display:flex;gap:16px;align-items:center;flex-wrap:wrap}.estimateRow span{color:#64748b;font-size:13px}.detailArrow{white-space:nowrap}
      .accountForm{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.accountForm .full{grid-column:1/-1}.success{padding:12px 14px;border-radius:10px;background:#eefbf3;color:#16733b;font-weight:700}
