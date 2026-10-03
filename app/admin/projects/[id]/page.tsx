@@ -447,12 +447,16 @@ export default function AdminPage() {
       ? await (supabase as any).rpc('deliver_project', {
           p_project_id: project.id,
         })
-      : await supabase
-          .from('projects')
-          .update(updateData)
-          .eq('id', project.id)
-          .select('*')
-          .single();
+      : nextStatus === 'completed'
+        ? await (supabase as any).rpc('complete_project', {
+            p_project_id: project.id,
+          })
+        : await supabase
+            .from('projects')
+            .update(updateData)
+            .eq('id', project.id)
+            .select('*')
+            .single();
 
   const data = statusResult.data as Project | null;
   const updateError = statusResult.error;
@@ -464,7 +468,9 @@ export default function AdminPage() {
     setError(
       nextStatus === 'delivered'
         ? '納品処理または納品書の作成に失敗しました。'
-        : '案件ステータスを変更できませんでした。'
+        : nextStatus === 'completed'
+          ? '案件完了処理または請求書の作成に失敗しました。'
+          : '案件ステータスを変更できませんでした。'
     );
     return;
   }
