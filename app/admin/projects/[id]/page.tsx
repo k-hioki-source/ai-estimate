@@ -285,7 +285,7 @@ export default function AdminPage() {
             .update({ read_by_admin_at: new Date().toISOString() })
             .in('project_id', projectIds)
             .eq('message_type', 'message')
-            .neq('user_id', userData.user.id)
+            .eq('sender_type', 'customer')
             .is('read_by_admin_at', null);
 
           for (const item of ((messageData ?? []) as ProjectMessage[])) {
@@ -581,6 +581,7 @@ export default function AdminPage() {
         user_id: user.id,
         message: text,
         message_type: 'message',
+        sender_type: 'admin',
       })
       .select('*')
       .single();
