@@ -25,7 +25,33 @@ export default function AdminPage(){
   if(pe){setError('プロジェクトを取得できませんでした。');setLoading(false);return}
   const ps=pd??[]; const ids=Array.from(new Set(ps.map(p=>p.user_id))); let profiles:Profile[]=[];
   if(ids.length){const {data}=await supabase.from('profiles').select('id, company_name, contact_name, email').in('id',ids);profiles=data??[]}
-  setProjects(ps.map(p=>({...p,customer:profiles.find(x=>x.id===p.user_id)??null})));setLoading(false);
+
+  const projectIds=ps.map(p=>p.id);
+  const unreadByProject:Record<string,number>={};
+
+  if(projectIds.length){
+    const {data:messageData,error:messageError}=await (supabase.from('project_messages' as any) as any)
+      .select('project_id, sender_type, message_type, read_by_admin_at')
+      .in('project_id',projectIds)
+      .eq('message_type','message')
+      .eq('sender_type','customer')
+      .is('read_by_admin_at',null);
+
+    if(messageError){
+      console.error('Unread message load error:',messageError);
+    }else{
+      for(const message of (messageData??[])){
+        unreadByProject[message.project_id]=(unreadByProject[message.project_id]??0)+1;
+      }
+    }
+  }
+
+  setProjects(ps.map(p=>({
+    ...p,
+    customer:profiles.find(x=>x.id===p.user_id)??null,
+    unread_messages:unreadByProject[p.id]??0
+  })));
+  setLoading(false);
  })()},[router]);
  const counts=useMemo(()=>Object.fromEntries(filters.map(([v])=>[v,v==='all'?projects.length:v==='active'?projects.filter(p=>active.has(p.status)).length:projects.filter(p=>p.status===v).length])),[projects]);
  const visible=useMemo(()=>{const q=search.trim().toLowerCase();return projects.filter(p=>(filter==='all'||(filter==='active'?active.has(p.status):filter==='needs_action'?(p.status==='quote_requested'||p.status==='revision'):p.status===filter))&&(!q||[p.project_code,p.title,p.customer?.company_name,p.customer?.contact_name,p.customer?.email].some(v=>(v??'').toLowerCase().includes(q))))},[projects,search,filter]);
