@@ -1085,11 +1085,11 @@ export default function AdminPage() {
                     messages
                       .filter((item) => item.message_type === 'message')
                       .map((item) => {
-                        const mine = item.user_id === user?.id;
+                        const mine = item.sender_type === 'admin';
                         return (
                           <div className={`chatRow ${mine ? 'mine' : 'other'}`} key={item.id}>
                             <div className="chatMeta">
-                              <strong>{mine ? 'クリエイトサポート' : 'お客様'}</strong>
+                              <strong>{item.sender_type === 'admin' ? 'クリエイトサポート' : 'お客様'}</strong>
                               <span>{formatDate(item.created_at)}</span>
                             </div>
                             <div className="chatBubble">{item.message}</div>
