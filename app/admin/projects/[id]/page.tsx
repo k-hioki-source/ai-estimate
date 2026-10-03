@@ -3,8 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import type { User } from '@supabase/supabase-js';
-import { getSupabaseBrowserClient } from '../../lib/supabase/client';
-import type { Database } from '../../lib/supabase/database.types';
+import { getSupabaseBrowserClient } from '../../../../lib/supabase/client';
+import type { Database } from '../../../../lib/supabase/database.types';
 
 type Project = Database['public']['Tables']['projects']['Row'];
 type Estimate = Database['public']['Tables']['estimates']['Row'];
