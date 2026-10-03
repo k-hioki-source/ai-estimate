@@ -442,18 +442,30 @@ export default function AdminPage() {
     updateData.completed_at = new Date().toISOString();
   }
 
-  const { data, error: updateError } = await supabase
-    .from('projects')
-    .update(updateData)
-    .eq('id', project.id)
-    .select('*')
-    .single();
+  const statusResult =
+    nextStatus === 'delivered'
+      ? await (supabase as any).rpc('deliver_project', {
+          p_project_id: project.id,
+        })
+      : await supabase
+          .from('projects')
+          .update(updateData)
+          .eq('id', project.id)
+          .select('*')
+          .single();
+
+  const data = statusResult.data as Project | null;
+  const updateError = statusResult.error;
 
   setChangingStatusId(null);
 
-  if (updateError) {
+  if (updateError || !data) {
     console.error('Project status update error:', updateError);
-    setError('案件ステータスを変更できませんでした。');
+    setError(
+      nextStatus === 'delivered'
+        ? '納品処理または納品書の作成に失敗しました。'
+        : '案件ステータスを変更できませんでした。'
+    );
     return;
   }
 
