@@ -563,17 +563,35 @@ export default function AdminPage() {
   }
 
 
+  const project = projects[0] ?? null;
+  const files = project ? (projectFiles[project.id] ?? []) : [];
+  const messages = project ? (projectMessages[project.id] ?? []) : [];
+  const form = project ? forms[project.id] : undefined;
+
+  const reviewFiles = files.filter(
+    (file) => file.file_type === 'review' || file.file_type === 'revision'
+  );
+  const deliveryFiles = files.filter((file) => file.file_type === 'delivery');
+  const relevantMessages = messages.filter(
+    (item) =>
+      item.message_type === 'approval' ||
+      item.message_type === 'revision_request'
+  );
+  const latestReviewResult =
+    relevantMessages.length > 0
+      ? relevantMessages[relevantMessages.length - 1]
+      : null;
+  const isLatestApproved = latestReviewResult?.message_type === 'approval';
+
   return (
     <main className="myPageShell">
       <header className="myPageHeader">
         <div>
-          <div className="authBrand">
-            CS Works ADMIN
-          </div>
-          <h1>管理画面</h1>
+          <div className="authBrand">CS Works ADMIN</div>
+          <h1>案件詳細</h1>
         </div>
-
         <button
+          type="button"
           className="logoutButton"
           onClick={() => router.push('/admin')}
         >
@@ -581,442 +599,249 @@ export default function AdminPage() {
         </button>
       </header>
 
-      <section className="welcomeCard">
-        <span className="statusDot" /> 管理者
+      {error ? <div className="errorBox noticeBox">{error}</div> : null}
+      {message ? <div className="successBox noticeBox">{message}</div> : null}
 
-        <h2>案件詳細</h2>
-
-        <p>
-          お客様から届いた正式見積り依頼を確認し、
-          金額・工数・納期を設定できます。
-        </p>
-      </section>
-
-      {error ? (
-        <div
-          className="errorBox"
-          style={{ marginTop: '20px' }}
-        >
-          {error}
-        </div>
-      ) : null}
-
-      {message ? (
-        <div
-          style={{
-            marginTop: '20px',
-            padding: '14px 16px',
-            borderRadius: '12px',
-            background: '#eefbf3',
-            color: '#16733b',
-            fontWeight: 700,
-          }}
-        >
-          {message}
-        </div>
-      ) : null}
-
-      <section
-        className="authCard"
-        style={{
-          margin: '28px auto 0',
-          maxWidth: '100%',
-        }}
-      >
-        <div className="authBrand">
-          PROJECTS
-        </div>
-
-        <h2>案件情報</h2>
-
-        <p className="muted">
-          {projects.length}件のプロジェクトがあります。
-        </p>
-
-        {projects.length === 0 ? (
-          <div
-            style={{
-              marginTop: '20px',
-              padding: '24px',
-              borderRadius: '14px',
-              background: '#f6f8fb',
-            }}
-          >
-            正式見積り依頼はまだありません。
+      {!project ? (
+        <section className="projectDetailPanel">
+          <div className="emptyState">
+            <strong>案件が見つかりません。</strong>
+            <p>管理画面の案件一覧から選び直してください。</p>
+            <button
+              type="button"
+              className="primaryButton"
+              onClick={() => router.push('/admin')}
+            >
+              案件一覧へ戻る
+            </button>
           </div>
-        ) : (
-          <div
-            style={{
-              display: 'grid',
-              gap: '18px',
-              marginTop: '22px',
-            }}
-          >
-            {projects.map((project) => {
-              const form = forms[project.id];
+        </section>
+      ) : (
+        <>
+          <section className="projectHero">
+            <div className="projectHeroMain">
+              <div className="projectEyebrow">PROJECT ADMINISTRATION</div>
+              <div className="projectCode">{project.project_code}</div>
+              <h2>{project.title}</h2>
+              <span className={`statusPill status-${project.status}`}>
+                {statusLabel(project.status)}
+              </span>
+            </div>
 
-              return (
-                <article
-                  key={project.id}
-                  style={{
-                    padding: '20px',
-                    border: '1px solid #dbe3ec',
-                    borderRadius: '14px',
-                    background: '#ffffff',
-                  }}
-                >
-                  <div
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      gap: '16px',
-                      flexWrap: 'wrap',
-                    }}
-                  >
-                    <div>
-                      <div
-                        style={{
-                          color: '#64748b',
-                          fontSize: '12px',
-                        }}
-                      >
-                        案件番号
-                      </div>
+            <div className="heroMeta">
+              <div>
+                <span>依頼日</span>
+                <strong>{formatDate(project.created_at)}</strong>
+              </div>
+              <div>
+                <span>確定納期</span>
+                <strong>
+                  {project.confirmed_deadline
+                    ? formatDate(project.confirmed_deadline)
+                    : '未確定'}
+                </strong>
+              </div>
+            </div>
+          </section>
 
-                      <strong
-                        style={{
-                          fontSize: '18px',
-                        }}
-                      >
-                        {project.project_code}
-                      </strong>
-                    </div>
-
-                    <div
-                      style={{
-                        padding: '6px 10px',
-                        borderRadius: '999px',
-                        background: '#eefbf3',
-                        color: '#16733b',
-                        fontSize: '12px',
-                        fontWeight: 800,
-                        alignSelf: 'flex-start',
-                      }}
-                    >
-                      {statusLabel(project.status)}
-                    </div>
+          <div className="detailLayout">
+            <div className="detailMain">
+              <section className="detailSection">
+                <div className="sectionTitle">
+                  <div>
+                    <div className="sectionNumber">01</div>
+                    <h3>お客様・案件情報</h3>
                   </div>
+                </div>
 
-                  <div
-                    style={{
-                      marginTop: '14px',
-                      padding: '15px',
-                      borderRadius: '12px',
-                      background: '#f6f9fc',
-                    }}
-                  >
+                <div className="customerCard">
+                  <div>
+                    <span>会社名</span>
+                    <strong>{project.customer?.company_name || '会社名未登録'}</strong>
+                  </div>
+                  <div>
+                    <span>担当者</span>
                     <strong>
-                      {project.customer?.company_name ||
-                        '会社名未登録'}
-                    </strong>
-
-                    <div
-                      style={{
-                        marginTop: '5px',
-                        color: '#475569',
-                      }}
-                    >
                       {project.customer?.department_name
                         ? `${project.customer.department_name} `
                         : ''}
-                      {project.customer?.contact_name ||
-                        '担当者名未登録'}
-                    </div>
-
-                    <div
-                      style={{
-                        marginTop: '4px',
-                        color: '#64748b',
-                        fontSize: '13px',
-                      }}
-                    >
-                      {project.customer?.email}
-                    </div>
+                      {project.customer?.contact_name || '担当者名未登録'}
+                    </strong>
                   </div>
+                  <div>
+                    <span>メール</span>
+                    <strong>{project.customer?.email || '未登録'}</strong>
+                  </div>
+                </div>
 
-                  <h3
-                    style={{
-                      marginTop: '18px',
-                      marginBottom: '8px',
-                    }}
-                  >
-                    {project.title}
-                  </h3>
-
-                  {project.estimate ? (
-                    <div
-                      style={{
-                        color: '#475569',
-                        lineHeight: 1.7,
-                        fontSize: '14px',
-                      }}
-                    >
-                      AI概算：
-                      {project.estimate.estimated_amount != null
+                <div className="summaryGrid">
+                  <div className="summaryItem">
+                    <span>AI概算金額</span>
+                    <strong>
+                      {project.estimate?.estimated_amount != null
                         ? `${project.estimate.estimated_amount.toLocaleString()}円`
                         : '個別見積り'}
-                      {' ／ '}
-                      {project.estimate.estimated_hours != null
+                    </strong>
+                  </div>
+                  <div className="summaryItem">
+                    <span>AI概算工数</span>
+                    <strong>
+                      {project.estimate?.estimated_hours != null
                         ? `${project.estimate.estimated_hours}時間`
                         : '―'}
-
-                      <br />
-
-                      見積ID：
-                      {project.estimate.estimate_code}
-                    </div>
-                  ) : null}
-
-                  {project.description ? (
-                    <div
-                      style={{
-                        marginTop: '14px',
-                        paddingTop: '14px',
-                        borderTop: '1px solid #e5eaf0',
-                      }}
-                    >
-                      <div
-                        style={{
-                          color: '#64748b',
-                          fontSize: '12px',
-                          marginBottom: '5px',
-                        }}
-                      >
-                        お客様ご入力内容
-                      </div>
-
-                      <div
-                        style={{
-                          whiteSpace: 'pre-wrap',
-                          lineHeight: 1.7,
-                        }}
-                      >
-                        {project.description}
-                      </div>
-                    </div>
-                  ) : null}
-
-                  <div
-                    style={{
-                      display: 'grid',
-                      gridTemplateColumns:
-                        'repeat(auto-fit, minmax(180px, 1fr))',
-                      gap: '14px',
-                      marginTop: '20px',
-                      paddingTop: '18px',
-                      borderTop: '1px solid #e5eaf0',
-                    }}
-                  >
-                    <div>
-                      <label
-                        style={{
-                          display: 'block',
-                          fontSize: '13px',
-                          fontWeight: 700,
-                          marginBottom: '6px',
-                        }}
-                      >
-                        正式見積金額
-                      </label>
-
-                      <input
-                        type="number"
-                        min="0"
-                        step="1"
-                        value={form?.amount ?? ''}
-                        onChange={(e) =>
-                          updateForm(
-                            project.id,
-                            'amount',
-                            e.target.value
-                          )
-                        }
-                        placeholder="例：30000"
-                      />
-                    </div>
-
-                    <div>
-                      <label
-                        style={{
-                          display: 'block',
-                          fontSize: '13px',
-                          fontWeight: 700,
-                          marginBottom: '6px',
-                        }}
-                      >
-                        正式見積工数
-                      </label>
-
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.5"
-                        value={form?.hours ?? ''}
-                        onChange={(e) =>
-                          updateForm(
-                            project.id,
-                            'hours',
-                            e.target.value
-                          )
-                        }
-                        placeholder="例：10"
-                      />
-                    </div>
-
-                    <div>
-                      <label
-                        style={{
-                          display: 'block',
-                          fontSize: '13px',
-                          fontWeight: 700,
-                          marginBottom: '6px',
-                        }}
-                      >
-                        納期
-                      </label>
-
-                      <input
-                        type="date"
-                        value={form?.deadline ?? ''}
-                        onChange={(e) =>
-                          updateForm(
-                            project.id,
-                            'deadline',
-                            e.target.value
-                          )
-                        }
-                      />
-                    </div>
+                    </strong>
                   </div>
+                  <div className="summaryItem">
+                    <span>見積ID</span>
+                    <strong>{project.estimate?.estimate_code || '―'}</strong>
+                  </div>
+                  <div className="summaryItem">
+                    <span>現在の状態</span>
+                    <strong>{statusLabel(project.status)}</strong>
+                  </div>
+                </div>
 
-                  {(
-  project.status === 'quote_requested' ||
-  project.status === 'quote_reviewing' ||
-  project.status === 'quote_presented'
-) ? (
-  <button
-    type="button"
-    className="primaryButton"
-    style={{
-      marginTop: '18px',
-    }}
-    disabled={savingId === project.id}
-    onClick={() => presentQuote(project)}
-  >
-    {savingId === project.id
-      ? '保存中…'
-      : project.status === 'quote_presented'
-        ? '正式見積りを更新'
-        : '正式見積りを提示'}
-  </button>
-) : null}
+                {project.description ? (
+                  <div className="descriptionBox">
+                    <span>お客様ご入力内容</span>
+                    <p>{project.description}</p>
+                  </div>
+                ) : null}
+              </section>
 
+              <section className="detailSection">
+                <div className="sectionTitle">
+                  <div>
+                    <div className="sectionNumber">02</div>
+                    <h3>正式見積り</h3>
+                  </div>
+                </div>
 
-                  {(projectMessages[project.id] ?? []).length > 0 ? (
-                    <div
-                      style={{
-                        marginTop: '20px',
-                        padding: '16px',
-                        borderRadius: '12px',
-                        border: '1px solid #dbe3ec',
-                        background: '#ffffff',
-                      }}
+                <div className="quoteGrid">
+                  <label>
+                    <span>正式見積金額</span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="1"
+                      value={form?.amount ?? ''}
+                      onChange={(e) =>
+                        updateForm(project.id, 'amount', e.target.value)
+                      }
+                      placeholder="例：30000"
+                    />
+                  </label>
+
+                  <label>
+                    <span>正式見積工数</span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.5"
+                      value={form?.hours ?? ''}
+                      onChange={(e) =>
+                        updateForm(project.id, 'hours', e.target.value)
+                      }
+                      placeholder="例：10"
+                    />
+                  </label>
+
+                  <label>
+                    <span>納期</span>
+                    <input
+                      type="date"
+                      value={form?.deadline ?? ''}
+                      onChange={(e) =>
+                        updateForm(project.id, 'deadline', e.target.value)
+                      }
+                    />
+                  </label>
+                </div>
+
+                {(
+                  project.status === 'quote_requested' ||
+                  project.status === 'quote_reviewing' ||
+                  project.status === 'quote_presented'
+                ) ? (
+                  <button
+                    type="button"
+                    className="primaryButton actionButton"
+                    disabled={savingId === project.id}
+                    onClick={() => presentQuote(project)}
+                  >
+                    {savingId === project.id
+                      ? '保存中…'
+                      : project.status === 'quote_presented'
+                        ? '正式見積りを更新'
+                        : '正式見積りを提示'}
+                  </button>
+                ) : (
+                  <div className="stateCard success">
+                    <strong>✓ 正式見積り提示済み</strong>
+                    <p>
+                      {project.quoted_amount != null
+                        ? `${project.quoted_amount.toLocaleString()}円`
+                        : '―'}
+                      {' ／ '}
+                      {project.quoted_hours != null
+                        ? `${project.quoted_hours}時間`
+                        : '―'}
+                      {' ／ 納期 '}
+                      {project.confirmed_deadline
+                        ? formatDate(project.confirmed_deadline)
+                        : '―'}
+                    </p>
+                  </div>
+                )}
+              </section>
+
+              <section className="detailSection">
+                <div className="sectionTitle">
+                  <div>
+                    <div className="sectionNumber">03</div>
+                    <h3>制作進行</h3>
+                  </div>
+                </div>
+
+                {project.status === 'quote_requested' ||
+                project.status === 'quote_reviewing' ||
+                project.status === 'quote_presented' ? (
+                  <div className="stateCard neutral">
+                    <strong>発注待ち</strong>
+                    <p>正式見積り提示後、お客様の発注を待ちます。</p>
+                  </div>
+                ) : null}
+
+                {project.status === 'ordered' ? (
+                  <div className="stateCard attention">
+                    <strong>お客様から発注されました</strong>
+                    <p>制作を開始する場合は下のボタンを押してください。</p>
+                    <button
+                      type="button"
+                      className="primaryButton actionButton"
+                      disabled={changingStatusId === project.id}
+                      onClick={() => changeProjectStatus(project, 'in_production')}
                     >
-                      <div style={{ fontWeight: 800, marginBottom: '10px' }}>
-                        お客様からの確認結果・コメント
-                      </div>
+                      {changingStatusId === project.id
+                        ? '変更中…'
+                        : '制作を開始する'}
+                    </button>
+                  </div>
+                ) : null}
 
-                      <div style={{ display: 'grid', gap: '10px' }}>
-                        {(projectMessages[project.id] ?? []).map((item) => (
-                          <div
-                            key={item.id}
-                            style={{
-                              padding: '12px 14px',
-                              borderRadius: '10px',
-                              background:
-                                item.message_type === 'revision_request'
-                                  ? '#fff7ed'
-                                  : item.message_type === 'approval'
-                                    ? '#eefbf3'
-                                    : '#f8fafc',
-                              border: '1px solid #e5eaf0',
-                            }}
-                          >
-                            <div
-                              style={{
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                gap: '12px',
-                                flexWrap: 'wrap',
-                                marginBottom: '6px',
-                              }}
-                            >
-                              <strong>
-                                {item.message_type === 'revision_request'
-                                  ? '修正依頼'
-                                  : item.message_type === 'approval'
-                                    ? '承認'
-                                    : item.message_type === 'system'
-                                      ? 'システム'
-                                      : 'メッセージ'}
-                              </strong>
-
-                              <span
-                                style={{
-                                  color: '#64748b',
-                                  fontSize: '12px',
-                                }}
-                              >
-                                {formatDate(item.created_at)}
-                              </span>
-                            </div>
-
-                            <div
-                              style={{
-                                whiteSpace: 'pre-wrap',
-                                lineHeight: 1.7,
-                                color: '#334155',
-                              }}
-                            >
-                              {item.message}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ) : null}
-
-                  {(project.status === 'in_production' ||
-                    project.status === 'customer_review' ||
-                    project.status === 'revision') ? (
-                    <div style={{
-                      marginTop: '20px',
-                      padding: '16px',
-                      borderRadius: '12px',
-                      border: '1px solid #dbe3ec',
-                      background: '#f8fafc',
-                    }}>
-                      <div style={{ fontWeight: 800, marginBottom: '8px' }}>
-                        {project.status === 'revision'
-                          ? '修正版ファイル'
-                          : 'お客様確認用ファイル'}
-                      </div>
-                      <p style={{ margin: '0 0 12px', color: '#64748b', fontSize: '13px' }}>
-                        {project.status === 'revision'
-                          ? '修正した画像・PDFなどをアップロードできます（最大50MB）。'
-                          : '確認してもらう画像・PDFなどをアップロードできます（最大50MB）。'}
+                {project.status === 'in_production' ? (
+                  <div className="workPanel">
+                    <div className="stateCard progress">
+                      <strong>制作中</strong>
+                      <p>
+                        お客様へ確認してもらうファイルをアップロードし、確認工程へ進めます。
                       </p>
-                      <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+                    </div>
+
+                    <div className="uploadPanel">
+                      <strong>お客様確認用ファイル</strong>
+                      <p>画像・PDFなどをアップロードできます（最大50MB）。</p>
+                      <div className="uploadControls">
                         <input
                           type="file"
                           onChange={(e) =>
@@ -1029,203 +854,491 @@ export default function AdminPage() {
                         <button
                           type="button"
                           className="primaryButton"
-                          disabled={uploadingProjectId === project.id || !selectedFiles[project.id]}
-                          onClick={() => uploadProjectFile(project, project.status === 'revision' ? 'revision' : 'review')}
+                          disabled={
+                            uploadingProjectId === project.id ||
+                            !selectedFiles[project.id]
+                          }
+                          onClick={() => uploadProjectFile(project, 'review')}
                         >
-                          {uploadingProjectId === project.id ? 'アップロード中…' : '確認ファイルをアップロード'}
+                          {uploadingProjectId === project.id
+                            ? 'アップロード中…'
+                            : '確認ファイルをアップロード'}
                         </button>
                       </div>
-
-                      {(projectFiles[project.id] ?? []).length > 0 ? (
-                        <div style={{ marginTop: '16px', display: 'grid', gap: '8px' }}>
-                          {(projectFiles[project.id] ?? []).map((file) => (
-                            <div key={file.id} style={{
-                              padding: '10px 12px',
-                              borderRadius: '10px',
-                              background: '#fff',
-                              border: '1px solid #e5eaf0',
-                              display: 'flex',
-                              justifyContent: 'space-between',
-                              gap: '12px',
-                            }}>
-                              <div>
-                                <strong>{file.file_name}</strong>
-                                <div style={{ color: '#64748b', fontSize: '12px', marginTop: '3px' }}>
-                                  {file.file_size != null ? `${(file.file_size / 1024 / 1024).toFixed(2)} MB` : ''}
-                                  {' ・ '}{formatDate(file.created_at)}
-                                </div>
-                              </div>
-                              {file.signed_url ? (
-                                <a href={file.signed_url} target="_blank" rel="noreferrer">開く</a>
-                              ) : null}
-                            </div>
-                          ))}
-                        </div>
-                      ) : null}
+                      <FileRows files={reviewFiles} />
                     </div>
-                  ) : null}
 
-                  {project.status === 'ordered' ? (
-  <button
-    type="button"
-    className="primaryButton"
-    style={{ marginTop: '12px' }}
-    disabled={changingStatusId === project.id}
-    onClick={() =>
-      changeProjectStatus(project, 'in_production')
-    }
-  >
-    {changingStatusId === project.id
-      ? '変更中…'
-      : '制作を開始する'}
-  </button>
-) : null}
-
-{project.status === 'in_production' ? (
-  <button
-    type="button"
-    className="primaryButton"
-    style={{ marginTop: '12px' }}
-    disabled={changingStatusId === project.id}
-    onClick={() =>
-      changeProjectStatus(project, 'customer_review')
-    }
-  >
-    {changingStatusId === project.id
-      ? '変更中…'
-      : 'お客様確認へ進める'}
-  </button>
-) : null}
-
-{project.status === 'customer_review' ? (
-  <div
-    style={{
-      display: 'flex',
-      gap: '10px',
-      flexWrap: 'wrap',
-      marginTop: '12px',
-    }}
-  >
-    <button
-      type="button"
-      className="primaryButton"
-      disabled={changingStatusId === project.id}
-      onClick={() =>
-        changeProjectStatus(project, 'revision')
-      }
-    >
-      修正対応へ
-    </button>
-
-    
-  </div>
-) : null}
-
-{project.status === 'revision' ? (
-  <button
-    type="button"
-    className="primaryButton"
-    style={{ marginTop: '12px' }}
-    disabled={changingStatusId === project.id}
-    onClick={() =>
-      changeProjectStatus(project, 'customer_review')
-    }
-  >
-    {changingStatusId === project.id
-      ? '変更中…'
-      : '再度お客様確認へ'}
-  </button>
-) : null}
-
-{project.status === 'customer_review' &&
-(projectMessages[project.id] ?? []).some((item) => item.message_type === 'approval') ? (
-  <div style={{ marginTop: '20px', padding: '16px', borderRadius: '12px', border: '1px solid #bbf7d0', background: '#f0fdf4' }}>
-    <div style={{ fontWeight: 800, marginBottom: '8px' }}>最終納品ファイル</div>
-    <p style={{ margin: '0 0 12px', color: '#475569', fontSize: '13px' }}>
-      お客様承認後の最終データをアップロードしてください（最大50MB）。
-    </p>
-    <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
-      <input type="file" onChange={(e) => setSelectedFiles((c) => ({ ...c, [project.id]: e.target.files?.[0] ?? null }))} />
-      <button type="button" className="primaryButton"
-        disabled={uploadingProjectId === project.id || !selectedFiles[project.id]}
-        onClick={() => uploadProjectFile(project, 'delivery')}>
-        {uploadingProjectId === project.id ? 'アップロード中…' : '納品ファイルをアップロード'}
-      </button>
-    </div>
-    {(projectFiles[project.id] ?? []).filter((f) => f.file_type === 'delivery').map((f) => (
-      <div key={f.id} style={{ marginTop: '10px', padding: '10px 12px', borderRadius: '10px', background: '#fff', border: '1px solid #dcfce7', display: 'flex', justifyContent: 'space-between', gap: '12px' }}>
-        <strong>{f.file_name}</strong>
-        {f.signed_url ? <a href={f.signed_url} target="_blank" rel="noreferrer">開く</a> : null}
-      </div>
-    ))}
-    {(projectFiles[project.id] ?? []).some((f) => f.file_type === 'delivery') ? (
-      <button type="button" className="primaryButton" style={{ marginTop: '14px' }}
-        disabled={changingStatusId === project.id}
-        onClick={() => changeProjectStatus(project, 'delivered')}>
-        お客様へ納品する
-      </button>
-    ) : null}
-  </div>
-) : null}
-
-{project.status === 'delivered' ? (
-  <button
-    type="button"
-    className="primaryButton"
-    style={{ marginTop: '12px' }}
-    disabled={changingStatusId === project.id}
-    onClick={() =>
-      changeProjectStatus(project, 'completed')
-    }
-  >
-    {changingStatusId === project.id
-      ? '変更中…'
-      : '案件を完了する'}
-  </button>
-) : null}
-
-{project.status === 'completed' ? (
-  <div
-    style={{
-      marginTop: '14px',
-      padding: '13px 15px',
-      borderRadius: '10px',
-      background: '#eefbf3',
-      color: '#16733b',
-      fontWeight: 800,
-    }}
-  >
-    ✓ この案件は完了しています
-    {project.completed_at ? (
-      <div
-        style={{
-          marginTop: '4px',
-          fontSize: '12px',
-          fontWeight: 500,
-        }}
-      >
-        完了日：{formatDate(project.completed_at)}
-      </div>
-    ) : null}
-  </div>
-) : null}
-
-                  <div
-                    style={{
-                      marginTop: '12px',
-                      color: '#64748b',
-                      fontSize: '12px',
-                    }}
-                  >
-                    依頼日：
-                    {formatDate(project.created_at)}
+                    <button
+                      type="button"
+                      className="primaryButton actionButton"
+                      disabled={changingStatusId === project.id}
+                      onClick={() =>
+                        changeProjectStatus(project, 'customer_review')
+                      }
+                    >
+                      {changingStatusId === project.id
+                        ? '変更中…'
+                        : 'お客様確認へ進める'}
+                    </button>
                   </div>
-                </article>
-              );
-            })}
+                ) : null}
+
+                {project.status === 'customer_review' ? (
+                  <div className="stateCard attention">
+                    <strong>お客様確認中</strong>
+                    <p>
+                      お客様の承認または修正依頼を待っています。
+                    </p>
+                    {!isLatestApproved ? (
+                      <button
+                        type="button"
+                        className="secondaryAction actionButton"
+                        disabled={changingStatusId === project.id}
+                        onClick={() => changeProjectStatus(project, 'revision')}
+                      >
+                        修正対応へ
+                      </button>
+                    ) : null}
+                  </div>
+                ) : null}
+
+                {project.status === 'revision' ? (
+                  <div className="workPanel">
+                    <div className="stateCard progress">
+                      <strong>修正対応中</strong>
+                      <p>修正版をアップロードして、再度お客様確認へ進めます。</p>
+                    </div>
+
+                    <div className="uploadPanel">
+                      <strong>修正版ファイル</strong>
+                      <p>修正した画像・PDFなどをアップロードできます（最大50MB）。</p>
+                      <div className="uploadControls">
+                        <input
+                          type="file"
+                          onChange={(e) =>
+                            setSelectedFiles((current) => ({
+                              ...current,
+                              [project.id]: e.target.files?.[0] ?? null,
+                            }))
+                          }
+                        />
+                        <button
+                          type="button"
+                          className="primaryButton"
+                          disabled={
+                            uploadingProjectId === project.id ||
+                            !selectedFiles[project.id]
+                          }
+                          onClick={() => uploadProjectFile(project, 'revision')}
+                        >
+                          {uploadingProjectId === project.id
+                            ? 'アップロード中…'
+                            : '修正版をアップロード'}
+                        </button>
+                      </div>
+                      <FileRows files={reviewFiles} />
+                    </div>
+
+                    <button
+                      type="button"
+                      className="primaryButton actionButton"
+                      disabled={changingStatusId === project.id}
+                      onClick={() =>
+                        changeProjectStatus(project, 'customer_review')
+                      }
+                    >
+                      {changingStatusId === project.id
+                        ? '変更中…'
+                        : '再度お客様確認へ'}
+                    </button>
+                  </div>
+                ) : null}
+
+                {project.status === 'delivered' ? (
+                  <div className="stateCard success">
+                    <strong>納品済み</strong>
+                    <p>納品内容に問題がなければ案件を完了してください。</p>
+                    <button
+                      type="button"
+                      className="primaryButton actionButton"
+                      disabled={changingStatusId === project.id}
+                      onClick={() => changeProjectStatus(project, 'completed')}
+                    >
+                      {changingStatusId === project.id
+                        ? '変更中…'
+                        : '案件を完了する'}
+                    </button>
+                  </div>
+                ) : null}
+
+                {project.status === 'completed' ? (
+                  <div className="stateCard success">
+                    <strong>✓ この案件は完了しています</strong>
+                    <p>
+                      {project.completed_at
+                        ? `完了日：${formatDate(project.completed_at)}`
+                        : '案件完了'}
+                    </p>
+                  </div>
+                ) : null}
+              </section>
+
+              <section className="detailSection">
+                <div className="sectionTitle">
+                  <div>
+                    <div className="sectionNumber">04</div>
+                    <h3>お客様からの確認結果・コメント</h3>
+                  </div>
+                </div>
+
+                {relevantMessages.length ? (
+                  <div className="timeline">
+                    {relevantMessages.map((item) => (
+                      <div className="timelineItem" key={item.id}>
+                        <div
+                          className={`timelineDot ${
+                            item.message_type === 'approval' ? 'approved' : ''
+                          }`}
+                        />
+                        <div>
+                          <div className="timelineHead">
+                            <strong>
+                              {item.message_type === 'approval'
+                                ? '承認'
+                                : '修正依頼'}
+                            </strong>
+                            <span>{formatDate(item.created_at)}</span>
+                          </div>
+                          <p>{item.message}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="emptyInline">確認結果はまだありません。</div>
+                )}
+              </section>
+
+              <section className="detailSection">
+                <div className="sectionTitle">
+                  <div>
+                    <div className="sectionNumber">05</div>
+                    <h3>最終納品</h3>
+                  </div>
+                </div>
+
+                {project.status === 'customer_review' && isLatestApproved ? (
+                  <div className="deliveryPanel">
+                    <div className="stateCard success">
+                      <strong>✓ お客様承認済み</strong>
+                      <p>最終データをアップロードして納品してください。</p>
+                    </div>
+
+                    <div className="uploadPanel deliveryUpload">
+                      <strong>最終納品ファイル</strong>
+                      <p>納品するファイルをアップロードしてください（最大50MB）。</p>
+                      <div className="uploadControls">
+                        <input
+                          type="file"
+                          onChange={(e) =>
+                            setSelectedFiles((current) => ({
+                              ...current,
+                              [project.id]: e.target.files?.[0] ?? null,
+                            }))
+                          }
+                        />
+                        <button
+                          type="button"
+                          className="primaryButton"
+                          disabled={
+                            uploadingProjectId === project.id ||
+                            !selectedFiles[project.id]
+                          }
+                          onClick={() => uploadProjectFile(project, 'delivery')}
+                        >
+                          {uploadingProjectId === project.id
+                            ? 'アップロード中…'
+                            : '納品ファイルをアップロード'}
+                        </button>
+                      </div>
+                    </div>
+
+                    <FileRows files={deliveryFiles} />
+
+                    {deliveryFiles.length > 0 ? (
+                      <button
+                        type="button"
+                        className="primaryButton actionButton"
+                        disabled={changingStatusId === project.id}
+                        onClick={() => changeProjectStatus(project, 'delivered')}
+                      >
+                        お客様へ納品する
+                      </button>
+                    ) : null}
+                  </div>
+                ) : deliveryFiles.length > 0 ? (
+                  <FileRows files={deliveryFiles} />
+                ) : (
+                  <div className="emptyInline">
+                    お客様承認後、最終納品ファイルを登録できます。
+                  </div>
+                )}
+              </section>
+            </div>
+
+            <aside className="detailSide">
+              <div className="sideCard">
+                <span className="sideLabel">現在のステータス</span>
+                <strong>{statusLabel(project.status)}</strong>
+                <div className="progressSteps">
+                  <div className="done">見積り依頼</div>
+                  <div
+                    className={
+                      [
+                        'quote_presented',
+                        'ordered',
+                        'in_production',
+                        'customer_review',
+                        'revision',
+                        'delivered',
+                        'completed',
+                      ].includes(project.status)
+                        ? 'done'
+                        : ''
+                    }
+                  >
+                    正式見積り
+                  </div>
+                  <div
+                    className={
+                      [
+                        'ordered',
+                        'in_production',
+                        'customer_review',
+                        'revision',
+                        'delivered',
+                        'completed',
+                      ].includes(project.status)
+                        ? 'done'
+                        : ''
+                    }
+                  >
+                    発注
+                  </div>
+                  <div
+                    className={
+                      [
+                        'in_production',
+                        'customer_review',
+                        'revision',
+                        'delivered',
+                        'completed',
+                      ].includes(project.status)
+                        ? 'done'
+                        : ''
+                    }
+                  >
+                    制作
+                  </div>
+                  <div
+                    className={
+                      ['customer_review', 'revision', 'delivered', 'completed'].includes(
+                        project.status
+                      )
+                        ? 'done'
+                        : ''
+                    }
+                  >
+                    確認
+                  </div>
+                  <div
+                    className={
+                      ['delivered', 'completed'].includes(project.status)
+                        ? 'done'
+                        : ''
+                    }
+                  >
+                    納品
+                  </div>
+                </div>
+              </div>
+
+              <div className="sideCard">
+                <span className="sideLabel">案件情報</span>
+                <dl>
+                  <div>
+                    <dt>案件番号</dt>
+                    <dd>{project.project_code}</dd>
+                  </div>
+                  <div>
+                    <dt>正式見積</dt>
+                    <dd>
+                      {project.quoted_amount != null
+                        ? `${project.quoted_amount.toLocaleString()}円`
+                        : '未提示'}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>工数</dt>
+                    <dd>
+                      {project.quoted_hours != null
+                        ? `${project.quoted_hours}時間`
+                        : '未提示'}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>納期</dt>
+                    <dd>
+                      {project.confirmed_deadline
+                        ? formatDate(project.confirmed_deadline)
+                        : '未確定'}
+                    </dd>
+                  </div>
+                </dl>
+              </div>
+            </aside>
           </div>
-        )}
-      </section>
+        </>
+      )}
+
+      <style jsx>{`
+        .noticeBox { margin-top: 18px; }
+        .successBox { padding: 12px 14px; border-radius: 10px; background: #eefbf3; color: #16733b; font-weight: 700; }
+        .projectHero {
+          margin-top: 26px;
+          padding: 28px 30px;
+          border-radius: 22px;
+          color: #fff;
+          background: linear-gradient(115deg, #101d3c, #244495);
+          display: flex;
+          justify-content: space-between;
+          gap: 28px;
+          align-items: flex-end;
+          box-shadow: 0 18px 40px rgba(15,23,42,.12);
+        }
+        .projectEyebrow { font-size: 12px; font-weight: 900; letter-spacing: .12em; opacity: .72; }
+        .projectCode { margin-top: 10px; font-size: 13px; font-weight: 800; opacity: .9; }
+        .projectHero h2 { margin: 7px 0 12px; font-size: clamp(22px,3vw,32px); line-height: 1.35; }
+        .statusPill { display: inline-flex; padding: 7px 11px; border-radius: 999px; background: rgba(255,255,255,.14); font-size: 12px; font-weight: 900; }
+        .heroMeta { display: flex; gap: 26px; flex-wrap: wrap; }
+        .heroMeta div { min-width: 110px; }
+        .heroMeta span { display: block; font-size: 11px; opacity: .7; margin-bottom: 5px; }
+        .heroMeta strong { font-size: 14px; }
+        .detailLayout { display: grid; grid-template-columns: minmax(0,1fr) 280px; gap: 22px; margin-top: 22px; align-items: start; }
+        .detailMain { display: grid; gap: 18px; min-width: 0; }
+        .detailSection, .sideCard, .projectDetailPanel {
+          border: 1px solid #e2e8f0;
+          border-radius: 18px;
+          background: #fff;
+          box-shadow: 0 10px 28px rgba(15,23,42,.045);
+        }
+        .detailSection { padding: 24px; }
+        .sectionTitle { margin-bottom: 18px; }
+        .sectionTitle > div { display: flex; align-items: center; gap: 10px; }
+        .sectionNumber { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 9px; background: #eef4ff; color: #1d4ed8; font-size: 11px; font-weight: 900; }
+        .sectionTitle h3 { margin: 0; font-size: 18px; }
+        .customerCard { display: grid; grid-template-columns: 1.2fr 1fr 1.2fr; gap: 10px; margin-bottom: 12px; }
+        .customerCard > div, .summaryItem { padding: 14px; border-radius: 12px; background: #f7f9fc; border: 1px solid #edf1f5; min-width: 0; }
+        .customerCard span, .summaryItem span, .descriptionBox > span, .sideLabel { display: block; color: #64748b; font-size: 11px; font-weight: 700; margin-bottom: 6px; }
+        .customerCard strong { display: block; overflow-wrap: anywhere; }
+        .summaryGrid { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 10px; }
+        .summaryItem strong { display: block; font-size: 14px; overflow-wrap: anywhere; }
+        .descriptionBox { margin-top: 14px; padding: 15px; border: 1px solid #e5eaf0; border-radius: 12px; }
+        .descriptionBox p { margin: 0; white-space: pre-wrap; line-height: 1.7; }
+        .quoteGrid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 12px; }
+        .quoteGrid label span { display: block; font-size: 12px; font-weight: 800; margin-bottom: 6px; }
+        .quoteGrid input { width: 100%; box-sizing: border-box; }
+        .actionButton { width: auto !important; margin-top: 14px; }
+        .stateCard { padding: 17px; border-radius: 13px; border: 1px solid #e2e8f0; }
+        .stateCard strong { font-size: 16px; }
+        .stateCard p { margin: 7px 0 0; color: #475569; line-height: 1.65; font-size: 13px; }
+        .stateCard.neutral { background: #f8fafc; }
+        .stateCard.attention { background: #fffaf2; border-color: #fed7aa; }
+        .stateCard.progress { background: #eff6ff; border-color: #bfdbfe; }
+        .stateCard.success { background: #f0fdf4; border-color: #bbf7d0; color: #166534; }
+        .workPanel, .deliveryPanel { display: grid; gap: 14px; }
+        .uploadPanel { padding: 16px; border-radius: 13px; border: 1px solid #dbe3ec; background: #f8fafc; }
+        .uploadPanel > p { margin: 6px 0 12px; color: #64748b; font-size: 13px; }
+        .deliveryUpload { border-color: #bbf7d0; background: #f7fff9; }
+        .uploadControls { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+        .uploadControls button { width: auto !important; }
+        .fileList { margin-top: 14px; display: grid; gap: 8px; }
+        .fileRow { padding: 12px 13px; border: 1px solid #e5eaf0; border-radius: 11px; display: flex; justify-content: space-between; gap: 12px; align-items: center; background: #fff; }
+        .fileRow span { display: block; color: #64748b; font-size: 11px; margin-top: 4px; }
+        .fileRow a { color: #145edb; font-size: 13px; font-weight: 800; white-space: nowrap; }
+        .secondaryAction { padding: 12px 18px; border-radius: 10px; border: 1px solid #cbd5e1; background: #fff; font-weight: 800; cursor: pointer; }
+        .timeline { display: grid; gap: 0; }
+        .timelineItem { position: relative; display: grid; grid-template-columns: 18px 1fr; gap: 12px; padding: 0 0 18px; }
+        .timelineItem:not(:last-child)::before { content: ''; position: absolute; left: 5px; top: 13px; bottom: 0; width: 2px; background: #e2e8f0; }
+        .timelineDot { width: 12px; height: 12px; margin-top: 4px; border-radius: 50%; background: #f97316; z-index: 1; }
+        .timelineDot.approved { background: #22c55e; }
+        .timelineHead { display: flex; justify-content: space-between; gap: 12px; }
+        .timelineHead span { color: #64748b; font-size: 11px; }
+        .timelineItem p { margin: 5px 0 0; color: #475569; line-height: 1.65; white-space: pre-wrap; }
+        .emptyInline { padding: 18px; border-radius: 11px; background: #f8fafc; color: #64748b; font-size: 13px; }
+        .detailSide { display: grid; gap: 14px; position: sticky; top: 18px; }
+        .sideCard { padding: 18px; }
+        .sideCard > strong { display: block; font-size: 16px; margin-bottom: 16px; }
+        .progressSteps { display: grid; gap: 8px; }
+        .progressSteps div { position: relative; padding: 8px 9px 8px 30px; border-radius: 9px; background: #f8fafc; color: #94a3b8; font-size: 12px; font-weight: 800; }
+        .progressSteps div::before { content: ''; position: absolute; left: 11px; top: 50%; width: 8px; height: 8px; margin-top: -4px; border-radius: 50%; background: #cbd5e1; }
+        .progressSteps div.done { color: #166534; background: #f0fdf4; }
+        .progressSteps div.done::before { background: #22c55e; }
+        .sideCard dl { margin: 0; display: grid; gap: 12px; }
+        .sideCard dl div { padding-bottom: 11px; border-bottom: 1px solid #eef2f7; }
+        .sideCard dt { color: #64748b; font-size: 11px; }
+        .sideCard dd { margin: 4px 0 0; font-weight: 800; overflow-wrap: anywhere; }
+        .projectDetailPanel { margin-top: 24px; padding: 30px; }
+        .emptyState { text-align: center; padding: 40px 10px; }
+        .emptyState p { color: #64748b; }
+        .emptyState button { width: auto !important; margin-top: 8px; }
+
+        @media (max-width: 1000px) {
+          .detailLayout { grid-template-columns: 1fr; }
+          .detailSide { position: static; grid-template-columns: repeat(2,minmax(0,1fr)); }
+          .summaryGrid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+          .customerCard { grid-template-columns: 1fr 1fr; }
+        }
+        @media (max-width: 700px) {
+          .projectHero { display: block; padding: 22px 18px; border-radius: 17px; }
+          .heroMeta { margin-top: 20px; }
+          .detailSection { padding: 18px 14px; border-radius: 14px; }
+          .detailSide { grid-template-columns: 1fr; }
+          .quoteGrid, .customerCard { grid-template-columns: 1fr; }
+          .sourceEstimate, .fileRow { align-items: flex-start; flex-direction: column; }
+          .timelineHead { display: block; }
+        }
+        @media (max-width: 430px) {
+          .summaryGrid { grid-template-columns: 1fr; }
+        }
+      `}</style>
     </main>
   );
+
+  function FileRows({ files }: { files: ProjectFile[] }) {
+    if (!files.length) return null;
+
+    return (
+      <div className="fileList">
+        {files.map((file) => (
+          <div className="fileRow" key={file.id}>
+            <div>
+              <strong>{file.file_name}</strong>
+              <span>
+                {file.file_size != null
+                  ? `${(file.file_size / 1024 / 1024).toFixed(2)} MB ・ `
+                  : ''}
+                {formatDate(file.created_at)}
+              </span>
+            </div>
+            {file.signed_url ? (
+              <a href={file.signed_url} target="_blank" rel="noreferrer">
+                ファイルを開く →
+              </a>
+            ) : null}
+          </div>
+        ))}
+      </div>
+    );
+  }
 }
