@@ -9,7 +9,12 @@ import type { Database } from '../../lib/supabase/database.types';
 
 type Estimate = Database['public']['Tables']['estimates']['Row'] & { archived_at?: string | null };
 type ProjectBase = Database['public']['Tables']['projects']['Row'];
-type Project = ProjectBase & { unread_messages?: number; archived_at?: string | null };
+type Project = Omit<ProjectBase, 'status'> & {
+  status: ProjectBase['status'] | 'approved' | 'invoice_requested' | 'invoiced';
+  unread_messages?: number;
+  archived_at?: string | null;
+  invoice?: { payment_due_date: string | null; total_amount: number } | null;
+};
 type Profile = {
   company_name: string; department_name: string; contact_name: string;
   phone: string; postal_code: string; address: string;
@@ -19,8 +24,8 @@ const emptyProfile: Profile = { company_name:'', department_name:'', contact_nam
 function fmt(v:string|null){ if(!v)return '―'; return new Intl.DateTimeFormat('ja-JP',{year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(v)); }
 function production(v:string|null){ return v==='photo_trace'?'写真・画像トレース':v==='reference_drawing'?'写真・図面・資料から作図':v==='cad_conversion'?'XVL・3DCADから作成':v||'未設定'; }
 function expression(v:string|null){ return v==='line'?'白黒線画':v==='color'?'カラーイラスト':v==='real'?'リアルイラスト':v||'未設定'; }
-function statusLabel(s:Project['status']){ return ({quote_requested:'正式見積り依頼済み',quote_reviewing:'見積り確認中',quote_presented:'正式見積り提示済み',ordered:'発注済み',in_production:'制作中',customer_review:'ご確認ください',revision:'修正対応中',delivered:'納品済み',completed:'完了',cancelled:'キャンセル'} as Record<string,string>)[s]||s; }
-const active = new Set<Project['status']>(['quote_requested','quote_reviewing','quote_presented','ordered','in_production','customer_review','revision','delivered']);
+function statusLabel(s:Project['status']){ return ({quote_requested:'正式見積り依頼済み',quote_reviewing:'見積り確認中',quote_presented:'正式見積り提示済み',ordered:'発注済み',in_production:'制作中',customer_review:'ご確認ください',revision:'修正対応中',approved:'承認済み・納品待ち',delivered:'納品済み・請求書発行待ち',invoice_requested:'請求書発行依頼済み',invoiced:'請求済み・お支払い待ち',completed:'完了',cancelled:'キャンセル'} as Record<string,string>)[s]||s; }
+const active = new Set<Project['status']>(['quote_requested','quote_reviewing','quote_presented','ordered','in_production','customer_review','revision','approved','delivered','invoice_requested','invoiced']);
 
 export default function MyPage(){
  const router=useRouter();
@@ -53,8 +58,25 @@ export default function MyPage(){
       if(messageError) console.error('Customer unread message load error:',messageError);
       else for(const item of (messageData??[])) unreadByProject[item.project_id]=(unreadByProject[item.project_id]??0)+1;
     }
+    const invoiceByProject:Record<string,{payment_due_date:string|null;total_amount:number}>={};
+    if(projectIds.length){
+      const {data:invoiceData,error:invoiceError}=await (supabase.from('project_invoices' as any) as any)
+        .select('project_id, payment_due_date, total_amount')
+        .in('project_id',projectIds);
+      if(invoiceError) console.error('Customer invoice load error:',invoiceError);
+      else for(const invoice of (invoiceData??[])){
+        invoiceByProject[invoice.project_id]={
+          payment_due_date:invoice.payment_due_date??null,
+          total_amount:invoice.total_amount??0
+        };
+      }
+    }
     setEstimates(e??[]);
-    setProjects(projectRows.map(project=>({...project,unread_messages:unreadByProject[project.id]??0})));
+    setProjects(projectRows.map(project=>({
+      ...project,
+      unread_messages:unreadByProject[project.id]??0,
+      invoice:invoiceByProject[project.id]??null
+    })));
     setLoading(false);
  })()},[router]);
 
@@ -87,9 +109,9 @@ export default function MyPage(){
        <button className={projectFilter==='archived'?'active':''} onClick={()=>setProjectFilter('archived')}>アーカイブ {projects.filter(p=>Boolean(p.archived_at)).length}</button>
      </div>
      <div className="projectTableWrap"><table><thead><tr><th>案件番号</th><th>案件名</th><th>ステータス</th><th>メッセージ</th><th>正式見積</th><th>納期</th><th>更新日</th><th></th></tr></thead><tbody>
-       {visibleProjects.map(p=><tr key={p.id} onClick={()=>router.push(`/mypage/projects/${p.id}`)}><td><strong>{p.project_code}</strong></td><td>{p.title}</td><td><span className={`badge ${p.status==='quote_presented'||p.status==='customer_review'?'attention':''}`}>{statusLabel(p.status)}</span></td><td>{(p.unread_messages??0)>0?<span className="messageBadge">💬 {p.unread_messages}</span>:<span className="noMessage">―</span>}</td><td>{p.quoted_amount!=null?`${p.quoted_amount.toLocaleString()}円`:'―'}</td><td>{fmt(p.confirmed_deadline)}</td><td>{fmt(p.updated_at)}</td><td><strong>詳細 →</strong></td></tr>)}
+       {visibleProjects.map(p=><tr key={p.id} onClick={()=>router.push(`/mypage/projects/${p.id}`)}><td><strong>{p.project_code}</strong></td><td>{p.title}</td><td><span className={`badge ${p.status==='quote_presented'||p.status==='customer_review'?'attention':p.status==='invoiced'?'paymentWaiting':''}`}>{statusLabel(p.status)}</span>{p.status==='invoiced'&&p.invoice?.payment_due_date?<div className={`paymentDue ${new Date(`${p.invoice.payment_due_date}T23:59:59`).getTime()<Date.now()?'overdue':''}`}>支払期限 {fmt(p.invoice.payment_due_date)}{new Date(`${p.invoice.payment_due_date}T23:59:59`).getTime()<Date.now()?'・期限超過':''}</div>:null}</td><td>{(p.unread_messages??0)>0?<span className="messageBadge">💬 {p.unread_messages}</span>:<span className="noMessage">―</span>}</td><td>{p.quoted_amount!=null?`${p.quoted_amount.toLocaleString()}円`:'―'}</td><td>{fmt(p.confirmed_deadline)}</td><td>{fmt(p.updated_at)}</td><td><strong>詳細 →</strong></td></tr>)}
      </tbody></table></div>
-     <div className="projectCards">{visibleProjects.map(p=><button key={p.id} onClick={()=>router.push(`/mypage/projects/${p.id}`)}><div className="cardTop"><strong>{p.project_code}</strong><div className="cardBadges"><span className={`badge ${p.status==='quote_presented'||p.status==='customer_review'?'attention':''}`}>{statusLabel(p.status)}</span>{(p.unread_messages??0)>0?<span className="messageBadge">💬 {p.unread_messages}</span>:null}</div></div><h3>{p.title}</h3><div className="cardMeta"><span>{p.quoted_amount!=null?`${p.quoted_amount.toLocaleString()}円`:'見積確認中'}</span><span>納期 {fmt(p.confirmed_deadline)}</span><strong>詳細 →</strong></div></button>)}</div>
+     <div className="projectCards">{visibleProjects.map(p=><button key={p.id} onClick={()=>router.push(`/mypage/projects/${p.id}`)}><div className="cardTop"><strong>{p.project_code}</strong><div className="cardBadges"><span className={`badge ${p.status==='quote_presented'||p.status==='customer_review'?'attention':p.status==='invoiced'?'paymentWaiting':''}`}>{statusLabel(p.status)}</span>{(p.unread_messages??0)>0?<span className="messageBadge">💬 {p.unread_messages}</span>:null}</div></div><h3>{p.title}</h3>{p.status==='invoiced'&&p.invoice?.payment_due_date?<div className={`paymentDue cardPaymentDue ${new Date(`${p.invoice.payment_due_date}T23:59:59`).getTime()<Date.now()?'overdue':''}`}>支払期限 {fmt(p.invoice.payment_due_date)}{new Date(`${p.invoice.payment_due_date}T23:59:59`).getTime()<Date.now()?'・期限超過':''}</div>:null}<div className="cardMeta"><span>{p.quoted_amount!=null?`${p.quoted_amount.toLocaleString()}円`:'見積確認中'}</span><span>納期 {fmt(p.confirmed_deadline)}</span><strong>詳細 →</strong></div></button>)}</div>
      {!visibleProjects.length?<div className="empty">該当するプロジェクトはありません。</div>:null}
    </section>
 
@@ -122,7 +144,7 @@ export default function MyPage(){
      .sectionHead{display:flex;justify-content:space-between;align-items:end;gap:20px;flex-wrap:wrap}.sectionHead input{width:min(360px,100%)}
      .filters{display:flex;gap:8px;flex-wrap:wrap;margin-top:18px}.filters button{width:auto!important;display:inline-flex!important;border:1px solid #dbe3ec;border-radius:999px;padding:8px 14px;background:#fff;font-weight:800;cursor:pointer}.filters button.active{background:#0f172a;color:#fff;border-color:#0f172a}
      .projectTableWrap{overflow-x:auto;margin-top:20px}.projectTableWrap table{width:100%;border-collapse:collapse;min-width:900px}.projectTableWrap th,.projectTableWrap td{padding:14px 10px;border-bottom:1px solid #e5eaf0;text-align:left}.projectTableWrap th{background:#f8fafc;font-size:13px}.projectTableWrap tr{cursor:pointer}
-     .badge{display:inline-block;padding:5px 9px;border-radius:999px;background:#eefbf3;color:#16733b;font-size:12px;font-weight:800;white-space:nowrap}.badge.attention{background:#fff7ed;color:#c2410c}.messageBadge{display:inline-flex;align-items:center;gap:3px;padding:5px 9px;border-radius:999px;background:#eff6ff;color:#1d4ed8;font-size:12px;font-weight:900;white-space:nowrap}.noMessage{color:#94a3b8}.cardBadges{display:flex;gap:6px;align-items:center;justify-content:flex-end;flex-wrap:wrap}
+     .badge{display:inline-block;padding:5px 9px;border-radius:999px;background:#eefbf3;color:#16733b;font-size:12px;font-weight:800;white-space:nowrap}.badge.attention{background:#fff7ed;color:#c2410c}.badge.paymentWaiting{background:#fff7ed;color:#9a3412;border:1px solid #fdba74}.paymentDue{margin-top:5px;color:#9a3412;font-size:11px;font-weight:800;white-space:nowrap}.paymentDue.overdue{color:#b91c1c}.cardPaymentDue{margin:0 0 10px}.messageBadge{display:inline-flex;align-items:center;gap:3px;padding:5px 9px;border-radius:999px;background:#eff6ff;color:#1d4ed8;font-size:12px;font-weight:900;white-space:nowrap}.noMessage{color:#94a3b8}.cardBadges{display:flex;gap:6px;align-items:center;justify-content:flex-end;flex-wrap:wrap}
      .projectCards{display:none}.empty{padding:24px;text-align:center;color:#64748b}
      .estimateList{margin-top:20px}.estimateRow{width:100%!important;display:flex!important;justify-content:space-between;gap:18px;padding:16px 4px;border:0;border-bottom:1px solid #e5eaf0;background:transparent;color:#0f172a;text-align:left;cursor:pointer}.estimateRow:hover{background:#f8fafc}.estimateRow>div{display:flex;gap:16px;align-items:center;flex-wrap:wrap}.estimateRow span{color:#64748b;font-size:13px}.detailArrow{white-space:nowrap}
      .accountForm{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.accountForm .full{grid-column:1/-1}.success{padding:12px 14px;border-radius:10px;background:#eefbf3;color:#16733b;font-weight:700}
