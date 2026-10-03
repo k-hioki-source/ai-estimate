@@ -12,7 +12,8 @@ type Project = Omit<Database['public']['Tables']['projects']['Row'], 'status'> &
   status:
     | Database['public']['Tables']['projects']['Row']['status']
     | 'approved'
-    | 'invoice_requested';
+    | 'invoice_requested'
+    | 'invoiced';
   archived_at?: string | null;
 };
 
@@ -45,6 +46,9 @@ type ProjectInvoice = {
   id: string;
   project_id: string;
   invoice_code: string;
+  invoice_date: string;
+  payment_due_date: string | null;
+  total_amount: number;
 };
 
 type Profile = {
@@ -125,6 +129,9 @@ function projectStatusLabel(status: string) {
 
     case 'invoice_requested':
       return '請求書発行依頼済み';
+
+    case 'invoiced':
+      return '請求済み・お支払い待ち';
 
     case 'completed':
       return '完了';
@@ -325,7 +332,7 @@ const [orderError, setOrderError] = useState('');
         .eq('project_id', loadedProjects[0].id)
         .maybeSingle(),
       (supabase.from('project_invoices' as any) as any)
-        .select('id, project_id, invoice_code')
+        .select('id, project_id, invoice_code, invoice_date, payment_due_date, total_amount')
         .eq('project_id', loadedProjects[0].id)
         .maybeSingle(),
     ]);
@@ -1103,6 +1110,7 @@ async function orderProject(project: Project) {
 
                 {project.status === 'delivered' ||
                 project.status === 'invoice_requested' ||
+                project.status === 'invoiced' ||
                 project.status === 'completed' ? (
                   <div className="stateCard success">
                     <strong>制作・確認工程は完了しています</strong>
@@ -1268,6 +1276,33 @@ async function orderProject(project: Project) {
                   </div>
                 ) : null}
 
+                {project.status === 'invoiced' ? (
+                  <div className={`paymentWaitingCard ${
+                    projectInvoice?.payment_due_date &&
+                    new Date(`${projectInvoice.payment_due_date}T23:59:59`).getTime() < Date.now()
+                      ? 'overdue'
+                      : ''
+                  }`}>
+                    <strong>
+                      {projectInvoice?.payment_due_date &&
+                      new Date(`${projectInvoice.payment_due_date}T23:59:59`).getTime() < Date.now()
+                        ? 'お支払期限を過ぎています'
+                        : '請求済み・お支払い待ち'}
+                    </strong>
+                    <p>
+                      {projectInvoice?.payment_due_date
+                        ? `お支払期限：${formatDate(projectInvoice.payment_due_date)}`
+                        : '請求書のお支払期限をご確認ください。'}
+                      {projectInvoice?.total_amount != null
+                        ? ` ／ ご請求額：${projectInvoice.total_amount.toLocaleString()}円`
+                        : ''}
+                    </p>
+                    <p className="paymentNote">
+                      ご入金確認後、案件ステータスが「完了」に更新されます。
+                    </p>
+                  </div>
+                ) : null}
+
                 {projectInvoice ? (
                   <button
                     type="button"
@@ -1276,6 +1311,13 @@ async function orderProject(project: Project) {
                   >
                     請求書を表示
                   </button>
+                ) : null}
+
+                {project.status === 'completed' && projectInvoice ? (
+                  <div className="paymentCompleteCard">
+                    <strong>✓ お支払い確認済み・案件完了</strong>
+                    <p>ご入金を確認しました。この案件は完了しています。</p>
+                  </div>
                 ) : null}
               </section>
             </div>
@@ -1342,7 +1384,7 @@ async function orderProject(project: Project) {
                   </div>
                   <div
                     className={
-                      ['customer_review', 'revision', 'approved', 'delivered', 'invoice_requested', 'completed'].includes(
+                      ['customer_review', 'revision', 'approved', 'delivered', 'invoice_requested', 'invoiced', 'completed'].includes(
                         project.status
                       )
                         ? 'done'
@@ -1353,12 +1395,26 @@ async function orderProject(project: Project) {
                   </div>
                   <div
                     className={
-                      ['delivered', 'invoice_requested', 'completed'].includes(project.status)
+                      ['delivered', 'invoice_requested', 'invoiced', 'completed'].includes(project.status)
                         ? 'done'
                         : ''
                     }
                   >
                     納品
+                  </div>
+                  <div
+                    className={
+                      ['invoice_requested', 'invoiced', 'completed'].includes(project.status)
+                        ? 'done'
+                        : ''
+                    }
+                  >
+                    請求
+                  </div>
+                  <div
+                    className={project.status === 'completed' ? 'done' : ''}
+                  >
+                    入金
                   </div>
                 </div>
               </div>
@@ -1470,6 +1526,15 @@ async function orderProject(project: Project) {
         .invoiceRequestButton { width: auto !important; padding: 11px 16px; border: 0; border-radius: 10px; background: #1d4ed8; color: #fff; font-weight: 900; cursor: pointer; }
         .invoiceRequestButton:disabled { opacity: .55; cursor: default; }
         .invoiceWaiting { margin-top: 16px; }
+        .paymentWaitingCard { margin-top: 16px; padding: 17px; border: 1px solid #fdba74; border-radius: 13px; background: #fff7ed; color: #9a3412; }
+        .paymentWaitingCard strong { font-size: 15px; }
+        .paymentWaitingCard p { margin: 6px 0 0; color: #7c2d12; font-size: 12px; line-height: 1.65; }
+        .paymentWaitingCard .paymentNote { color: #64748b; }
+        .paymentWaitingCard.overdue { border-color: #fca5a5; background: #fef2f2; color: #991b1b; }
+        .paymentWaitingCard.overdue p { color: #7f1d1d; }
+        .paymentCompleteCard { margin-top: 16px; padding: 17px; border: 1px solid #86efac; border-radius: 13px; background: #f0fdf4; color: #166534; }
+        .paymentCompleteCard strong { font-size: 15px; }
+        .paymentCompleteCard p { margin: 6px 0 0; color: #475569; font-size: 12px; line-height: 1.65; }
         .invoiceDocumentButton { margin-top: 14px; margin-left: 8px; width: auto !important; padding: 11px 16px; border: 1px solid #93c5fd; border-radius: 10px; background: #fff; color: #1d4ed8; font-weight: 900; cursor: pointer; }
         .invoiceDocumentButton:hover { background: #eff6ff; }
         .stateCard.neutral { background: #f8fafc; }
