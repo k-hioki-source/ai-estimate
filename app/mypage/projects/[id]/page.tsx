@@ -564,6 +564,7 @@ async function orderProject(project: Project) {
         user_id: user.id,
         message: text,
         message_type: 'message',
+        sender_type: 'customer',
       })
       .select('*')
       .single();
