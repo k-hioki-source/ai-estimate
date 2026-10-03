@@ -5,14 +5,31 @@ import { useRouter } from 'next/navigation';
 import { getSupabaseBrowserClient } from '../../lib/supabase/client';
 import type { Database } from '../../lib/supabase/database.types';
 
-type Project = Database['public']['Tables']['projects']['Row'];
+type Project = Omit<Database['public']['Tables']['projects']['Row'], 'status'> & {
+  status:
+    | Database['public']['Tables']['projects']['Row']['status']
+    | 'approved'
+    | 'invoice_requested';
+};
 type Profile = { id:string; company_name:string|null; contact_name:string|null; email:string|null };
 type ProjectWithData = Project & { customer?: Profile|null; unread_messages?: number };
 
 function fmt(v:string|null){ if(!v)return '―'; return new Intl.DateTimeFormat('ja-JP',{year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(v)); }
-function label(s:Project['status']){ return ({quote_requested:'正式見積り依頼',quote_reviewing:'見積り確認中',quote_presented:'正式見積り提示済み',ordered:'発注済み',in_production:'制作中',customer_review:'お客様確認中',revision:'修正対応中',delivered:'納品済み',completed:'完了',cancelled:'キャンセル'} as Record<string,string>)[s]||s; }
-const active=new Set(['quote_requested','quote_reviewing','quote_presented','ordered','in_production','customer_review','revision','delivered']);
-const filters=[['active','進行中'],['all','すべて'],['quote_requested','見積依頼'],['ordered','発注済み'],['in_production','制作中'],['customer_review','確認中'],['revision','修正'],['delivered','納品済み'],['completed','完了']] as const;
+function label(s:Project['status']){ return ({quote_requested:'正式見積り依頼',quote_reviewing:'見積り確認中',quote_presented:'正式見積り提示済み',ordered:'発注済み',in_production:'制作中',customer_review:'お客様確認中',revision:'修正対応中',approved:'承認済み・納品待ち',delivered:'納品済み・請求書発行待ち',invoice_requested:'請求書発行依頼あり',completed:'完了',cancelled:'キャンセル'} as Record<string,string>)[s]||s; }
+const active=new Set(['quote_requested','quote_reviewing','quote_presented','ordered','in_production','customer_review','revision','approved','delivered','invoice_requested']);
+
+function statusClass(s:Project['status']){
+  if(s==='invoice_requested') return 'invoiceRequested';
+  if(s==='approved') return 'approvedWaiting';
+  if(s==='delivered') return 'deliveredWaiting';
+  if(s==='quote_requested'||s==='revision') return 'needsAction';
+  return '';
+}
+function needsAdminAction(s:Project['status']){
+  return s==='quote_requested'||s==='revision'||s==='approved'||s==='invoice_requested';
+}
+
+const filters=[['active','進行中'],['all','すべて'],['quote_requested','見積依頼'],['ordered','発注済み'],['in_production','制作中'],['customer_review','確認中'],['revision','修正'],['approved','承認済・納品待ち'],['delivered','納品済・請求待ち'],['invoice_requested','請求書発行依頼'],['completed','完了']] as const;
 
 export default function AdminPage(){
  const router=useRouter(); const [projects,setProjects]=useState<ProjectWithData[]>([]); const [loading,setLoading]=useState(true); const [error,setError]=useState(''); const [search,setSearch]=useState(''); const [filter,setFilter]=useState('active');
@@ -54,7 +71,7 @@ export default function AdminPage(){
   setLoading(false);
  })()},[router]);
  const counts=useMemo(()=>Object.fromEntries(filters.map(([v])=>[v,v==='all'?projects.length:v==='active'?projects.filter(p=>active.has(p.status)).length:projects.filter(p=>p.status===v).length])),[projects]);
- const visible=useMemo(()=>{const q=search.trim().toLowerCase();return projects.filter(p=>(filter==='all'||(filter==='active'?active.has(p.status):filter==='needs_action'?(p.status==='quote_requested'||p.status==='revision'):p.status===filter))&&(!q||[p.project_code,p.title,p.customer?.company_name,p.customer?.contact_name,p.customer?.email].some(v=>(v??'').toLowerCase().includes(q))))},[projects,search,filter]);
+ const visible=useMemo(()=>{const q=search.trim().toLowerCase();return projects.filter(p=>(filter==='all'||(filter==='active'?active.has(p.status):filter==='needs_action'?(p.status==='quote_requested'||p.status==='revision'||p.status==='approved'||p.status==='invoice_requested'):p.status===filter))&&(!q||[p.project_code,p.title,p.customer?.company_name,p.customer?.contact_name,p.customer?.email].some(v=>(v??'').toLowerCase().includes(q))))},[projects,search,filter]);
  if(loading)return <main className="authPage"><section className="authCard"><p>管理画面を読み込んでいます…</p></section></main>;
  return <main className="myPageShell">
   <header className="myPageHeader"><div><div className="authBrand">CS Works ADMIN</div><h1>案件管理</h1></div><button className="logoutButton" onClick={()=>router.push('/mypage')}>My Page</button></header>
@@ -64,14 +81,14 @@ export default function AdminPage(){
    <div style={{display:'flex',justifyContent:'space-between',gap:16,flexWrap:'wrap',alignItems:'end'}}><div><div className="authBrand">PROJECTS</div><h2>案件一覧</h2><p className="muted">全{projects.length}件 ／ 表示{visible.length}件</p></div><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="案件番号・会社名・案件名で検索" style={{width:'min(360px, 100%)'}}/></div>
    <div className="desktopFilters adminFilters">
      <button type="button" onClick={()=>setFilter('active')} className={`adminFilterButton ${filter==='active'?'isActive':''}`}>進行中 <span>{counts.active}</span></button>
-     <button type="button" onClick={()=>setFilter('needs_action')} className={`adminFilterButton ${filter==='needs_action'?'isActive':''}`}>要対応 <span>{projects.filter(p=>p.status==='quote_requested'||p.status==='revision').length}</span></button>
+     <button type="button" onClick={()=>setFilter('needs_action')} className={`adminFilterButton ${filter==='needs_action'?'isActive':''}`}>要対応 <span>{projects.filter(p=>p.status==='quote_requested'||p.status==='revision'||p.status==='approved'||p.status==='invoice_requested').length}</span></button>
      <button type="button" onClick={()=>setFilter('all')} className={`adminFilterButton ${filter==='all'?'isActive':''}`}>すべて <span>{counts.all}</span></button>
      {filters.filter(([v])=>!['active','all'].includes(v) && counts[v]>0).map(([v,l])=><button key={v} type="button" onClick={()=>setFilter(v)} className={`adminFilterButton ${filter===v?'isActive':''}`}>{l} <span>{counts[v]}</span></button>)}
    </div>
    <div className="mobileControls">
      <div className="mobileQuickFilters">
        <button type="button" onClick={()=>setFilter('active')} className={`adminFilterButton ${filter==='active'?'isActive':''}`}>進行中 {counts.active}</button>
-       <button type="button" onClick={()=>setFilter('needs_action')} className={`adminFilterButton ${filter==='needs_action'?'isActive':''}`}>要対応 {projects.filter(p=>p.status==='quote_requested'||p.status==='revision').length}</button>
+       <button type="button" onClick={()=>setFilter('needs_action')} className={`adminFilterButton ${filter==='needs_action'?'isActive':''}`}>要対応 {projects.filter(p=>p.status==='quote_requested'||p.status==='revision'||p.status==='approved'||p.status==='invoice_requested').length}</button>
        <button type="button" onClick={()=>setFilter('completed')} className={`adminFilterButton ${filter==='completed'?'isActive':''}`}>完了 {counts.completed}</button>
      </div>
      <label className="mobileSelectLabel">ステータス
@@ -91,7 +108,7 @@ export default function AdminPage(){
    </div>
    <div className="mobileProjectList">
      {visible.map(p=><button type="button" key={p.id} className="mobileProjectCard" onClick={()=>router.push(`/admin/projects/${p.id}`)}>
-       <div className="mobileProjectTop"><strong>{p.project_code}</strong><div className="mobileBadges"><span className={`statusBadge ${p.status==='quote_requested'||p.status==='revision'?'needsAction':''}`}>{label(p.status)}</span>{(p.unread_messages??0)>0?<span className="messageBadge">💬 {p.unread_messages}</span>:null}</div></div>
+       <div className="mobileProjectTop"><strong>{p.project_code}</strong><div className="mobileBadges"><span className={`statusBadge ${statusClass(p.status)}`}>{label(p.status)}</span>{(p.unread_messages??0)>0?<span className="messageBadge">💬 {p.unread_messages}</span>:null}</div></div>
        <div className="mobileProjectTitle">{p.title}</div>
        <div className="mobileProjectCompany">{p.customer?.company_name||'会社名未登録'}</div>
        <div className="mobileProjectMeta"><span>{p.quoted_amount!=null?`${p.quoted_amount.toLocaleString()}円`:'見積未確定'}</span><span>納期 {fmt(p.confirmed_deadline)}</span><strong>詳細 →</strong></div>
@@ -99,7 +116,7 @@ export default function AdminPage(){
      {!visible.length?<div className="mobileEmpty">該当する案件はありません。</div>:null}
    </div>
    <div className="adminTableWrap"><table className="adminTable"><thead><tr style={{background:'#f8fafc',textAlign:'left'}}>{['案件番号','会社名','案件名','ステータス','メッセージ','正式見積','納期','更新日',''].map(h=><th key={h} style={{padding:'12px 10px',borderBottom:'1px solid #dbe3ec',fontSize:13}}>{h}</th>)}</tr></thead><tbody>
-   {visible.map(p=><tr key={p.id} onClick={()=>router.push(`/admin/projects/${p.id}`)} style={{cursor:'pointer'}}><td style={cell}><strong>{p.project_code}</strong></td><td style={cell}>{p.customer?.company_name||'未登録'}</td><td style={cell}>{p.title}</td><td style={cell}><span className={`statusBadge ${p.status==='quote_requested'||p.status==='revision'?'needsAction':''}`}>{label(p.status)}</span>{p.status==='quote_requested'||p.status==='revision'?<div className="actionHint">要対応</div>:null}</td><td style={cell}>{(p.unread_messages??0)>0?<span className="messageBadge">💬 {p.unread_messages}</span>:<span className="noMessage">―</span>}</td><td style={cell}>{p.quoted_amount!=null?`${p.quoted_amount.toLocaleString()}円`:'―'}</td><td style={cell}>{fmt(p.confirmed_deadline)}</td><td style={cell}>{fmt(p.updated_at)}</td><td style={cell}><strong>詳細 →</strong></td></tr>)}
+   {visible.map(p=><tr key={p.id} onClick={()=>router.push(`/admin/projects/${p.id}`)} style={{cursor:'pointer'}}><td style={cell}><strong>{p.project_code}</strong></td><td style={cell}>{p.customer?.company_name||'未登録'}</td><td style={cell}>{p.title}</td><td style={cell}><span className={`statusBadge ${statusClass(p.status)}`}>{label(p.status)}</span>{needsAdminAction(p.status)?<div className="actionHint">{p.status==='approved'?'納品してください':p.status==='invoice_requested'?'請求書を発行してください':'要対応'}</div>:null}</td><td style={cell}>{(p.unread_messages??0)>0?<span className="messageBadge">💬 {p.unread_messages}</span>:<span className="noMessage">―</span>}</td><td style={cell}>{p.quoted_amount!=null?`${p.quoted_amount.toLocaleString()}円`:'―'}</td><td style={cell}>{fmt(p.confirmed_deadline)}</td><td style={cell}>{fmt(p.updated_at)}</td><td style={cell}><strong>詳細 →</strong></td></tr>)}
    </tbody></table>{!visible.length?<div style={{padding:28,textAlign:'center',color:'#64748b'}}>該当する案件はありません。</div>:null}</div>
   </section>
   <style jsx>{`
@@ -121,6 +138,9 @@ export default function AdminPage(){
     .adminTable th:nth-child(7){width:110px}
     .statusBadge{display:inline-block;padding:5px 9px;border-radius:999px;background:#eefbf3;color:#16733b;font-size:12px;font-weight:800;white-space:nowrap}
     .statusBadge.needsAction{background:#fff7ed;color:#c2410c}
+    .statusBadge.approvedWaiting{background:#ecfdf5;color:#047857;border:1px solid #a7f3d0}
+    .statusBadge.deliveredWaiting{background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe}
+    .statusBadge.invoiceRequested{background:#fef2f2;color:#b91c1c;border:1px solid #fecaca}
     .actionHint{margin-top:4px;color:#c2410c;font-size:11px;font-weight:800}
      .messageBadge{display:inline-flex;align-items:center;gap:3px;padding:5px 9px;border-radius:999px;background:#eff6ff;color:#1d4ed8;font-size:12px;font-weight:900;white-space:nowrap}
      .noMessage{color:#94a3b8}
