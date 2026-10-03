@@ -593,6 +593,22 @@ async function orderProject(project: Project) {
     );
   }
 
+  const project = projects[0] ?? null;
+  const sourceEstimate = project
+    ? estimates.find((estimate) => estimate.id === project.estimate_id) ?? null
+    : null;
+  const files = project ? (projectFiles[project.id] ?? []) : [];
+  const messages = project ? (projectMessages[project.id] ?? []) : [];
+  const reviewFiles = files.filter(
+    (file) => file.file_type === 'review' || file.file_type === 'revision'
+  );
+  const deliveryFiles = files.filter((file) => file.file_type === 'delivery');
+  const relevantMessages = messages.filter(
+    (item) =>
+      item.message_type === 'approval' ||
+      item.message_type === 'revision_request'
+  );
+
   return (
     <main className="myPageShell">
       <header className="myPageHeader">
@@ -600,1004 +616,581 @@ async function orderProject(project: Project) {
           <div className="authBrand">CS Works</div>
           <h1>プロジェクト詳細</h1>
         </div>
-
-        <button className="logoutButton" onClick={() => router.push('/mypage')}>
+        <button
+          type="button"
+          className="logoutButton"
+          onClick={() => router.push('/mypage')}
+        >
           My Pageへ戻る
         </button>
       </header>
 
-      <section className="welcomeCard">
-        <span className="statusDot" /> ログイン中
-
-        <h2>
-          {profile.contact_name
-            ? `${profile.contact_name} 様`
-            : 'CS Worksへようこそ'}
-        </h2>
-
-        <p>{user?.email}</p>
-      </section>
-
-      <div className="myPageGrid" style={{ display: 'none' }}>
-        <section className="dashboardCard">
-          <div className="dashboardIcon">AI</div>
-          <h3>AI概算見積り</h3>
-          <p>新しい制作内容をAIで概算見積りできます。</p>
-
-          <Link className="dashboardLink" href="/">
-            新しい見積りを作成 →
-          </Link>
-        </section>
-
-        <section className="dashboardCard">
-          <div className="dashboardIcon">見積</div>
-          <h3>見積り履歴</h3>
-
-          <p>
-            保存済みのAI概算見積りを確認できます。
-          </p>
-
-          <a className="dashboardLink" href="#estimate-history">
-            {estimates.length > 0
-              ? `${estimates.length}件の見積りを見る →`
-              : '保存済みの見積りはありません'}
-          </a>
-        </section>
-
-        <section className="dashboardCard">
-  <div className="dashboardIcon">案件</div>
-
-  <h3>プロジェクト</h3>
-
-  <p>
-    正式見積りを依頼した案件の状況を確認できます。
-  </p>
-
-  {projects.length > 0 ? (
-    <a
-      className="dashboardLink"
-      href="#project-list"
-    >
-      {projects.length}件のプロジェクトを見る →
-    </a>
-  ) : (
-    <span className="muted">
-      現在進行中のプロジェクトはありません
-    </span>
-  )}
-</section>
-      </div>
-
-      <section
-        id="estimate-history"
-        className="authCard"
-        style={{
-          margin: '28px auto 0',
-          maxWidth: '100%',
-        }}
-      >
-        <div className="authBrand">ESTIMATES</div>
-        <h2>見積り履歴</h2>
-
-        <p className="muted">
-          My Pageに保存したAI概算見積りです。
-        </p>
-
-        {quoteError ? (
-  <div className="errorBox">
-    {quoteError}
-  </div>
-) : null}
-
-{quoteMessage ? (
-  <div
-    style={{
-      marginTop: '14px',
-      padding: '12px 14px',
-      borderRadius: '10px',
-      background: '#eefbf3',
-      color: '#16733b',
-      fontWeight: 700,
-    }}
-  >
-    {quoteMessage}
-  </div>
-) : null}
-
-        {estimates.length === 0 ? (
-          <div
-            style={{
-              marginTop: '20px',
-              padding: '24px',
-              borderRadius: '14px',
-              background: '#f6f8fb',
-            }}
-          >
-            <strong>まだ保存された見積りはありません。</strong>
-
-            <p className="muted">
-              AI概算見積りを実行して、結果画面から保存してください。
-            </p>
-
-            <Link className="dashboardLink" href="/">
-              AI概算見積りを作成 →
-            </Link>
+      {!project ? (
+        <section className="projectDetailPanel">
+          <div className="emptyState">
+            <strong>プロジェクトが見つかりません。</strong>
+            <p>My Pageのプロジェクト一覧から案件を選び直してください。</p>
+            <button
+              type="button"
+              className="primaryButton"
+              onClick={() => router.push('/mypage')}
+            >
+              My Pageへ戻る
+            </button>
           </div>
-        ) : (
-          <div
-            style={{
-              display: 'grid',
-              gap: '14px',
-              marginTop: '22px',
-            }}
-          >
-            {estimates.map((estimate) => (
-              <article
-                key={estimate.id}
-                style={{
-                  padding: '20px',
-                  border: '1px solid #dbe3ec',
-                  borderRadius: '14px',
-                  background: '#ffffff',
-                }}
-              >
-                <div
-  style={{
-    display: 'flex',
-    gap: '18px',
-    alignItems: 'center',
-    marginBottom: '16px',
-  }}
->
-  <div
-    style={{
-      width: '120px',
-      height: '90px',
-      flex: '0 0 120px',
-      border: '1px solid #dbe3ec',
-      borderRadius: '12px',
-      overflow: 'hidden',
-      background: '#f4f7fa',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-    }}
-  >
-    {estimateImages[estimate.id] ? (
-      <img
-        src={estimateImages[estimate.id]}
-        alt="見積り参考画像"
-        style={{
-          width: '100%',
-          height: '100%',
-          objectFit: 'contain',
-          background: '#ffffff',
-        }}
-      />
-    ) : (
-      <span
-        style={{
-          color: '#94a3b8',
-          fontSize: '12px',
-          fontWeight: 700,
-        }}
-      >
-        画像なし
-      </span>
-    )}
-  </div>
+        </section>
+      ) : (
+        <>
+          <section className="projectHero">
+            <div className="projectHeroMain">
+              <div className="projectEyebrow">PROJECT</div>
+              <div className="projectCode">{project.project_code}</div>
+              <h2>{project.title}</h2>
+              <span className={`statusPill status-${project.status}`}>
+                {projectStatusLabel(project.status)}
+              </span>
+            </div>
 
-  <div
-    style={{
-      flex: 1,
-      minWidth: 0,
-    }}
-  >
-    <div
-      style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        gap: '14px',
-        flexWrap: 'wrap',
-      }}
-    >
-      <div>
-        <div
-          style={{
-            color: '#64748b',
-            fontSize: '12px',
-            marginBottom: '4px',
-          }}
-        >
-          見積ID
-        </div>
+            <div className="heroMeta">
+              <div>
+                <span>依頼日</span>
+                <strong>{formatDate(project.created_at)}</strong>
+              </div>
+              <div>
+                <span>確定納期</span>
+                <strong>
+                  {project.confirmed_deadline
+                    ? formatDate(project.confirmed_deadline)
+                    : '未確定'}
+                </strong>
+              </div>
+            </div>
+          </section>
 
-        <strong
-          style={{
-            overflowWrap: 'anywhere',
-          }}
-        >
-          {estimate.estimate_code}
-        </strong>
-      </div>
+          {orderError ? <div className="errorBox noticeBox">{orderError}</div> : null}
+          {orderMessage ? <div className="successBox noticeBox">{orderMessage}</div> : null}
+          {reviewError ? <div className="errorBox noticeBox">{reviewError}</div> : null}
+          {reviewMessage ? <div className="successBox noticeBox">{reviewMessage}</div> : null}
 
-      <div
-        style={{
-          color: '#64748b',
-          fontSize: '13px',
-        }}
-      >
-        {formatDate(estimate.created_at)}
-      </div>
-    </div>
-
-    <div
-      style={{
-        marginTop: '10px',
-        color: '#475569',
-        fontSize: '13px',
-      }}
-    >
-      {productionMethodLabel(
-        estimate.production_method
-      )}
-      {' ／ '}
-      {expressionLabel(
-        estimate.expression
-      )}
-    </div>
-  </div>
-</div>
-
-                <div
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns:
-                      'repeat(auto-fit, minmax(150px, 1fr))',
-                    gap: '12px',
-                    padding: '15px',
-                    borderRadius: '12px',
-                    background: '#f6f9fc',
-                  }}
-                >
+          <div className="detailLayout">
+            <div className="detailMain">
+              <section className="detailSection">
+                <div className="sectionTitle">
                   <div>
-                    <div
-                      style={{
-                        color: '#64748b',
-                        fontSize: '12px',
-                      }}
-                    >
-                      制作方法
-                    </div>
-
-                    <strong>
-                      {productionMethodLabel(
-                        estimate.production_method
-                      )}
-                    </strong>
-                  </div>
-
-                  <div>
-                    <div
-                      style={{
-                        color: '#64748b',
-                        fontSize: '12px',
-                      }}
-                    >
-                      用途
-                    </div>
-
-                    <strong>
-                      {usageLabel(estimate.usage)}
-                    </strong>
-                  </div>
-
-                  <div>
-                    <div
-                      style={{
-                        color: '#64748b',
-                        fontSize: '12px',
-                      }}
-                    >
-                      表現
-                    </div>
-
-                    <strong>
-                      {expressionLabel(estimate.expression)}
-                    </strong>
-                  </div>
-
-                  <div>
-                    <div
-                      style={{
-                        color: '#64748b',
-                        fontSize: '12px',
-                      }}
-                    >
-                      点数
-                    </div>
-
-                    <strong>{estimate.quantity}点</strong>
+                    <div className="sectionNumber">01</div>
+                    <h3>案件概要</h3>
                   </div>
                 </div>
 
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'flex-end',
-                    justifyContent: 'space-between',
-                    gap: '18px',
-                    flexWrap: 'wrap',
-                    marginTop: '16px',
-                  }}
-                >
-                  <div>
-                    <div
-                      style={{
-                        color: '#64748b',
-                        fontSize: '12px',
-                      }}
-                    >
-                      想定制作時間
-                    </div>
-
-                    <strong
-                      style={{
-                        fontSize: '18px',
-                      }}
-                    >
-                      {estimate.estimated_hours != null
-                        ? `${estimate.estimated_hours}時間`
-                        : '―'}
+                <div className="summaryGrid">
+                  <div className="summaryItem">
+                    <span>正式見積金額</span>
+                    <strong className="price">
+                      {project.quoted_amount != null
+                        ? `${project.quoted_amount.toLocaleString()}円`
+                        : '確認中'}
                     </strong>
                   </div>
-
-                  <div>
-                    <div
-                      style={{
-                        color: '#64748b',
-                        fontSize: '12px',
-                      }}
-                    >
-                      概算金額
-                    </div>
-
-                    <strong
-                      style={{
-                        color: '#145edb',
-                        fontSize: '24px',
-                      }}
-                    >
-                      {estimate.estimated_amount != null
-                        ? `${estimate.estimated_amount.toLocaleString()}円`
-                        : '個別見積り'}
+                  <div className="summaryItem">
+                    <span>正式見積工数</span>
+                    <strong>
+                      {project.quoted_hours != null
+                        ? `${project.quoted_hours}時間`
+                        : '確認中'}
+                    </strong>
+                  </div>
+                  <div className="summaryItem">
+                    <span>確定納期</span>
+                    <strong>
+                      {project.confirmed_deadline
+                        ? formatDate(project.confirmed_deadline)
+                        : '未確定'}
+                    </strong>
+                  </div>
+                  <div className="summaryItem">
+                    <span>発注日</span>
+                    <strong>
+                      {project.ordered_at ? formatDate(project.ordered_at) : '未発注'}
                     </strong>
                   </div>
                 </div>
 
-                {estimate.customer_notes ? (
-                  <div
-                    style={{
-                      marginTop: '15px',
-                      paddingTop: '15px',
-                      borderTop: '1px solid #e5eaf0',
-                    }}
-                  >
-                    <div
-                      style={{
-                        color: '#64748b',
-                        fontSize: '12px',
-                        marginBottom: '5px',
-                      }}
-                    >
-                      制作条件・メモ
-                    </div>
+                {project.description ? (
+                  <div className="descriptionBox">
+                    <span>制作条件・ご要望</span>
+                    <p>{project.description}</p>
+                  </div>
+                ) : null}
 
-                    <p
-                      style={{
-                        margin: 0,
-                        whiteSpace: 'pre-wrap',
-                        lineHeight: 1.7,
-                      }}
+                {sourceEstimate ? (
+                  <div className="sourceEstimate">
+                    <div>
+                      <span>元のAI概算見積り</span>
+                      <strong>{sourceEstimate.estimate_code}</strong>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        router.push(`/mypage/estimates/${sourceEstimate.id}`)
+                      }
                     >
-                      {estimate.customer_notes}
+                      見積り詳細を見る →
+                    </button>
+                  </div>
+                ) : null}
+              </section>
+
+              <section className="detailSection">
+                <div className="sectionTitle">
+                  <div>
+                    <div className="sectionNumber">02</div>
+                    <h3>見積り・発注</h3>
+                  </div>
+                </div>
+
+                {project.status === 'quote_requested' ||
+                project.status === 'quote_reviewing' ? (
+                  <div className="stateCard neutral">
+                    <strong>正式見積りを作成しています</strong>
+                    <p>
+                      ご依頼内容を確認のうえ、正式な金額・工数・納期をご案内します。
                     </p>
                   </div>
                 ) : null}
 
-                <div
-                  style={{
-                    marginTop: '16px',
-                    paddingTop: '14px',
-                    borderTop: '1px solid #e5eaf0',
-                    color: '#64748b',
-                    fontSize: '12px',
-                  }}
-                >
-                  難易度スコア：
-                  {estimate.complexity_score ?? '―'}
-                  {'　'}
-                  AI信頼度：
-                  {estimate.confidence != null
-                    ? `${estimate.confidence}%`
-                    : '―'}
-                </div>
-
-                <div
-  style={{
-    marginTop: '18px',
-    paddingTop: '18px',
-    borderTop: '1px solid #e5eaf0',
-  }}
->
-  {estimate.status === 'quote_requested' ||
-  projects.some(
-    (project) => project.estimate_id === estimate.id
-  ) ? (
-    <div
-      style={{
-        padding: '13px 16px',
-        borderRadius: '10px',
-        background: '#eefbf3',
-        color: '#16733b',
-        fontWeight: 700,
-      }}
-    >
-      ✓ 正式見積り依頼済み
-    </div>
-  ) : (
-    <button
-      type="button"
-      className="primaryButton"
-      onClick={() => requestFormalQuote(estimate)}
-      disabled={requestingEstimateId === estimate.id}
-    >
-      {requestingEstimateId === estimate.id
-        ? '依頼を送信中…'
-        : '正式見積りを依頼する'}
-    </button>
-  )}
-</div>
-                
-              </article>
-            ))}
-          </div>
-        )}
-      </section>
-<section
-  id="project-list"
-  style={{
-    width: '100%',
-    boxSizing: 'border-box',
-    margin: '28px 0 0',
-    padding: '28px',
-    border: '1px solid #e2e8f0',
-    borderRadius: '20px',
-    background: '#ffffff',
-  }}
->
-  <div className="authBrand">
-    PROJECTS
-  </div>
-
-  <h2>プロジェクト</h2>
-
-  <p className="muted">
-    正式見積りを依頼した案件の進行状況です。
-  </p>
-{orderError ? (
-  <div
-    className="errorBox"
-    style={{ marginTop: '14px' }}
-  >
-    {orderError}
-  </div>
-) : null}
-
-{orderMessage ? (
-  <div
-    style={{
-      marginTop: '14px',
-      padding: '12px 14px',
-      borderRadius: '10px',
-      background: '#eefbf3',
-      color: '#16733b',
-      fontWeight: 700,
-    }}
-  >
-    {orderMessage}
-  </div>
-) : null}
-  {reviewError ? <div className="errorBox" style={{ marginTop: '14px' }}>{reviewError}</div> : null}
-  {reviewMessage ? <div style={{ marginTop: '14px', padding: '12px 14px', borderRadius: '10px', background: '#eefbf3', color: '#16733b', fontWeight: 700 }}>{reviewMessage}</div> : null}
-  {projects.length === 0 ? (
-    <div
-      style={{
-        marginTop: '20px',
-        padding: '24px',
-        borderRadius: '14px',
-        background: '#f6f8fb',
-      }}
-    >
-      <strong>
-        現在プロジェクトはありません。
-      </strong>
-
-      <p className="muted">
-        保存したAI概算見積りから
-        「正式見積りを依頼する」を押すと、
-        ここに案件が追加されます。
-      </p>
-    </div>
-  ) : (
-    <div
-      style={{
-        display: 'grid',
-        gap: '14px',
-        marginTop: '22px',
-      }}
-    >
-      {projects.map((project) => {
-        const sourceEstimate = estimates.find(
-          (estimate) =>
-            estimate.id === project.estimate_id
-        );
-
-        return (
-          <article
-            key={project.id}
-            style={{
-              padding: '20px',
-              border: '1px solid #dbe3ec',
-              borderRadius: '14px',
-              background: '#ffffff',
-            }}
-          >
-            <div
-              style={{
-                display: 'flex',
-                gap: '18px',
-                alignItems: 'center',
-              }}
-            >
-              <div
-                style={{
-                  width: '120px',
-                  height: '90px',
-                  flex: '0 0 120px',
-                  border:
-                    '1px solid #dbe3ec',
-                  borderRadius: '12px',
-                  overflow: 'hidden',
-                  background: '#f4f7fa',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                {sourceEstimate &&
-                estimateImages[sourceEstimate.id] ? (
-                  <img
-                    src={
-                      estimateImages[
-                        sourceEstimate.id
-                      ]
-                    }
-                    alt="プロジェクト参考画像"
-                    style={{
-                      width: '100%',
-                      height: '100%',
-                      objectFit: 'contain',
-                      background: '#ffffff',
-                    }}
-                  />
-                ) : (
-                  <span
-                    style={{
-                      color: '#94a3b8',
-                      fontSize: '12px',
-                      fontWeight: 700,
-                    }}
-                  >
-                    画像なし
-                  </span>
-                )}
-              </div>
-
-              <div
-                style={{
-                  flex: 1,
-                  minWidth: 0,
-                }}
-              >
-                <div
-                  style={{
-                    color: '#64748b',
-                    fontSize: '12px',
-                    marginBottom: '4px',
-                  }}
-                >
-                  案件番号
-                </div>
-
-                <strong
-                  style={{
-                    fontSize: '17px',
-                    overflowWrap: 'anywhere',
-                  }}
-                >
-                  {project.project_code}
-                </strong>
-
-                <div
-                  style={{
-                    marginTop: '7px',
-                    fontWeight: 700,
-                  }}
-                >
-                  {project.title}
-                </div>
-
-                <div
-                  style={{
-                    marginTop: '10px',
-                    display: 'inline-flex',
-                    padding: '6px 10px',
-                    borderRadius: '999px',
-                    background: '#eefbf3',
-                    color: '#16733b',
-                    fontSize: '12px',
-                    fontWeight: 800,
-                  }}
-                >
-                  {projectStatusLabel(
-                    project.status
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns:
-                  'repeat(auto-fit, minmax(150px, 1fr))',
-                gap: '12px',
-                marginTop: '18px',
-                padding: '15px',
-                borderRadius: '12px',
-                background: '#f6f9fc',
-              }}
-            >
-              <div>
-                <div
-                  style={{
-                    color: '#64748b',
-                    fontSize: '12px',
-                  }}
-                >
-                  正式見積金額
-                </div>
-
-                <strong>
-                  {project.quoted_amount != null
-                    ? `${project.quoted_amount.toLocaleString()}円`
-                    : '確認中'}
-                </strong>
-              </div>
-
-              <div>
-                <div
-                  style={{
-                    color: '#64748b',
-                    fontSize: '12px',
-                  }}
-                >
-                  正式見積工数
-                </div>
-
-                <strong>
-                  {project.quoted_hours != null
-                    ? `${project.quoted_hours}時間`
-                    : '確認中'}
-                </strong>
-              </div>
-
-              <div>
-                <div
-                  style={{
-                    color: '#64748b',
-                    fontSize: '12px',
-                  }}
-                >
-                  確定納期
-                </div>
-
-                <strong>
-                  {project.confirmed_deadline
-                    ? formatDate(
-                        project.confirmed_deadline
-                      )
-                    : '未確定'}
-                </strong>
-              </div>
-
-              <div>
-                <div
-                  style={{
-                    color: '#64748b',
-                    fontSize: '12px',
-                  }}
-                >
-                  依頼日
-                </div>
-
-                <strong>
-                  {formatDate(project.created_at)}
-                </strong>
-              </div>
-            </div>
-
-            {project.status === 'quote_presented' ? (
-  <div
-    style={{
-      marginTop: '18px',
-      padding: '18px',
-      borderRadius: '12px',
-      border: '1px solid #dbe3ec',
-      background: '#ffffff',
-    }}
-  >
-    <div
-      style={{
-        fontWeight: 800,
-        fontSize: '16px',
-        marginBottom: '7px',
-      }}
-    >
-      正式見積りをご確認ください
-    </div>
-
-    <p
-      style={{
-        margin: '0 0 16px',
-        color: '#475569',
-        lineHeight: 1.7,
-        fontSize: '14px',
-      }}
-    >
-      上記の正式見積金額・工数・納期をご確認のうえ、
-      問題なければ発注してください。
-    </p>
-
-    <button
-      type="button"
-      className="primaryButton"
-      onClick={() => orderProject(project)}
-      disabled={orderingProjectId === project.id}
-    >
-      {orderingProjectId === project.id
-        ? '発注処理中…'
-        : 'この内容で発注する'}
-    </button>
-  </div>
-) : null}
-
-{project.status === 'ordered' ? (
-  <div
-    style={{
-      marginTop: '18px',
-      padding: '14px 16px',
-      borderRadius: '12px',
-      background: '#eefbf3',
-      color: '#16733b',
-      fontWeight: 800,
-    }}
-  >
-    ✓ 発注済み
-    {project.ordered_at ? (
-      <div
-        style={{
-          marginTop: '4px',
-          fontSize: '12px',
-          fontWeight: 500,
-        }}
-      >
-        発注日：{formatDate(project.ordered_at)}
-      </div>
-    ) : null}
-  </div>
-) : null}
-            
-            {(project.status === 'delivered' || project.status === 'completed') ? (
-  <div style={{ marginTop: '18px', padding: '18px', borderRadius: '12px', border: '1px solid #bbf7d0', background: '#f0fdf4' }}>
-    <div style={{ fontWeight: 800, fontSize: '16px', color: '#166534' }}>納品ファイル</div>
-    <p style={{ margin: '7px 0 14px', color: '#475569', lineHeight: 1.7, fontSize: '14px' }}>
-      制作が完了しました。下記から納品データを開くことができます。
-    </p>
-    {(projectFiles[project.id] ?? []).filter((f) => f.file_type === 'delivery').length ? (
-      (projectFiles[project.id] ?? []).filter((f) => f.file_type === 'delivery').map((f) => (
-        <div key={f.id} style={{ padding: '12px', marginTop: '8px', borderRadius: '10px', background: '#fff', border: '1px solid #dcfce7', display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center' }}>
-          <div><strong>{f.file_name}</strong><div style={{ color: '#64748b', fontSize: '12px', marginTop: '3px' }}>{formatDate(f.created_at)}</div></div>
-          {f.signed_url ? <a href={f.signed_url} target="_blank" rel="noreferrer" className="dashboardLink">納品ファイルを開く →</a> : null}
-        </div>
-      ))
-    ) : <div>納品ファイルを準備しています。</div>}
-  </div>
-) : null}
-
-{project.status === 'customer_review' ? (
-              <div style={{ marginTop: '18px', padding: '18px', borderRadius: '12px', border: '1px solid #cbd5e1', background: '#f8fafc' }}>
-                <div style={{ fontWeight: 800, fontSize: '16px' }}>制作内容をご確認ください</div>
-                <p style={{ margin: '7px 0 14px', color: '#475569', lineHeight: 1.7, fontSize: '14px' }}>
-                  確認用ファイルを開き、問題なければ承認してください。修正が必要な場合は内容を入力して修正依頼を送信してください。
-                </p>
-                {(projectFiles[project.id] ?? []).filter((f) => f.file_type === 'review' || f.file_type === 'revision').map((f) => (
-                  <div key={f.id} style={{ padding: '11px 12px', marginBottom: '8px', borderRadius: '10px', background: '#fff', border: '1px solid #e5eaf0', display: 'flex', justifyContent: 'space-between', gap: '12px' }}>
-                    <div><strong>{f.file_name}</strong><div style={{ color: '#64748b', fontSize: '12px' }}>{formatDate(f.created_at)}</div></div>
-                    {f.signed_url ? <a href={f.signed_url} target="_blank" rel="noreferrer">ファイルを開く →</a> : null}
+                {project.status === 'quote_presented' ? (
+                  <div className="stateCard attention">
+                    <strong>正式見積りをご確認ください</strong>
+                    <p>
+                      金額・工数・納期をご確認いただき、問題なければ発注してください。
+                    </p>
+                    <button
+                      type="button"
+                      className="primaryButton"
+                      onClick={() => orderProject(project)}
+                      disabled={orderingProjectId === project.id}
+                    >
+                      {orderingProjectId === project.id
+                        ? '発注処理中…'
+                        : 'この内容で発注する'}
+                    </button>
                   </div>
-                ))}
-                {(projectMessages[project.id] ?? []).some((m) => m.message_type === 'approval') ? (
-                  <div style={{ marginTop: '12px', padding: '13px 15px', borderRadius: '10px', background: '#eefbf3', color: '#16733b', fontWeight: 800 }}>✓ 確認内容を承認済みです</div>
-                ) : (
-                  <>
-                    <textarea value={reviewComments[project.id] ?? ''} onChange={(e) => setReviewComments((c) => ({ ...c, [project.id]: e.target.value }))} placeholder="修正が必要な場合は、修正箇所や内容をご記入ください。承認時のコメントは任意です。" rows={4} style={{ width: '100%', boxSizing: 'border-box', marginTop: '12px' }} />
-                    <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginTop: '12px' }}>
-                      <button type="button" className="primaryButton" disabled={reviewingProjectId === project.id} onClick={() => submitProjectReview(project, 'approval')}>この内容で承認する</button>
-                      <button type="button" disabled={reviewingProjectId === project.id} onClick={() => submitProjectReview(project, 'revision_request')} style={{ padding: '12px 18px', borderRadius: '10px', border: '1px solid #cbd5e1', background: '#fff', fontWeight: 700 }}>修正を依頼する</button>
+                ) : null}
+
+                {[
+                  'ordered',
+                  'in_production',
+                  'customer_review',
+                  'revision',
+                  'delivered',
+                  'completed',
+                ].includes(project.status) ? (
+                  <div className="stateCard success">
+                    <strong>✓ 発注済み</strong>
+                    <p>
+                      {project.ordered_at
+                        ? `発注日：${formatDate(project.ordered_at)}`
+                        : '正式発注を受け付けています。'}
+                    </p>
+                  </div>
+                ) : null}
+              </section>
+
+              <section className="detailSection">
+                <div className="sectionTitle">
+                  <div>
+                    <div className="sectionNumber">03</div>
+                    <h3>制作・確認</h3>
+                  </div>
+                </div>
+
+                {project.status === 'ordered' ? (
+                  <div className="stateCard neutral">
+                    <strong>制作開始をお待ちください</strong>
+                    <p>発注を受け付けました。制作準備を進めています。</p>
+                  </div>
+                ) : null}
+
+                {project.status === 'in_production' ? (
+                  <div className="stateCard progress">
+                    <strong>制作中です</strong>
+                    <p>現在、制作作業を進めています。</p>
+                  </div>
+                ) : null}
+
+                {project.status === 'revision' ? (
+                  <div className="stateCard progress">
+                    <strong>修正対応中です</strong>
+                    <p>いただいた修正内容をもとに対応しています。</p>
+                  </div>
+                ) : null}
+
+                {project.status === 'customer_review' ? (
+                  <div className="reviewArea">
+                    <div className="stateCard attention">
+                      <strong>制作内容をご確認ください</strong>
+                      <p>
+                        確認用ファイルを開き、問題なければ承認してください。
+                        修正が必要な場合は内容を入力して修正依頼を送信してください。
+                      </p>
                     </div>
-                  </>
+
+                    <div className="fileList">
+                      {reviewFiles.length ? (
+                        reviewFiles.map((file) => (
+                          <div className="fileRow" key={file.id}>
+                            <div>
+                              <strong>{file.file_name}</strong>
+                              <span>{formatDate(file.created_at)}</span>
+                            </div>
+                            {file.signed_url ? (
+                              <a
+                                href={file.signed_url}
+                                target="_blank"
+                                rel="noreferrer"
+                              >
+                                ファイルを開く →
+                              </a>
+                            ) : null}
+                          </div>
+                        ))
+                      ) : (
+                        <div className="emptyInline">確認用ファイルを準備しています。</div>
+                      )}
+                    </div>
+
+                    <textarea
+                      value={reviewComments[project.id] ?? ''}
+                      onChange={(event) =>
+                        setReviewComments((current) => ({
+                          ...current,
+                          [project.id]: event.target.value,
+                        }))
+                      }
+                      placeholder="修正が必要な場合は、修正箇所や内容をご記入ください。承認時のコメントは任意です。"
+                      rows={4}
+                      className="reviewTextarea"
+                    />
+
+                    <div className="reviewActions">
+                      <button
+                        type="button"
+                        className="primaryButton"
+                        disabled={reviewingProjectId === project.id}
+                        onClick={() => submitProjectReview(project, 'approval')}
+                      >
+                        この内容で承認する
+                      </button>
+                      <button
+                        type="button"
+                        className="secondaryAction"
+                        disabled={reviewingProjectId === project.id}
+                        onClick={() =>
+                          submitProjectReview(project, 'revision_request')
+                        }
+                      >
+                        修正を依頼する
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
+
+                {project.status === 'delivered' ||
+                project.status === 'completed' ? (
+                  <div className="stateCard success">
+                    <strong>制作・確認工程は完了しています</strong>
+                    <p>納品データは下の「納品ファイル」から確認できます。</p>
+                  </div>
+                ) : null}
+              </section>
+
+              <section className="detailSection">
+                <div className="sectionTitle">
+                  <div>
+                    <div className="sectionNumber">04</div>
+                    <h3>確認・修正履歴</h3>
+                  </div>
+                </div>
+
+                {relevantMessages.length ? (
+                  <div className="timeline">
+                    {relevantMessages.map((item) => (
+                      <div className="timelineItem" key={item.id}>
+                        <div
+                          className={`timelineDot ${
+                            item.message_type === 'approval' ? 'approved' : ''
+                          }`}
+                        />
+                        <div>
+                          <div className="timelineHead">
+                            <strong>
+                              {item.message_type === 'approval'
+                                ? '承認'
+                                : '修正依頼'}
+                            </strong>
+                            <span>{formatDate(item.created_at)}</span>
+                          </div>
+                          <p>{item.message}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="emptyInline">確認・修正履歴はまだありません。</div>
                 )}
-              </div>
-            ) : null}
+              </section>
 
-            {sourceEstimate ? (
-              <div
-                style={{
-                  marginTop: '14px',
-                  color: '#64748b',
-                  fontSize: '12px',
-                }}
-              >
-                元のAI概算見積り：
-                {sourceEstimate.estimate_code}
-              </div>
-            ) : null}
-          </article>
-        );
-      })}
-    </div>
-  )}
-</section>
-      <section
-        className="authCard"
-        style={{
-          display: 'none',
-          margin: '28px auto 0',
-          maxWidth: '100%',
-        }}
-      >
-        <div className="authBrand">ACCOUNT</div>
-        <h2>お客様情報</h2>
+              <section className="detailSection">
+                <div className="sectionTitle">
+                  <div>
+                    <div className="sectionNumber">05</div>
+                    <h3>納品ファイル</h3>
+                  </div>
+                </div>
 
-        <p className="muted">
-          正式見積りや制作依頼に使用する情報を登録できます。
-        </p>
-
-        <form onSubmit={saveProfile} className="authForm">
-          <div>
-            <label>会社名</label>
-            <input
-              type="text"
-              value={profile.company_name}
-              onChange={(e) =>
-                updateProfile('company_name', e.target.value)
-              }
-              placeholder="株式会社クリエイトサポート"
-            />
-          </div>
-
-          <div>
-            <label>部署名</label>
-            <input
-              type="text"
-              value={profile.department_name}
-              onChange={(e) =>
-                updateProfile('department_name', e.target.value)
-              }
-              placeholder="企画部"
-            />
-          </div>
-
-          <div>
-            <label>担当者名</label>
-            <input
-              type="text"
-              value={profile.contact_name}
-              onChange={(e) =>
-                updateProfile('contact_name', e.target.value)
-              }
-              placeholder="山田 太郎"
-            />
-          </div>
-
-          <div>
-            <label>メールアドレス</label>
-            <input
-              type="email"
-              value={user?.email ?? ''}
-              disabled
-            />
-            <small>
-              ログインに使用しているメールアドレスです。
-            </small>
-          </div>
-
-          <div>
-            <label>電話番号</label>
-            <input
-              type="tel"
-              value={profile.phone}
-              onChange={(e) =>
-                updateProfile('phone', e.target.value)
-              }
-              placeholder="0565-00-0000"
-            />
-          </div>
-
-          <div>
-            <label>郵便番号</label>
-            <input
-              type="text"
-              value={profile.postal_code}
-              onChange={(e) =>
-                updateProfile('postal_code', e.target.value)
-              }
-              placeholder="000-0000"
-            />
-          </div>
-
-          <div>
-            <label>住所</label>
-            <input
-              type="text"
-              value={profile.address}
-              onChange={(e) =>
-                updateProfile('address', e.target.value)
-              }
-              placeholder="愛知県..."
-            />
-          </div>
-
-          {error ? (
-            <div className="errorBox">{error}</div>
-          ) : null}
-
-          {message ? (
-            <div
-              style={{
-                padding: '12px 14px',
-                borderRadius: '10px',
-                background: '#eefbf3',
-                color: '#16733b',
-                fontWeight: 700,
-              }}
-            >
-              {message}
+                {deliveryFiles.length ? (
+                  <div className="fileList deliveryList">
+                    {deliveryFiles.map((file) => (
+                      <div className="fileRow" key={file.id}>
+                        <div>
+                          <strong>{file.file_name}</strong>
+                          <span>{formatDate(file.created_at)}</span>
+                        </div>
+                        {file.signed_url ? (
+                          <a
+                            href={file.signed_url}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            納品ファイルを開く →
+                          </a>
+                        ) : null}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="emptyInline">
+                    {project.status === 'delivered' ||
+                    project.status === 'completed'
+                      ? '納品ファイルを準備しています。'
+                      : '納品後、こちらからファイルを確認できます。'}
+                  </div>
+                )}
+              </section>
             </div>
-          ) : null}
 
-          <button
-            className="primaryButton"
-            disabled={saving}
-          >
-            {saving
-              ? '保存中…'
-              : 'お客様情報を保存'}
-          </button>
-        </form>
-      </section>
+            <aside className="detailSide">
+              <div className="sideCard">
+                <span className="sideLabel">現在のステータス</span>
+                <strong>{projectStatusLabel(project.status)}</strong>
+                <div className="progressSteps">
+                  <div className="done">見積り依頼</div>
+                  <div
+                    className={
+                      [
+                        'quote_presented',
+                        'ordered',
+                        'in_production',
+                        'customer_review',
+                        'revision',
+                        'delivered',
+                        'completed',
+                      ].includes(project.status)
+                        ? 'done'
+                        : ''
+                    }
+                  >
+                    正式見積り
+                  </div>
+                  <div
+                    className={
+                      [
+                        'ordered',
+                        'in_production',
+                        'customer_review',
+                        'revision',
+                        'delivered',
+                        'completed',
+                      ].includes(project.status)
+                        ? 'done'
+                        : ''
+                    }
+                  >
+                    発注
+                  </div>
+                  <div
+                    className={
+                      [
+                        'in_production',
+                        'customer_review',
+                        'revision',
+                        'delivered',
+                        'completed',
+                      ].includes(project.status)
+                        ? 'done'
+                        : ''
+                    }
+                  >
+                    制作
+                  </div>
+                  <div
+                    className={
+                      ['customer_review', 'revision', 'delivered', 'completed'].includes(
+                        project.status
+                      )
+                        ? 'done'
+                        : ''
+                    }
+                  >
+                    確認
+                  </div>
+                  <div
+                    className={
+                      ['delivered', 'completed'].includes(project.status)
+                        ? 'done'
+                        : ''
+                    }
+                  >
+                    納品
+                  </div>
+                </div>
+              </div>
+
+              <div className="sideCard">
+                <span className="sideLabel">案件情報</span>
+                <dl>
+                  <div>
+                    <dt>案件番号</dt>
+                    <dd>{project.project_code}</dd>
+                  </div>
+                  <div>
+                    <dt>正式見積</dt>
+                    <dd>
+                      {project.quoted_amount != null
+                        ? `${project.quoted_amount.toLocaleString()}円`
+                        : '確認中'}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>納期</dt>
+                    <dd>
+                      {project.confirmed_deadline
+                        ? formatDate(project.confirmed_deadline)
+                        : '未確定'}
+                    </dd>
+                  </div>
+                </dl>
+              </div>
+            </aside>
+          </div>
+        </>
+      )}
+
+      <style jsx>{`
+        .projectHero {
+          margin-top: 26px;
+          padding: 28px 30px;
+          border-radius: 22px;
+          color: #fff;
+          background: linear-gradient(115deg, #101d3c, #244495);
+          display: flex;
+          justify-content: space-between;
+          gap: 28px;
+          align-items: flex-end;
+          box-shadow: 0 18px 40px rgba(15, 23, 42, .12);
+        }
+        .projectEyebrow { font-size: 12px; font-weight: 900; letter-spacing: .12em; opacity: .72; }
+        .projectCode { margin-top: 10px; font-size: 13px; font-weight: 800; opacity: .9; }
+        .projectHero h2 { margin: 7px 0 12px; font-size: clamp(22px, 3vw, 32px); line-height: 1.35; }
+        .statusPill { display: inline-flex; padding: 7px 11px; border-radius: 999px; background: rgba(255,255,255,.14); font-size: 12px; font-weight: 900; }
+        .heroMeta { display: flex; gap: 26px; flex-wrap: wrap; }
+        .heroMeta div { min-width: 110px; }
+        .heroMeta span { display: block; font-size: 11px; opacity: .7; margin-bottom: 5px; }
+        .heroMeta strong { font-size: 14px; }
+        .noticeBox { margin-top: 16px; }
+        .successBox { padding: 12px 14px; border-radius: 10px; background: #eefbf3; color: #16733b; font-weight: 700; }
+        .detailLayout { display: grid; grid-template-columns: minmax(0,1fr) 280px; gap: 22px; margin-top: 22px; align-items: start; }
+        .detailMain { display: grid; gap: 18px; min-width: 0; }
+        .detailSection, .sideCard, .projectDetailPanel {
+          border: 1px solid #e2e8f0;
+          border-radius: 18px;
+          background: #fff;
+          box-shadow: 0 10px 28px rgba(15,23,42,.045);
+        }
+        .detailSection { padding: 24px; }
+        .sectionTitle { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }
+        .sectionTitle > div { display: flex; align-items: center; gap: 10px; }
+        .sectionNumber { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 9px; background: #eef4ff; color: #1d4ed8; font-size: 11px; font-weight: 900; }
+        .sectionTitle h3 { margin: 0; font-size: 18px; }
+        .summaryGrid { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 10px; }
+        .summaryItem { padding: 14px; border-radius: 12px; background: #f7f9fc; border: 1px solid #edf1f5; }
+        .summaryItem span, .descriptionBox > span, .sourceEstimate span, .sideLabel { display: block; color: #64748b; font-size: 11px; font-weight: 700; margin-bottom: 6px; }
+        .summaryItem strong { font-size: 14px; }
+        .summaryItem .price { color: #145edb; font-size: 18px; }
+        .descriptionBox { margin-top: 14px; padding: 15px; border: 1px solid #e5eaf0; border-radius: 12px; }
+        .descriptionBox p { margin: 0; white-space: pre-wrap; line-height: 1.7; }
+        .sourceEstimate { margin-top: 14px; padding-top: 14px; border-top: 1px solid #e5eaf0; display: flex; justify-content: space-between; align-items: center; gap: 14px; }
+        .sourceEstimate button { width: auto !important; border: 0; background: transparent; color: #145edb; font-weight: 800; cursor: pointer; }
+        .stateCard { padding: 17px; border-radius: 13px; border: 1px solid #e2e8f0; }
+        .stateCard strong { font-size: 16px; }
+        .stateCard p { margin: 7px 0 0; color: #475569; line-height: 1.65; font-size: 13px; }
+        .stateCard .primaryButton { margin-top: 14px; width: auto !important; }
+        .stateCard.neutral { background: #f8fafc; }
+        .stateCard.attention { background: #fffaf2; border-color: #fed7aa; }
+        .stateCard.progress { background: #eff6ff; border-color: #bfdbfe; }
+        .stateCard.success { background: #f0fdf4; border-color: #bbf7d0; color: #166534; }
+        .fileList { margin-top: 14px; display: grid; gap: 8px; }
+        .fileRow { padding: 12px 13px; border: 1px solid #e5eaf0; border-radius: 11px; display: flex; justify-content: space-between; gap: 12px; align-items: center; background: #fff; }
+        .fileRow span { display: block; color: #64748b; font-size: 11px; margin-top: 4px; }
+        .fileRow a { color: #145edb; font-size: 13px; font-weight: 800; white-space: nowrap; }
+        .reviewTextarea { width: 100%; box-sizing: border-box; margin-top: 14px; }
+        .reviewActions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+        .reviewActions button { width: auto !important; }
+        .secondaryAction { padding: 12px 18px; border-radius: 10px; border: 1px solid #cbd5e1; background: #fff; font-weight: 800; cursor: pointer; }
+        .timeline { display: grid; gap: 0; }
+        .timelineItem { position: relative; display: grid; grid-template-columns: 18px 1fr; gap: 12px; padding: 0 0 18px; }
+        .timelineItem:not(:last-child)::before { content: ''; position: absolute; left: 5px; top: 13px; bottom: 0; width: 2px; background: #e2e8f0; }
+        .timelineDot { width: 12px; height: 12px; margin-top: 4px; border-radius: 50%; background: #f97316; z-index: 1; }
+        .timelineDot.approved { background: #22c55e; }
+        .timelineHead { display: flex; justify-content: space-between; gap: 12px; }
+        .timelineHead span { color: #64748b; font-size: 11px; }
+        .timelineItem p { margin: 5px 0 0; color: #475569; line-height: 1.65; white-space: pre-wrap; }
+        .emptyInline { padding: 18px; border-radius: 11px; background: #f8fafc; color: #64748b; font-size: 13px; }
+        .detailSide { display: grid; gap: 14px; position: sticky; top: 18px; }
+        .sideCard { padding: 18px; }
+        .sideCard > strong { display: block; font-size: 16px; margin-bottom: 16px; }
+        .progressSteps { display: grid; gap: 8px; }
+        .progressSteps div { position: relative; padding: 8px 9px 8px 30px; border-radius: 9px; background: #f8fafc; color: #94a3b8; font-size: 12px; font-weight: 800; }
+        .progressSteps div::before { content: ''; position: absolute; left: 11px; top: 50%; width: 8px; height: 8px; margin-top: -4px; border-radius: 50%; background: #cbd5e1; }
+        .progressSteps div.done { color: #166534; background: #f0fdf4; }
+        .progressSteps div.done::before { background: #22c55e; }
+        .sideCard dl { margin: 0; display: grid; gap: 12px; }
+        .sideCard dl div { padding-bottom: 11px; border-bottom: 1px solid #eef2f7; }
+        .sideCard dt { color: #64748b; font-size: 11px; }
+        .sideCard dd { margin: 4px 0 0; font-weight: 800; overflow-wrap: anywhere; }
+        .projectDetailPanel { margin-top: 24px; padding: 30px; }
+        .emptyState { text-align: center; padding: 40px 10px; }
+        .emptyState p { color: #64748b; }
+        .emptyState button { width: auto !important; margin-top: 8px; }
+
+        @media (max-width: 1000px) {
+          .detailLayout { grid-template-columns: 1fr; }
+          .detailSide { position: static; grid-template-columns: repeat(2,minmax(0,1fr)); }
+          .summaryGrid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+        }
+        @media (max-width: 650px) {
+          .projectHero { display: block; padding: 22px 18px; border-radius: 17px; }
+          .heroMeta { margin-top: 20px; }
+          .detailSection { padding: 18px 14px; border-radius: 14px; }
+          .detailSide { grid-template-columns: 1fr; }
+          .summaryGrid { grid-template-columns: 1fr 1fr; }
+          .sourceEstimate, .fileRow { align-items: flex-start; flex-direction: column; }
+          .timelineHead { display: block; }
+        }
+        @media (max-width: 430px) {
+          .summaryGrid { grid-template-columns: 1fr; }
+        }
+      `}</style>
     </main>
   );
 }
