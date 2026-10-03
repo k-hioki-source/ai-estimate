@@ -97,7 +97,7 @@ function statusLabel(status: Project['status']) {
     case 'completed':
       return '完了';
     case 'cancelled':
-      return 'キャンセル';
+      return '発注見送り';
     default:
       return status;
   }
@@ -960,6 +960,16 @@ export default function AdminPage() {
                   </div>
                 ) : null}
 
+                {project.status === 'cancelled' ? (
+                  <div className="stateCard declined">
+                    <strong>お客様が発注を見送りました</strong>
+                    <p>
+                      正式見積り提示後、お客様により発注見送りとなった案件です。
+                      正式見積り・案件内容は履歴として保存されています。
+                    </p>
+                  </div>
+                ) : null}
+
                 {project.status === 'ordered' ? (
                   <div className="stateCard attention">
                     <strong>お客様から発注されました</strong>
@@ -1344,6 +1354,7 @@ export default function AdminPage() {
                     className={
                       [
                         'quote_presented',
+                        'cancelled',
                         'ordered',
                         'in_production',
                         'customer_review',
@@ -1524,6 +1535,8 @@ export default function AdminPage() {
         .stateCard strong { font-size: 16px; }
         .stateCard p { margin: 7px 0 0; color: #475569; line-height: 1.65; font-size: 13px; }
         .stateCard.neutral { background: #f8fafc; }
+        .stateCard.declined { background: #f8fafc; border-color: #cbd5e1; color: #475569; }
+        .stateCard.declined p { color: #64748b; }
         .stateCard.attention { background: #fffaf2; border-color: #fed7aa; }
         .stateCard.progress { background: #eff6ff; border-color: #bfdbfe; }
         .stateCard.success { background: #f0fdf4; border-color: #bbf7d0; color: #166534; }
