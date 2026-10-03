@@ -6,7 +6,12 @@ import type { User } from '@supabase/supabase-js';
 import { getSupabaseBrowserClient } from '../../../../lib/supabase/client';
 import type { Database } from '../../../../lib/supabase/database.types';
 
-type Project = Database['public']['Tables']['projects']['Row'];
+type Project = Omit<Database['public']['Tables']['projects']['Row'], 'status'> & {
+  status:
+    | Database['public']['Tables']['projects']['Row']['status']
+    | 'approved'
+    | 'invoice_requested';
+};
 type Estimate = Database['public']['Tables']['estimates']['Row'];
 
 type ProjectFile = {
@@ -71,8 +76,12 @@ function statusLabel(status: Project['status']) {
       return 'お客様確認中';
     case 'revision':
       return '修正対応中';
+    case 'approved':
+      return '承認済み・納品待ち';
     case 'delivered':
-      return '納品済み';
+      return '納品済み・請求書発行待ち';
+    case 'invoice_requested':
+      return '請求書発行依頼あり';
     case 'completed':
       return '完了';
     case 'cancelled':
@@ -435,7 +444,7 @@ export default function AdminPage() {
   const supabase = getSupabaseBrowserClient();
 
   const updateData: Database['public']['Tables']['projects']['Update'] = {
-    status: nextStatus,
+    status: nextStatus as Database['public']['Tables']['projects']['Row']['status'],
   };
 
   if (nextStatus === 'completed') {
@@ -1022,10 +1031,24 @@ export default function AdminPage() {
                   </div>
                 ) : null}
 
-                {project.status === 'delivered' ? (
+                {project.status === 'approved' ? (
                   <div className="stateCard success">
-                    <strong>納品済み</strong>
-                    <p>納品内容に問題がなければ案件を完了してください。</p>
+                    <strong>✓ お客様承認済み・納品待ち</strong>
+                    <p>最終納品ファイルを登録し、「最終納品」からお客様へ納品してください。</p>
+                  </div>
+                ) : null}
+
+                {project.status === 'delivered' ? (
+                  <div className="stateCard progress">
+                    <strong>納品済み・請求書発行待ち</strong>
+                    <p>お客様からの請求書発行依頼をお待ちください。</p>
+                  </div>
+                ) : null}
+
+                {project.status === 'invoice_requested' ? (
+                  <div className="stateCard invoiceRequest">
+                    <strong>請求書発行依頼があります</strong>
+                    <p>「案件終了・請求書発行」を押すと、請求書を作成して案件を完了します。</p>
                     <button
                       type="button"
                       className="primaryButton actionButton"
@@ -1033,8 +1056,8 @@ export default function AdminPage() {
                       onClick={() => changeProjectStatus(project, 'completed')}
                     >
                       {changingStatusId === project.id
-                        ? '変更中…'
-                        : '案件を完了する'}
+                        ? '請求書発行中…'
+                        : '案件終了・請求書発行'}
                     </button>
                   </div>
                 ) : null}
@@ -1147,7 +1170,7 @@ export default function AdminPage() {
                   </div>
                 </div>
 
-                {project.status === 'customer_review' && isLatestApproved ? (
+                {project.status === 'approved' ? (
                   <div className="deliveryPanel">
                     <div className="stateCard success">
                       <strong>✓ お客様承認済み</strong>
@@ -1220,7 +1243,9 @@ export default function AdminPage() {
                         'in_production',
                         'customer_review',
                         'revision',
+                        'approved',
                         'delivered',
+                        'invoice_requested',
                         'completed',
                       ].includes(project.status)
                         ? 'done'
@@ -1236,7 +1261,9 @@ export default function AdminPage() {
                         'in_production',
                         'customer_review',
                         'revision',
+                        'approved',
                         'delivered',
+                        'invoice_requested',
                         'completed',
                       ].includes(project.status)
                         ? 'done'
@@ -1251,7 +1278,9 @@ export default function AdminPage() {
                         'in_production',
                         'customer_review',
                         'revision',
+                        'approved',
                         'delivered',
+                        'invoice_requested',
                         'completed',
                       ].includes(project.status)
                         ? 'done'
@@ -1262,7 +1291,7 @@ export default function AdminPage() {
                   </div>
                   <div
                     className={
-                      ['customer_review', 'revision', 'delivered', 'completed'].includes(
+                      ['customer_review', 'revision', 'approved', 'delivered', 'invoice_requested', 'completed'].includes(
                         project.status
                       )
                         ? 'done'
@@ -1273,12 +1302,21 @@ export default function AdminPage() {
                   </div>
                   <div
                     className={
-                      ['delivered', 'completed'].includes(project.status)
+                      ['delivered', 'invoice_requested', 'completed'].includes(project.status)
                         ? 'done'
                         : ''
                     }
                   >
                     納品
+                  </div>
+                  <div
+                    className={
+                      ['invoice_requested', 'completed'].includes(project.status)
+                        ? 'done'
+                        : ''
+                    }
+                  >
+                    請求
                   </div>
                 </div>
               </div>
@@ -1376,6 +1414,8 @@ export default function AdminPage() {
         .stateCard.attention { background: #fffaf2; border-color: #fed7aa; }
         .stateCard.progress { background: #eff6ff; border-color: #bfdbfe; }
         .stateCard.success { background: #f0fdf4; border-color: #bbf7d0; color: #166534; }
+        .stateCard.invoiceRequest { background: #fef2f2; border-color: #fecaca; color: #991b1b; }
+        .stateCard.invoiceRequest p { color: #7f1d1d; }
         .workPanel, .deliveryPanel { display: grid; gap: 14px; }
         .uploadPanel { padding: 16px; border-radius: 13px; border: 1px solid #dbe3ec; background: #f8fafc; }
         .uploadPanel > p { margin: 6px 0 12px; color: #64748b; font-size: 13px; }
