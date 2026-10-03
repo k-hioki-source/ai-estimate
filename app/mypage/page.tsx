@@ -98,7 +98,7 @@ export default function MyPage(){
      <section className="dashboardCard"><div className="dashboardIcon">AI</div><h3>AI概算見積り</h3><p>新しい制作内容をAIで概算見積りできます。</p><Link className="dashboardLink" href="/">新しい見積りを作成 →</Link></section>
      <section className="dashboardCard"><div className="dashboardIcon">見積</div><h3>見積り履歴</h3><p>保存済みのAI概算見積りを確認できます。</p><a className="dashboardLink" href="#estimate-history">{estimates.filter(e=>!e.archived_at).length}件の見積りを見る →</a></section>
      <section className="dashboardCard"><div className="dashboardIcon">案件</div><h3>プロジェクト</h3><p>正式見積り・制作・確認・納品の状況を確認できます。</p><a className="dashboardLink" href="#project-list">{projects.filter(p=>!p.archived_at).length}件のプロジェクトを見る →{projects.filter(p=>!p.archived_at).reduce((sum,p)=>sum+(p.unread_messages??0),0)>0?`（💬 未読 ${projects.filter(p=>!p.archived_at).reduce((sum,p)=>sum+(p.unread_messages??0),0)}件）`:actionCount?`（確認事項 ${actionCount}件）`:''}</a></section>
-     <section className="dashboardCard supportCard"><div className="dashboardIcon">相談</div><h3>運営に相談・問い合わせ</h3><p>制作のご相談、見積り前のご質問、CS Worksの使い方などを運営にお問い合わせいただけます。</p><Link className="dashboardLink" href="/mypage/support">相談・問い合わせをする →</Link></section>
+   <section className="dashboardCard supportCard"><div className="dashboardIcon">相談</div><h3>運営に相談・問い合わせ</h3><p>制作のご相談や、見積り前のご質問はこちらから。</p><Link className="dashboardLink" href="/mypage/support">相談・問い合わせをする →</Link></section>
     </div>
 
    <section id="project-list" className="widePanel">
@@ -141,6 +141,12 @@ export default function MyPage(){
    </section>
 
    <style jsx>{`
+      :global(.myPageGrid){display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:18px!important}
+      :global(.dashboardCard){box-sizing:border-box;min-width:0;height:100%;display:flex!important;flex-direction:column}
+      :global(.dashboardCard p){flex:1}
+      @media(max-width:1100px){:global(.myPageGrid){grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+      @media(max-width:650px){:global(.myPageGrid){grid-template-columns:1fr!important}}
+
      .widePanel{box-sizing:border-box;width:100%;margin:28px 0 0;padding:30px 32px;border:1px solid #e2e8f0;border-radius:20px;background:#fff;box-shadow:0 12px 34px rgba(15,23,42,.05)}
      .sectionHead{display:flex;justify-content:space-between;align-items:end;gap:20px;flex-wrap:wrap}.sectionHead input{width:min(360px,100%)}
      .filters{display:flex;gap:8px;flex-wrap:wrap;margin-top:18px}.filters button{width:auto!important;display:inline-flex!important;border:1px solid #dbe3ec;border-radius:999px;padding:8px 14px;background:#fff;font-weight:800;cursor:pointer}.filters button.active{background:#0f172a;color:#fff;border-color:#0f172a}
