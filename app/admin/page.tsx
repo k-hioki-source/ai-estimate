@@ -17,7 +17,7 @@ type ProjectInvoice = { project_id:string; payment_due_date:string|null; total_a
 type ProjectWithData = Project & { customer?: Profile|null; unread_messages?: number; invoice?: ProjectInvoice|null };
 
 function fmt(v:string|null){ if(!v)return '―'; return new Intl.DateTimeFormat('ja-JP',{year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(v)); }
-function label(s:Project['status']){ return ({quote_requested:'正式見積り依頼',quote_reviewing:'見積り確認中',quote_presented:'正式見積り提示済み',ordered:'発注済み',in_production:'制作中',customer_review:'お客様確認中',revision:'修正対応中',approved:'承認済み・納品待ち',delivered:'納品済み・請求書発行待ち',invoice_requested:'請求書発行依頼あり',invoiced:'請求済み・入金待ち',completed:'完了',cancelled:'キャンセル'} as Record<string,string>)[s]||s; }
+function label(s:Project['status']){ return ({quote_requested:'正式見積り依頼',quote_reviewing:'見積り確認中',quote_presented:'正式見積り提示済み',ordered:'発注済み',in_production:'制作中',customer_review:'お客様確認中',revision:'修正対応中',approved:'承認済み・納品待ち',delivered:'納品済み・請求書発行待ち',invoice_requested:'請求書発行依頼あり',invoiced:'請求済み・入金待ち',completed:'完了',cancelled:'発注見送り'} as Record<string,string>)[s]||s; }
 const active=new Set(['quote_requested','quote_reviewing','quote_presented','ordered','in_production','customer_review','revision','approved','delivered','invoice_requested','invoiced']);
 
 function statusClass(s:Project['status']){
@@ -32,7 +32,7 @@ function needsAdminAction(s:Project['status']){
   return s==='quote_requested'||s==='revision'||s==='approved'||s==='invoice_requested';
 }
 
-const filters=[['active','進行中'],['all','すべて'],['quote_requested','見積依頼'],['ordered','発注済み'],['in_production','制作中'],['customer_review','確認中'],['revision','修正'],['approved','承認済・納品待ち'],['delivered','納品済・請求待ち'],['invoice_requested','請求書発行依頼'],['invoiced','入金待ち'],['completed','完了']] as const;
+const filters=[['active','進行中'],['all','すべて'],['quote_requested','見積依頼'],['ordered','発注済み'],['in_production','制作中'],['customer_review','確認中'],['revision','修正'],['approved','承認済・納品待ち'],['delivered','納品済・請求待ち'],['invoice_requested','請求書発行依頼'],['invoiced','入金待ち'],['completed','完了'],['cancelled','発注見送り']] as const;
 
 export default function AdminPage(){
  const router=useRouter(); const [projects,setProjects]=useState<ProjectWithData[]>([]); const [loading,setLoading]=useState(true); const [error,setError]=useState(''); const [search,setSearch]=useState(''); const [filter,setFilter]=useState('active');
@@ -115,7 +115,7 @@ export default function AdminPage(){
          <option value="customer_review">確認中</option>
          <option value="revision">修正</option>
          <option value="delivered">納品済み</option>
-         <option value="completed">完了</option>
+         <option value="completed">完了</option><option value="cancelled">発注見送り</option>
        </select>
      </label>
    </div>
