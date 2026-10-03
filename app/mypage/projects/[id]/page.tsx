@@ -8,7 +8,13 @@ import { getSupabaseBrowserClient } from '../../../../lib/supabase/client';
 import type { Database } from '../../../../lib/supabase/database.types';
 
 type Estimate = Database['public']['Tables']['estimates']['Row'];
-type Project = Database['public']['Tables']['projects']['Row'] & { archived_at?: string | null };
+type Project = Omit<Database['public']['Tables']['projects']['Row'], 'status'> & {
+  status:
+    | Database['public']['Tables']['projects']['Row']['status']
+    | 'approved'
+    | 'invoice_requested';
+  archived_at?: string | null;
+};
 
 type ProjectFile = {
   id: string; project_id: string; uploaded_by: string; file_name: string;
