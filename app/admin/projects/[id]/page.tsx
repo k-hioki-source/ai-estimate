@@ -124,6 +124,9 @@ export default function AdminPage() {
   const [projectMessages, setProjectMessages] = useState<Record<string, ProjectMessage[]>>({});
   const [selectedFiles, setSelectedFiles] = useState<Record<string, File | null>>({});
   const [uploadingProjectId, setUploadingProjectId] = useState<string | null>(null);
+  const [chatText, setChatText] = useState('');
+  const [sendingChat, setSendingChat] = useState(false);
+  const [chatError, setChatError] = useState('');
 
   const [forms, setForms] = useState<
     Record<
@@ -550,6 +553,43 @@ export default function AdminPage() {
     setMessage(fileType === 'delivery'
       ? `案件 ${project.project_code} に納品ファイルをアップロードしました。`
       : `案件 ${project.project_code} に確認ファイルをアップロードしました。`);
+  }
+
+  async function sendProjectMessage(project: ProjectWithData) {
+    if (!user || sendingChat) return;
+    const text = chatText.trim();
+    if (!text) {
+      setChatError('メッセージを入力してください。');
+      return;
+    }
+
+    setSendingChat(true);
+    setChatError('');
+    const supabase = getSupabaseBrowserClient();
+
+    const { data, error: sendError } = await (supabase.from('project_messages' as any) as any)
+      .insert({
+        project_id: project.id,
+        user_id: user.id,
+        message: text,
+        message_type: 'message',
+      })
+      .select('*')
+      .single();
+
+    setSendingChat(false);
+
+    if (sendError) {
+      console.error('Project message send error:', sendError);
+      setChatError('メッセージを送信できませんでした。');
+      return;
+    }
+
+    setProjectMessages((current) => ({
+      ...current,
+      [project.id]: [...(current[project.id] ?? []), data as ProjectMessage],
+    }));
+    setChatText('');
   }
 
   if (loading) {
@@ -1023,6 +1063,58 @@ export default function AdminPage() {
                 <div className="sectionTitle">
                   <div>
                     <div className="sectionNumber">05</div>
+                    <h3>お客様とのメッセージ</h3>
+                  </div>
+                </div>
+
+                <p className="sectionLead">
+                  この案件に関する連絡をお客様と直接やり取りできます。
+                </p>
+
+                <div className="chatList">
+                  {messages.filter((item) => item.message_type === 'message').length ? (
+                    messages
+                      .filter((item) => item.message_type === 'message')
+                      .map((item) => {
+                        const mine = item.user_id === user?.id;
+                        return (
+                          <div className={`chatRow ${mine ? 'mine' : 'other'}`} key={item.id}>
+                            <div className="chatMeta">
+                              <strong>{mine ? 'クリエイトサポート' : 'お客様'}</strong>
+                              <span>{formatDate(item.created_at)}</span>
+                            </div>
+                            <div className="chatBubble">{item.message}</div>
+                          </div>
+                        );
+                      })
+                  ) : (
+                    <div className="emptyInline">メッセージはまだありません。</div>
+                  )}
+                </div>
+
+                <div className="chatComposer">
+                  <textarea
+                    value={chatText}
+                    onChange={(e) => setChatText(e.target.value)}
+                    placeholder="お客様への連絡事項を入力してください。"
+                    rows={4}
+                  />
+                  {chatError ? <div className="chatError">{chatError}</div> : null}
+                  <button
+                    type="button"
+                    className="primaryButton"
+                    disabled={sendingChat || !chatText.trim()}
+                    onClick={() => sendProjectMessage(project)}
+                  >
+                    {sendingChat ? '送信中…' : 'メッセージを送信'}
+                  </button>
+                </div>
+              </section>
+
+              <section className="detailSection">
+                <div className="sectionTitle">
+                  <div>
+                    <div className="sectionNumber">06</div>
                     <h3>最終納品</h3>
                   </div>
                 </div>
@@ -1276,6 +1368,19 @@ export default function AdminPage() {
         .timelineHead span { color: #64748b; font-size: 11px; }
         .timelineItem p { margin: 5px 0 0; color: #475569; line-height: 1.65; white-space: pre-wrap; }
         .emptyInline { padding: 18px; border-radius: 11px; background: #f8fafc; color: #64748b; font-size: 13px; }
+        .sectionLead { margin: -6px 0 16px; color: #64748b; font-size: 13px; line-height: 1.65; }
+        .chatList { display: grid; gap: 14px; }
+        .chatRow { max-width: 82%; }
+        .chatRow.mine { margin-left: auto; }
+        .chatRow.other { margin-right: auto; }
+        .chatMeta { display: flex; gap: 10px; align-items: center; margin-bottom: 5px; font-size: 11px; color: #64748b; }
+        .chatRow.mine .chatMeta { justify-content: flex-end; }
+        .chatBubble { padding: 11px 13px; border-radius: 13px; background: #f1f5f9; line-height: 1.65; white-space: pre-wrap; overflow-wrap: anywhere; }
+        .chatRow.mine .chatBubble { background: #eaf2ff; }
+        .chatComposer { margin-top: 18px; padding-top: 18px; border-top: 1px solid #e5eaf0; }
+        .chatComposer textarea { width: 100%; box-sizing: border-box; }
+        .chatComposer button { width: auto !important; margin-top: 10px; }
+        .chatError { margin-top: 8px; color: #b91c1c; font-size: 13px; font-weight: 700; }
         .detailSide { display: grid; gap: 14px; position: sticky; top: 18px; }
         .sideCard { padding: 18px; }
         .sideCard > strong { display: block; font-size: 16px; margin-bottom: 16px; }
