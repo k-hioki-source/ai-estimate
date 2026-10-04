@@ -679,87 +679,49 @@ async function handleFormalQuoteRequest() {
 </div>
   
 
-    {/* ヒーロー */}
-    {authChecked && !user ? (
-      <>
-        <section className="csWorksHero card">
-          <div className="csWorksHeroContent">
-            <div className="csWorksHeroText">
-              <div className="csWorksBrandRow">
-                <span className="csWorksBrand">CS Works</span>
-                <span className="csWorksBeta">by Create Support</span>
-              </div>
-              <h1 className="csWorksHeroTitle">
-                イラスト制作を、<br />見積りから納品までスムーズに。
-              </h1>
-              <p className="csWorksHeroLead">
-                CS Worksは、クリエイトサポートへの制作依頼をオンラインで進められるサービスです。
-                まずはAI概算見積りで、制作費の目安をその場で確認できます。
-              </p>
-              <div className="csWorksHeroActions">
-                <a href="#ai-estimate" className="csWorksPrimaryCta">AI概算見積りを試す</a>
-                <Link href="/signup" className="csWorksSecondaryCta">無料会員登録</Link>
-              </div>
-              <div className="csWorksHeroNotes">
-                <span>✓ AI概算見積りは登録不要</span>
-                <span>✓ 会員登録で見積り・案件をまとめて管理</span>
-              </div>
-            </div>
-            <div className="csWorksHeroVisual">
-              <div className="csWorksFlowCard">
-                <span className="csWorksFlowLabel">CS Works</span>
-                <div className="csWorksFlowSteps">
-                  <div><b>01</b><span>AI概算</span></div>
-                  <div><b>02</b><span>相談・見積</span></div>
-                  <div><b>03</b><span>発注</span></div>
-                  <div><b>04</b><span>案件管理</span></div>
-                  <div><b>05</b><span>納品</span></div>
-                </div>
-                <img src="https://www.create-support.co.jp/public/hydraulic.png" alt="テクニカルイラスト制作例" className="csWorksHeroImage" />
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section className="csWorksIntro">
-          <div className="csWorksSectionHeading">
-            <span>WHAT IS CS WORKS?</span>
-            <h2>制作依頼のやり取りを、ひとつの場所に。</h2>
-            <p>
-              見積りの確認だけで終わらず、その後の相談・正式見積り・発注・案件確認・納品まで。
-              制作会社とのやり取りを分かりやすくつなげます。
-            </p>
-          </div>
-          <div className="csWorksFeatureGrid">
-            <div className="csWorksFeatureCard"><span>01</span><strong>AI概算見積り</strong><p>画像や依頼内容から、制作工数と概算金額をその場で確認。</p></div>
-            <div className="csWorksFeatureCard"><span>02</span><strong>正式見積り・相談</strong><p>概算結果をもとに、担当者へそのまま相談できます。</p></div>
-            <div className="csWorksFeatureCard"><span>03</span><strong>発注・案件管理</strong><p>見積りから発注へ。進行中の案件もマイページで確認。</p></div>
-            <div className="csWorksFeatureCard"><span>04</span><strong>納品・書類管理</strong><p>納品データや案件に関する書類をまとめて管理できます。</p></div>
-          </div>
-        </section>
-      </>
-    ) : (
-      <section className="hero card">
-        <div className="heroContent">
-          <div className="heroText">
-            <div className="eyebrow">AI概算見積り</div>
-            <h1 className="heroTitle">イラスト制作の概算見積りをその場で確認できます</h1>
-            <p className="heroLead">
-              参考画像と条件を入力するだけで、AIが案件の複雑さを判定し、概算金額を表示します。
-              取扱説明書・パーツカタログ・機械イラストに対応しています。
-            </p>
-            <div className="heroPoints">
-              <div className="miniPoint">その場で金額の目安がわかる</div>
-              <div className="miniPoint">画像を見て複雑さを数値化</div>
-              <div className="miniPoint">正式見積りにもつなげやすい</div>
-            </div>
-          </div>
-          <div className="heroImageWrap">
-            <img src="https://www.create-support.co.jp/public/hydraulic.png" alt="油圧シリンダーのテクニカルイラスト" className="heroImage" />
+    {/* ヒーロー：AI概算見積りを主役として維持 */}
+    <section className="hero card">
+      <div className="heroContent">
+        <div className="heroText">
+          <div className="eyebrow">{authChecked && !user ? 'CS Works｜AI概算見積り' : 'AI概算見積り'}</div>
+          <h1 className="heroTitle">イラスト制作の概算見積りをその場で確認できます</h1>
+          <p className="heroLead">
+            参考画像と条件を入力するだけで、AIが案件の複雑さを判定し、概算金額を表示します。
+            取扱説明書・パーツカタログ・機械イラストに対応しています。
+          </p>
+          <div className="heroPoints">
+            <div className="miniPoint">その場で金額の目安がわかる</div>
+            <div className="miniPoint">画像を見て複雑さを数値化</div>
+            <div className="miniPoint">正式見積りにもつなげやすい</div>
           </div>
         </div>
+        <div className="heroImageWrap">
+          <img src="https://www.create-support.co.jp/public/hydraulic.png" alt="油圧シリンダーのテクニカルイラスト" className="heroImage" />
+        </div>
+      </div>
+    </section>
+
+    {authChecked && !user ? (
+      <section className="csWorksBridge card">
+        <div className="csWorksBridgeTop">
+          <div>
+            <div className="eyebrow">CS WORKS</div>
+            <h2 className="csWorksBridgeTitle">見積りから納品まで、ひとつの場所で。</h2>
+            <p className="csWorksBridgeLead">
+              CS Worksは、クリエイトサポートへの制作依頼をオンラインで進められるサービスです。
+              AI概算見積りは登録なしですぐに利用できます。無料会員登録すると、その見積りを保存して、正式見積り・発注・案件確認・納品まで続けて管理できます。
+            </p>
+          </div>
+          <div className="csWorksBridgeActions">
+            <Link href="/signup" className="csWorksPrimaryCta">無料会員登録</Link>
+            <Link href="/login" className="csWorksSecondaryCta">ログイン</Link>
+          </div>
+        </div>
+        <div className="csWorksBridgeFlow" aria-label="CS Worksの利用の流れ">
+          <span>AI概算見積り</span><b>→</b><span>保存</span><b>→</b><span>正式見積り</span><b>→</b><span>発注</span><b>→</b><span>案件管理</span><b>→</b><span>納品</span>
+        </div>
       </section>
-    )}
+    ) : null}
 
     <section className="updateBox" id="ai-estimate">
       <div className="updateBadge">AI概算見積り</div>
@@ -1851,9 +1813,17 @@ async function handleFormalQuoteRequest() {
         .csWorksFeatureCard strong { display: block; color: #173a5e; font-size: 15px; }
         .csWorksFeatureCard p { margin: 8px 0 0; color: #6a7d90; font-size: 13px; line-height: 1.7; }
         .csWorksResultCta { border-color: #cfe1f3; background: linear-gradient(135deg,#f7fbff,#fff); }
+        .csWorksBridge { padding: 28px 30px; border: 1px solid #cfe0f4; background: linear-gradient(135deg, #f8fbff 0%, #ffffff 72%); }
+        .csWorksBridgeTop { display: flex; justify-content: space-between; gap: 28px; align-items: center; }
+        .csWorksBridgeTitle { margin: 5px 0 0; color: #102f54; font-size: 26px; line-height: 1.4; }
+        .csWorksBridgeLead { max-width: 760px; margin: 12px 0 0; color: #526b84; font-size: 14px; line-height: 1.85; }
+        .csWorksBridgeActions { display: flex; flex: 0 0 auto; gap: 10px; align-items: center; }
+        .csWorksBridgeFlow { display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap; margin-top: 22px; padding: 14px 16px; border-radius: 13px; background: #eef6ff; color: #174f89; font-size: 13px; font-weight: 800; }
+        .csWorksBridgeFlow b { color: #7fa7cf; font-weight: 700; }
         .csWorksInlineButton { width: auto; }
         @media (max-width: 860px) {
           .csWorksHeroContent { grid-template-columns: 1fr; padding: 36px 26px; }
+          .csWorksBridgeTop { align-items: flex-start; flex-direction: column; }
           .csWorksFlowCard { min-height: 330px; }
           .csWorksFeatureGrid { grid-template-columns: repeat(2,minmax(0,1fr)); }
         }
@@ -1863,6 +1833,11 @@ async function handleFormalQuoteRequest() {
           .csWorksHeroActions, .csWorksResultActions { align-items: stretch; flex-direction: column; }
           .csWorksPrimaryCta, .csWorksSecondaryCta, .csWorksInlineButton { width: 100%; box-sizing: border-box; }
           .csWorksHeroNotes { flex-direction: column; gap: 6px; }
+          .csWorksBridge { padding: 22px 20px; }
+          .csWorksBridgeTitle { font-size: 22px; }
+          .csWorksBridgeActions { width: 100%; align-items: stretch; flex-direction: column; }
+          .csWorksBridgeActions a { width: 100%; box-sizing: border-box; text-align: center; }
+          .csWorksBridgeFlow { justify-content: flex-start; gap: 7px; font-size: 12px; }
           .csWorksFlowSteps { width: 70%; }
           .csWorksFeatureGrid { grid-template-columns: 1fr; }
         }
