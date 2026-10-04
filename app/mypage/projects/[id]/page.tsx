@@ -814,6 +814,20 @@ async function submitProjectReview(project: Project, action: 'approval' | 'revis
     setReferenceMessage('');
 
     const supabase = getSupabaseBrowserClient();
+
+    // Storage 側のRLSは project_files のレコードを参照して所有者を確認するため、
+    // 必ず実ファイルを先に削除し、その後でDBレコードを削除する。
+    const { error: storageDeleteError } = await supabase.storage
+      .from('project-files')
+      .remove([file.storage_path]);
+
+    if (storageDeleteError) {
+      console.error('Reference file storage delete error:', storageDeleteError);
+      setDeletingReferenceId(null);
+      setReferenceError('保存ファイルを削除できませんでした。権限設定をご確認ください。');
+      return;
+    }
+
     const { error: deleteError } = await (supabase.from('project_files' as any) as any)
       .delete()
       .eq('id', file.id)
@@ -824,16 +838,8 @@ async function submitProjectReview(project: Project, action: 'approval' | 'revis
     if (deleteError) {
       console.error('Reference file DB delete error:', deleteError);
       setDeletingReferenceId(null);
-      setReferenceError('制作資料を削除できませんでした。');
+      setReferenceError('保存ファイルは削除されましたが、制作資料の登録を削除できませんでした。管理者へご連絡ください。');
       return;
-    }
-
-    const { error: storageDeleteError } = await supabase.storage
-      .from('project-files')
-      .remove([file.storage_path]);
-
-    if (storageDeleteError) {
-      console.error('Reference file storage delete error:', storageDeleteError);
     }
 
     setProjectFiles((current) => ({
@@ -841,11 +847,7 @@ async function submitProjectReview(project: Project, action: 'approval' | 'revis
       [project.id]: (current[project.id] ?? []).filter((item) => item.id !== file.id),
     }));
     setDeletingReferenceId(null);
-    setReferenceMessage(
-      storageDeleteError
-        ? '制作資料の登録を削除しました。保存ファイルの後処理のみ失敗したため、管理者へご連絡ください。'
-        : '制作資料を削除しました。'
-    );
+    setReferenceMessage('制作資料を削除しました。');
   }
 
   async function toggleArchiveProject(project: Project) {
