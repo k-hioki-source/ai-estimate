@@ -68,9 +68,18 @@ function difficultyLabel(score: number) {
   return '高難度';
 }
 
+type SiteAnnouncement = {
+  id: string;
+  label: string;
+  title: string;
+  body: string;
+  is_active: boolean;
+};
+
 export default function EstimateForm() {
   const [user, setUser] = useState<User | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
+  const [siteAnnouncement, setSiteAnnouncement] = useState<SiteAnnouncement | null>(null);
   const [selectedSample, setSelectedSample] = useState<string | null>(null);
   const [showSamplePanel, setShowSamplePanel] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -127,6 +136,36 @@ export default function EstimateForm() {
       authListener.subscription.unsubscribe();
     };
   }, []);
+
+  // トップページのお知らせをSupabaseから取得
+  useEffect(() => {
+    const supabase = getSupabaseBrowserClient();
+    let mounted = true;
+
+    (async () => {
+      const { data, error } = await (supabase.from('site_announcements' as any) as any)
+        .select('id, label, title, body, is_active')
+        .eq('is_active', true)
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (!mounted) return;
+
+      if (error) {
+        console.error('Announcement load error:', error);
+        setSiteAnnouncement(null);
+        return;
+      }
+
+      setSiteAnnouncement((data as SiteAnnouncement | null) ?? null);
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   const difficultyStars = useMemo(
     () => (result ? starText(result.vision.complexityScore) : ''),
     [result]
@@ -746,15 +785,15 @@ async function handleFormalQuoteRequest() {
       </section>
     ) : null}
 
-    <section className="updateBox" id="ai-estimate">
-      <div className="updateBadge">AI概算見積り</div>
-      <div>
-        <h2 className="updateTitle">画像がなくても、その場で概算を確認できます</h2>
-        <p className="updateText">
-          参考画像をアップロードするか、9種類のサンプルから近いイメージを選択。AIが制作内容を解析して概算金額を算出します。
-        </p>
-      </div>
-    </section>
+    {authChecked && !user && siteAnnouncement ? (
+      <section className="updateBox" id="ai-estimate">
+        <div className="updateBadge">{siteAnnouncement.label}</div>
+        <div>
+          <h2 className="updateTitle">{siteAnnouncement.title}</h2>
+          <p className="updateText">{siteAnnouncement.body}</p>
+        </div>
+      </section>
+    ) : null}
 
       <section className="card stackLarge">
         <div className="privacyCollectionNotice">
