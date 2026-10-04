@@ -147,7 +147,7 @@ function projectStatusLabel(status: string) {
 
 async function sendCsWorksNotification(
   supabase: ReturnType<typeof getSupabaseBrowserClient>,
-  type: 'quote_requested' | 'quote_presented' | 'ordered' | 'revision_requested' | 'approved' | 'delivered' | 'material_uploaded',
+  type: 'quote_requested' | 'quote_presented' | 'ordered' | 'revision_requested' | 'approved' | 'delivered' | 'material_uploaded' | 'customer_message' | 'invoice_requested',
   projectId: string,
   message?: string
 ) {
@@ -742,6 +742,16 @@ async function submitProjectReview(project: Project, action: 'approval' | 'revis
       [project.id]: [...(current[project.id] ?? []), data as ProjectMessage],
     }));
     setChatText('');
+
+    const mailSent = await sendCsWorksNotification(
+      supabase,
+      'customer_message',
+      project.id,
+      text
+    );
+    if (!mailSent) {
+      console.error('Customer message email notification failed.');
+    }
   }
 
   async function uploadReferenceFile(project: Project) {
@@ -930,7 +940,18 @@ async function submitProjectReview(project: Project, action: 'approval' | 'revis
     setProjects((current) =>
       current.map((item) => item.id === project.id ? (data as Project) : item)
     );
-    setInvoiceRequestMessage('請求書の発行を依頼しました。');
+
+    const mailSent = await sendCsWorksNotification(
+      supabase,
+      'invoice_requested',
+      project.id
+    );
+
+    setInvoiceRequestMessage(
+      mailSent
+        ? '請求書の発行を依頼しました。'
+        : '請求書の発行を依頼しました。管理者へのメール通知のみ失敗しました。'
+    );
   }
 
   async function saveProfile(e: FormEvent) {
