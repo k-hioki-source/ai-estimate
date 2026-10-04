@@ -106,7 +106,12 @@ function statusLabel(status: Project['status']) {
 
 async function sendCsWorksNotification(
   supabase: ReturnType<typeof getSupabaseBrowserClient>,
-  type: 'quote_presented' | 'ordered' | 'revision_requested' | 'delivered',
+  type:
+    | 'quote_presented'
+    | 'ordered'
+    | 'revision_requested'
+    | 'delivered'
+    | 'review_requested',
   projectId: string,
   message?: string
 ) {
@@ -528,7 +533,14 @@ export default function AdminPage() {
   );
 
   let mailSent = true;
-  if (nextStatus === 'delivered') {
+
+  if (nextStatus === 'customer_review') {
+    mailSent = await sendCsWorksNotification(
+      supabase,
+      'review_requested',
+      project.id
+    );
+  } else if (nextStatus === 'delivered') {
     mailSent = await sendCsWorksNotification(
       supabase,
       'delivered',
@@ -537,11 +549,15 @@ export default function AdminPage() {
   }
 
   setMessage(
-    nextStatus === 'delivered'
+    nextStatus === 'customer_review'
       ? mailSent
-        ? `案件 ${project.project_code} を納品済みに変更し、お客様へメール通知しました。`
-        : `案件 ${project.project_code} を納品済みに変更しました。メール通知のみ失敗しました。`
-      : `案件 ${project.project_code} を「${statusLabel(nextStatus)}」に変更しました。`
+        ? `案件 ${project.project_code} をお客様確認中に変更し、お客様へ確認依頼メールを送信しました。`
+        : `案件 ${project.project_code} をお客様確認中に変更しました。メール通知のみ失敗しました。`
+      : nextStatus === 'delivered'
+        ? mailSent
+          ? `案件 ${project.project_code} を納品済みに変更し、お客様へメール通知しました。`
+          : `案件 ${project.project_code} を納品済みに変更しました。メール通知のみ失敗しました。`
+        : `案件 ${project.project_code} を「${statusLabel(nextStatus)}」に変更しました。`
   );
 }
 
