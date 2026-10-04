@@ -15,6 +15,7 @@ const allowedTypes: CsWorksMailPayload['type'][] = [
   'review_requested',
   'ordered',
   'revision_requested',
+  'approved',
   'delivered',
   'material_uploaded',
 ];
@@ -122,6 +123,7 @@ export async function POST(request: NextRequest) {
       (
         body.type === 'ordered' ||
         body.type === 'revision_requested' ||
+        body.type === 'approved' ||
         body.type === 'material_uploaded'
       ) &&
       project.user_id !== user.id
