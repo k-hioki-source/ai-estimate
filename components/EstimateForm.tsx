@@ -1,6 +1,9 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import Link from 'next/link';
+import type { User } from '@supabase/supabase-js';
+import { getSupabaseBrowserClient } from '../lib/supabase/client';
 import HeaderLinks from "./HeaderLinks";
 import AiAssistant from "./estimate/AiAssistant";
 import EstimateSave from "./estimate/EstimateSave";
@@ -66,6 +69,8 @@ function difficultyLabel(score: number) {
 }
 
 export default function EstimateForm() {
+  const [user, setUser] = useState<User | null>(null);
+  const [authChecked, setAuthChecked] = useState(false);
   const [selectedSample, setSelectedSample] = useState<string | null>(null);
   const [showSamplePanel, setShowSamplePanel] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -675,13 +680,70 @@ async function handleFormalQuoteRequest() {
   
 
     {/* ヒーロー */}
-    <section className="hero card">
+    {authChecked && !user ? (
+      <>
+        <section className="csWorksHero card">
+          <div className="csWorksHeroContent">
+            <div className="csWorksHeroText">
+              <div className="csWorksBrandRow">
+                <span className="csWorksBrand">CS Works</span>
+                <span className="csWorksBeta">by Create Support</span>
+              </div>
+              <h1 className="csWorksHeroTitle">
+                イラスト制作を、<br />見積りから納品までスムーズに。
+              </h1>
+              <p className="csWorksHeroLead">
+                CS Worksは、クリエイトサポートへの制作依頼をオンラインで進められるサービスです。
+                まずはAI概算見積りで、制作費の目安をその場で確認できます。
+              </p>
+              <div className="csWorksHeroActions">
+                <a href="#ai-estimate" className="csWorksPrimaryCta">AI概算見積りを試す</a>
+                <Link href="/signup" className="csWorksSecondaryCta">無料会員登録</Link>
+              </div>
+              <div className="csWorksHeroNotes">
+                <span>✓ AI概算見積りは登録不要</span>
+                <span>✓ 会員登録で見積り・案件をまとめて管理</span>
+              </div>
+            </div>
+            <div className="csWorksHeroVisual">
+              <div className="csWorksFlowCard">
+                <span className="csWorksFlowLabel">CS Works</span>
+                <div className="csWorksFlowSteps">
+                  <div><b>01</b><span>AI概算</span></div>
+                  <div><b>02</b><span>相談・見積</span></div>
+                  <div><b>03</b><span>発注</span></div>
+                  <div><b>04</b><span>案件管理</span></div>
+                  <div><b>05</b><span>納品</span></div>
+                </div>
+                <img src="https://www.create-support.co.jp/public/hydraulic.png" alt="テクニカルイラスト制作例" className="csWorksHeroImage" />
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="csWorksIntro">
+          <div className="csWorksSectionHeading">
+            <span>WHAT IS CS WORKS?</span>
+            <h2>制作依頼のやり取りを、ひとつの場所に。</h2>
+            <p>
+              見積りの確認だけで終わらず、その後の相談・正式見積り・発注・案件確認・納品まで。
+              制作会社とのやり取りを分かりやすくつなげます。
+            </p>
+          </div>
+          <div className="csWorksFeatureGrid">
+            <div className="csWorksFeatureCard"><span>01</span><strong>AI概算見積り</strong><p>画像や依頼内容から、制作工数と概算金額をその場で確認。</p></div>
+            <div className="csWorksFeatureCard"><span>02</span><strong>正式見積り・相談</strong><p>概算結果をもとに、担当者へそのまま相談できます。</p></div>
+            <div className="csWorksFeatureCard"><span>03</span><strong>発注・案件管理</strong><p>見積りから発注へ。進行中の案件もマイページで確認。</p></div>
+            <div className="csWorksFeatureCard"><span>04</span><strong>納品・書類管理</strong><p>納品データや案件に関する書類をまとめて管理できます。</p></div>
+          </div>
+        </section>
+      </>
+    ) : (
+      <section className="hero card">
         <div className="heroContent">
           <div className="heroText">
             <div className="eyebrow">AI概算見積り</div>
-            <h1 className="heroTitle">
-              イラスト制作の概算見積りをその場で確認できます
-            </h1>
+            <h1 className="heroTitle">イラスト制作の概算見積りをその場で確認できます</h1>
             <p className="heroLead">
               参考画像と条件を入力するだけで、AIが案件の複雑さを判定し、概算金額を表示します。
               取扱説明書・パーツカタログ・機械イラストに対応しています。
@@ -692,31 +754,23 @@ async function handleFormalQuoteRequest() {
               <div className="miniPoint">正式見積りにもつなげやすい</div>
             </div>
           </div>
-
           <div className="heroImageWrap">
-            <img
-              src="https://www.create-support.co.jp/public/hydraulic.png"
-              alt="油圧シリンダーのテクニカルイラスト"
-              className="heroImage"
-            />
+            <img src="https://www.create-support.co.jp/public/hydraulic.png" alt="油圧シリンダーのテクニカルイラスト" className="heroImage" />
           </div>
         </div>
       </section>
+    )}
 
-    <section className="updateBox">
-  <div className="updateBadge">更新情報</div>
+    <section className="updateBox" id="ai-estimate">
+      <div className="updateBadge">AI概算見積り</div>
+      <div>
+        <h2 className="updateTitle">画像がなくても、その場で概算を確認できます</h2>
+        <p className="updateText">
+          参考画像をアップロードするか、9種類のサンプルから近いイメージを選択。AIが制作内容を解析して概算金額を算出します。
+        </p>
+      </div>
+    </section>
 
-  <div>
-    <h2 className="updateTitle">
-  画像アップロードなしでも見積り可能になりました
-</h2>
-<p className="updateText">
-  参考画像がない方は、9種類のサンプルから近いイメージを選択できます。
-  選択したサンプルをもとにAIが概算金額を算出します。
-</p>
-  </div>
-</section>
-    
       <section className="card stackLarge">
         <div className="privacyCollectionNotice">
           <strong>個人情報の入力なしで、すぐに概算見積りを試せます。</strong>
@@ -1737,194 +1791,80 @@ async function handleFormalQuoteRequest() {
   }}
 />
           
-          <div className="ctaCard card">
-            <div>
-              <div className="eyebrow">
-                {result.requiresConsultation ? '個別見積りのご相談' : '正式見積り・メール送付'}
-              </div>
-              <h3 className="ctaTitle">
-                {result.requiresConsultation
-                  ? '詳しい内容を確認して、個別にお見積りいたします'
-                  : '見積り結果をメールで受け取るには、正式見積りをご依頼ください'}
-              </h3>
-              <p className="muted compactText">
-                {result.requiresConsultation
-                  ? '会社名・ご担当者名・メールアドレスと、ご希望の仕様をご入力ください。担当者よりご連絡いたします。'
-                  : '会社名・ご担当者名・メールアドレスをご入力いただくと、今回の概算結果をメールでお送りし、同時に正式見積り依頼として受け付けます。'}
-              </p>
-            </div>
-
-            {result.input.requestFormalQuote ? (
-              <div className="ctaButtonLike">
-                正式見積り依頼を受け付けました。概算結果をメールで送信しています。
+          <div className="ctaCard card csWorksResultCta">
+            {user ? (
+              <div>
+                <div className="eyebrow">CS Works</div>
+                <h3 className="ctaTitle">この見積りを保存して、案件につなげられます</h3>
+                <p className="muted compactText">
+                  見積り結果の保存後は、マイページから案件の確認やご相談ができます。
+                </p>
+                <Link href="/mypage" className="primaryButton csWorksInlineButton">マイページを開く</Link>
               </div>
             ) : (
-              <div className="formalQuoteForm">
-                <div className="grid grid-2">
-                  <div>
-                    <label htmlFor="formalCompanyName">会社名</label>
-                    <input
-                      id="formalCompanyName"
-                      value={companyName}
-                      onChange={(e) => setCompanyName(e.target.value)}
-                      placeholder="株式会社◯◯"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="customerName">ご担当者名（必須）</label>
-                    <input
-                      id="customerName"
-                      value={customerName}
-                      onChange={(e) => setCustomerName(e.target.value)}
-                      placeholder="山田 太郎"
-                      required
-                    />
-                  </div>
-                  <div className="gridSpan2">
-                    <label htmlFor="email">メールアドレス（必須）</label>
-                    <input
-                      id="email"
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="sample@example.com"
-                      required
-                    />
-                  </div>
-                </div>
-                {!result.requiresConsultation ? <button
-                  type="button"
-                  className="primaryButton"
-                  onClick={handleFormalQuoteRequest}
-                  disabled={formalSending || consultSending}
-                >
-                  {formalSending ? '正式見積り依頼を送信中...' : '概算結果をメールで受け取り、正式見積りを依頼する'}
-                </button> : null}
-
-                {!result.requiresConsultation ? <div className="consultDivider" aria-hidden="true">
-                  <span>または</span>
-                </div> : null}
-
-                {consultSent ? (
-                  <div className="ctaButtonLike">
-                    制作相談を受け付けました。確認メールを送信しています。
-                  </div>
-                ) : (
-                  <div className="consultForm">
-                    <label htmlFor="consultationMessage">
-                      相談内容（必須）
-                    </label>
-                    <textarea
-                      id="consultationMessage"
-                      value={consultationMessage}
-                      onChange={(e) => setConsultationMessage(e.target.value)}
-                      placeholder="例：この内容で制作可能か、正式見積りの前に相談したいです。納期や制作方法についても教えてください。"
-                    />
-                    <button
-                      type="button"
-                      className="consultButton"
-                      onClick={handleConsultRequest}
-                      disabled={consultSending || formalSending}
-                    >
-                      {consultSending
-                        ? '相談内容を送信中...'
-                        : result.requiresConsultation
-                          ? 'この内容について相談する'
-                          : 'この見積り内容について相談する'}
-                    </button>
-                  </div>
-                )}
-
-                <p className="footerNote">
-                  ※この操作により、入力情報・参考画像・見積り結果が株式会社クリエイトサポートへ送信されます。
+              <div>
+                <div className="eyebrow">CS Works</div>
+                <h3 className="ctaTitle">見積りの続きは、CS Worksで。</h3>
+                <p className="muted compactText">
+                  無料会員登録すると、見積り結果の保存、正式見積り、発注、案件確認、納品までオンラインで進められます。
                 </p>
-
-                <style>{`
-                  .illustrationReferencePrice {
-                    margin-top: 18px;
-                    padding: 16px 18px;
-                    border: 1px solid #b9dbea;
-                    border-radius: 12px;
-                    background: #f3fbff;
-                  }
-
-                  .illustrationReferencePrice span {
-                    display: block;
-                    color: #365568;
-                    font-size: 14px;
-                    font-weight: 700;
-                  }
-
-                  .illustrationReferencePrice strong {
-                    display: block;
-                    margin-top: 4px;
-                    color: #0876a3;
-                    font-size: 26px;
-                    line-height: 1.35;
-                  }
-
-                  .illustrationReferencePrice p {
-                    margin: 8px 0 0;
-                    color: #526675;
-                    font-size: 13px;
-                    line-height: 1.65;
-                  }
-
-                  .consultDivider {
-                    display: flex;
-                    align-items: center;
-                    gap: 12px;
-                    margin: 18px 0;
-                    color: #718096;
-                    font-size: 13px;
-                    font-weight: 700;
-                  }
-
-                  .consultDivider::before,
-                  .consultDivider::after {
-                    content: '';
-                    flex: 1;
-                    height: 1px;
-                    background: #d9e2ec;
-                  }
-
-                  .consultForm {
-                    display: grid;
-                    gap: 10px;
-                  }
-
-                  .consultForm textarea {
-                    min-height: 120px;
-                    resize: vertical;
-                  }
-
-                  .consultButton {
-                    width: 100%;
-                    min-height: 48px;
-                    padding: 12px 18px;
-                    border: 1px solid #1676df;
-                    border-radius: 10px;
-                    background: #ffffff;
-                    color: #1261b8;
-                    font-size: 15px;
-                    font-weight: 800;
-                    cursor: pointer;
-                  }
-
-                  .consultButton:hover:not(:disabled) {
-                    background: #eef6ff;
-                  }
-
-                  .consultButton:disabled {
-                    cursor: not-allowed;
-                    opacity: 0.65;
-                  }
-                `}</style>
+                <div className="csWorksResultActions">
+                  <Link href="/signup" className="primaryButton csWorksInlineButton">無料会員登録</Link>
+                  <Link href="/login" className="csWorksSecondaryCta">ログイン</Link>
+                </div>
               </div>
             )}
           </div>
         </section>
       ) : null}
+
+      <style>{`
+        .csWorksHero { overflow: hidden; padding: 0; background: linear-gradient(135deg, #f7fbff 0%, #ffffff 55%, #eef8ff 100%); border: 1px solid #d7e7f7; }
+        .csWorksHeroContent { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(320px, .85fr); gap: 42px; align-items: center; padding: 54px 52px; }
+        .csWorksBrandRow { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; }
+        .csWorksBrand { color: #0d67bd; font-size: 18px; font-weight: 900; letter-spacing: .04em; }
+        .csWorksBeta { padding: 5px 9px; border-radius: 999px; background: #e8f3ff; color: #54708d; font-size: 11px; font-weight: 800; }
+        .csWorksHeroTitle { margin: 0; color: #102f54; font-size: clamp(34px, 4.5vw, 58px); line-height: 1.2; letter-spacing: -.03em; }
+        .csWorksHeroLead { max-width: 680px; margin: 22px 0 0; color: #526b84; font-size: 16px; line-height: 1.9; }
+        .csWorksHeroActions, .csWorksResultActions { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-top: 28px; }
+        .csWorksPrimaryCta, .csWorksSecondaryCta, .csWorksInlineButton { display: inline-flex; align-items: center; justify-content: center; min-height: 48px; padding: 12px 20px; border-radius: 10px; font-weight: 800; text-decoration: none; }
+        .csWorksPrimaryCta { background: #1676df; color: #fff; box-shadow: 0 8px 20px rgba(22,118,223,.18); }
+        .csWorksSecondaryCta { border: 1px solid #bfd4e9; background: #fff; color: #1261b8; }
+        .csWorksHeroNotes { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 18px; color: #61778e; font-size: 12px; font-weight: 700; }
+        .csWorksFlowCard { position: relative; min-height: 390px; padding: 26px; border-radius: 24px; background: linear-gradient(160deg,#0e65b7,#1682dc 60%,#31a8dc); box-shadow: 0 24px 50px rgba(24,87,148,.2); color: #fff; overflow: hidden; }
+        .csWorksFlowLabel { font-size: 13px; font-weight: 900; letter-spacing: .12em; }
+        .csWorksFlowSteps { position: relative; z-index: 2; display: grid; gap: 9px; width: 58%; margin-top: 24px; }
+        .csWorksFlowSteps div { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid rgba(255,255,255,.2); border-radius: 11px; background: rgba(255,255,255,.1); backdrop-filter: blur(5px); }
+        .csWorksFlowSteps b { opacity: .7; font-size: 10px; }
+        .csWorksFlowSteps span { font-size: 13px; font-weight: 800; }
+        .csWorksHeroImage { position: absolute; right: -55px; bottom: -8px; width: 70%; max-height: 250px; object-fit: contain; filter: drop-shadow(0 15px 20px rgba(0,0,0,.2)); }
+        .csWorksIntro { padding: 28px 8px 10px; }
+        .csWorksSectionHeading { max-width: 720px; margin: 0 auto 24px; text-align: center; }
+        .csWorksSectionHeading > span { color: #1676df; font-size: 11px; font-weight: 900; letter-spacing: .16em; }
+        .csWorksSectionHeading h2 { margin: 8px 0 10px; color: #173a5e; font-size: 28px; }
+        .csWorksSectionHeading p { margin: 0; color: #64788d; line-height: 1.8; }
+        .csWorksFeatureGrid { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 14px; }
+        .csWorksFeatureCard { padding: 22px 20px; border: 1px solid #dce8f3; border-radius: 16px; background: #fff; }
+        .csWorksFeatureCard > span { display: block; margin-bottom: 13px; color: #1681d8; font-size: 11px; font-weight: 900; }
+        .csWorksFeatureCard strong { display: block; color: #173a5e; font-size: 15px; }
+        .csWorksFeatureCard p { margin: 8px 0 0; color: #6a7d90; font-size: 13px; line-height: 1.7; }
+        .csWorksResultCta { border-color: #cfe1f3; background: linear-gradient(135deg,#f7fbff,#fff); }
+        .csWorksInlineButton { width: auto; }
+        @media (max-width: 860px) {
+          .csWorksHeroContent { grid-template-columns: 1fr; padding: 36px 26px; }
+          .csWorksFlowCard { min-height: 330px; }
+          .csWorksFeatureGrid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+        }
+        @media (max-width: 560px) {
+          .csWorksHeroContent { padding: 28px 20px; gap: 26px; }
+          .csWorksHeroTitle { font-size: 34px; }
+          .csWorksHeroActions, .csWorksResultActions { align-items: stretch; flex-direction: column; }
+          .csWorksPrimaryCta, .csWorksSecondaryCta, .csWorksInlineButton { width: 100%; box-sizing: border-box; }
+          .csWorksHeroNotes { flex-direction: column; gap: 6px; }
+          .csWorksFlowSteps { width: 70%; }
+          .csWorksFeatureGrid { grid-template-columns: 1fr; }
+        }
+      `}</style>
 
       <footer className="footer">
         <div className="footerInner">
