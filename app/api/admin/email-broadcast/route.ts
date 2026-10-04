@@ -18,13 +18,13 @@ function getBearerToken(request: NextRequest) {
 
 function makeUserClient(token: string) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const publishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
-  if (!url || !anonKey) {
+  if (!url || !publishableKey) {
     throw new Error('Supabase環境変数が設定されていません。');
   }
 
-  return createClient(url, anonKey, {
+  return createClient(url, publishableKey, {
     global: {
       headers: { Authorization: `Bearer ${token}` },
     },
