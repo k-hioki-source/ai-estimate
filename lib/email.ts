@@ -373,6 +373,7 @@ export type CsWorksMailPayload = {
     | 'review_requested'
     | 'ordered'
     | 'revision_requested'
+    | 'approved'
     | 'delivered'
     | 'material_uploaded';
   projectCode: string;
@@ -554,6 +555,28 @@ ${payload.customerEmail || '-'}
 ${payload.message || '-'}
 
 管理画面で制作資料をご確認ください。
+
+${payload.projectId
+  ? `https://estimate.create-support.co.jp/admin/projects/${payload.projectId}`
+  : 'https://estimate.create-support.co.jp/admin'}
+`
+      : payload.type === 'approved'
+        ? `CS Worksでお客様から制作内容の承認がありました。
+
+■案件
+${projectName}
+
+■お客様
+${payload.customerName || '未設定'}
+
+■メール
+${payload.customerEmail || '未設定'}
+
+■承認コメント
+${payload.message || '確認内容を承認しました。'}
+
+制作内容が承認されました。
+最終納品の準備を進めてください。
 
 ${payload.projectId
   ? `https://estimate.create-support.co.jp/admin/projects/${payload.projectId}`
