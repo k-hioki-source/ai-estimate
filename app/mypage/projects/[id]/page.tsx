@@ -195,6 +195,7 @@ const [orderError, setOrderError] = useState('');
   const [uploadingReference, setUploadingReference] = useState(false);
   const [referenceMessage, setReferenceMessage] = useState('');
   const [referenceError, setReferenceError] = useState('');
+  const [deletingReferenceId, setDeletingReferenceId] = useState<string | null>(null);
   const [projectMessages, setProjectMessages] = useState<Record<string, ProjectMessage[]>>({});
   const [reviewComments, setReviewComments] = useState<Record<string, string>>({});
   const [reviewingProjectId, setReviewingProjectId] = useState<string | null>(null);
@@ -797,6 +798,56 @@ async function submitProjectReview(project: Project, action: 'approval' | 'revis
     setReferenceMessage('制作資料を追加しました。');
   }
 
+
+  async function deleteReferenceFile(project: Project, file: ProjectFile) {
+    if (!user || deletingReferenceId) return;
+    if (!['ordered', 'in_production', 'customer_review', 'revision'].includes(project.status)) return;
+    if (file.file_type !== 'reference' || file.uploaded_by !== user.id) return;
+
+    const confirmed = window.confirm(
+      `「${file.file_name}」を削除しますか？\n\n削除した制作資料は元に戻せません。`
+    );
+    if (!confirmed) return;
+
+    setDeletingReferenceId(file.id);
+    setReferenceError('');
+    setReferenceMessage('');
+
+    const supabase = getSupabaseBrowserClient();
+    const { error: deleteError } = await (supabase.from('project_files' as any) as any)
+      .delete()
+      .eq('id', file.id)
+      .eq('project_id', project.id)
+      .eq('uploaded_by', user.id)
+      .eq('file_type', 'reference');
+
+    if (deleteError) {
+      console.error('Reference file DB delete error:', deleteError);
+      setDeletingReferenceId(null);
+      setReferenceError('制作資料を削除できませんでした。');
+      return;
+    }
+
+    const { error: storageDeleteError } = await supabase.storage
+      .from('project-files')
+      .remove([file.storage_path]);
+
+    if (storageDeleteError) {
+      console.error('Reference file storage delete error:', storageDeleteError);
+    }
+
+    setProjectFiles((current) => ({
+      ...current,
+      [project.id]: (current[project.id] ?? []).filter((item) => item.id !== file.id),
+    }));
+    setDeletingReferenceId(null);
+    setReferenceMessage(
+      storageDeleteError
+        ? '制作資料の登録を削除しました。保存ファイルの後処理のみ失敗したため、管理者へご連絡ください。'
+        : '制作資料を削除しました。'
+    );
+  }
+
   async function toggleArchiveProject(project: Project) {
     if (!user || archiving) return;
     const restoring = Boolean(project.archived_at);
@@ -1194,11 +1245,23 @@ async function submitProjectReview(project: Project, action: 'approval' | 'revis
                                   {formatDate(file.created_at)}
                                 </span>
                               </div>
-                              {file.signed_url ? (
-                                <a href={file.signed_url} target="_blank" rel="noreferrer">
-                                  ファイルを開く →
-                                </a>
-                              ) : null}
+                              <div className="fileActions">
+                                {file.signed_url ? (
+                                  <a href={file.signed_url} target="_blank" rel="noreferrer">
+                                    ファイルを開く →
+                                  </a>
+                                ) : null}
+                                {file.uploaded_by === user?.id ? (
+                                  <button
+                                    type="button"
+                                    className="fileDeleteButton"
+                                    disabled={deletingReferenceId === file.id}
+                                    onClick={() => deleteReferenceFile(project, file)}
+                                  >
+                                    {deletingReferenceId === file.id ? '削除中…' : '削除'}
+                                  </button>
+                                ) : null}
+                              </div>
                             </div>
                           ))}
                         </div>
@@ -1762,6 +1825,10 @@ async function submitProjectReview(project: Project, action: 'approval' | 'revis
         .fileRow { padding: 12px 13px; border: 1px solid #e5eaf0; border-radius: 11px; display: flex; justify-content: space-between; gap: 12px; align-items: center; background: #fff; }
         .fileRow span { display: block; color: #64748b; font-size: 11px; margin-top: 4px; }
         .fileRow a { color: #145edb; font-size: 13px; font-weight: 800; white-space: nowrap; }
+        .fileActions { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+        .fileDeleteButton { padding: 0; border: 0; background: transparent; color: #b91c1c; font-size: 13px; font-weight: 800; cursor: pointer; }
+        .fileDeleteButton:hover { text-decoration: underline; }
+        .fileDeleteButton:disabled { color: #94a3b8; cursor: default; text-decoration: none; }
         .reviewTextarea { width: 100%; box-sizing: border-box; margin-top: 14px; }
         .reviewActions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
         .reviewActions button { width: auto !important; }
