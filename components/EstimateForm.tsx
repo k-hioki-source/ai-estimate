@@ -1746,6 +1746,7 @@ async function handleFormalQuoteRequest() {
             }
           `}</style>
 
+          {user ? (
           <EstimateSave
   estimateId={result.estimateId}
   productionMethod={selectedSourceType}
@@ -1790,6 +1791,7 @@ async function handleFormalQuoteRequest() {
     estimateMatch: result.estimateMatch ?? null,
   }}
 />
+          ) : null}
           
           <div className="ctaCard card csWorksResultCta">
             {user ? (
