@@ -716,6 +716,7 @@ export default function AdminPage() {
   const form = project ? forms[project.id] : undefined;
   const invoice = project ? (projectInvoices[project.id] ?? null) : null;
 
+  const referenceFiles = files.filter((file) => file.file_type === 'reference');
   const reviewFiles = files.filter(
     (file) => file.file_type === 'review' || file.file_type === 'revision'
   );
@@ -950,6 +951,26 @@ export default function AdminPage() {
                     <h3>制作進行</h3>
                   </div>
                 </div>
+
+                {['ordered', 'in_production', 'customer_review', 'revision'].includes(project.status) ? (
+                  <div className="uploadPanel referencePanel">
+                    <div className="referencePanelHead">
+                      <div>
+                        <strong>お客様からの制作資料・指示原稿</strong>
+                        <p>お客様が案件ページから追加した写真・PDF・図面・指示原稿などです。</p>
+                      </div>
+                      <span className="fileCountBadge">{referenceFiles.length}件</span>
+                    </div>
+                    {referenceFiles.length > 0 ? (
+                      <FileRows files={referenceFiles} />
+                    ) : (
+                      <div className="emptyInline">お客様から追加された制作資料はまだありません。</div>
+                    )}
+                    <p className="referenceHint">
+                      資料が不足している場合は、下の「お客様とのメッセージ」から追加資料をご依頼ください。
+                    </p>
+                  </div>
+                ) : null}
 
                 {project.status === 'quote_requested' ||
                 project.status === 'quote_reviewing' ||
@@ -1600,6 +1621,11 @@ export default function AdminPage() {
         .workPanel, .deliveryPanel { display: grid; gap: 14px; }
         .uploadPanel { padding: 16px; border-radius: 13px; border: 1px solid #dbe3ec; background: #f8fafc; }
         .uploadPanel > p { margin: 6px 0 12px; color: #64748b; font-size: 13px; }
+        .referencePanel { margin-bottom: 14px; background: #f8fbff; border-color: #cbdcf5; }
+        .referencePanelHead { display: flex; justify-content: space-between; gap: 14px; align-items: flex-start; }
+        .referencePanelHead > div > p { margin: 6px 0 0; color: #64748b; font-size: 13px; line-height: 1.6; }
+        .fileCountBadge { flex: 0 0 auto; padding: 6px 10px; border-radius: 999px; background: #eaf2ff; color: #1d4ed8; font-size: 12px; font-weight: 900; }
+        .referenceHint { margin: 12px 0 0 !important; padding-top: 12px; border-top: 1px solid #e2e8f0; line-height: 1.6; }
         .deliveryUpload { border-color: #bbf7d0; background: #f7fff9; }
         .uploadControls { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
         .uploadControls button { width: auto !important; }
