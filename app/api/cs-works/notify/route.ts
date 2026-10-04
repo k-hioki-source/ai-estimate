@@ -163,6 +163,7 @@ export async function POST(request: NextRequest) {
     const result = await sendCsWorksEmail({
       type: body.type,
       projectCode: project.project_code,
+      projectId: project.id,
       projectTitle: project.title ?? undefined,
       customerName: customerProfile.contact_name ?? undefined,
       customerEmail: customerProfile.email ?? undefined,
