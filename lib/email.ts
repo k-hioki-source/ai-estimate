@@ -368,7 +368,12 @@ https://www.create-support.co.jp/
 // =========================================================
 
 export type CsWorksMailPayload = {
-  type: 'quote_presented' | 'ordered' | 'revision_requested' | 'delivered';
+  type:
+    | 'quote_presented'
+    | 'ordered'
+    | 'revision_requested'
+    | 'delivered'
+    | 'material_uploaded';
   projectCode: string;
   projectTitle?: string;
   customerName?: string;
@@ -466,13 +471,16 @@ https://www.create-support.co.jp/
   }
 
   const isOrder = payload.type === 'ordered';
+  const isMaterialUploaded = payload.type === 'material_uploaded';
 
   const result = await resend.emails.send({
     from,
     to: toAdmin,
     subject: isOrder
       ? `【CS Works】正式発注がありました（${payload.projectCode}）`
-      : `【CS Works】修正依頼がありました（${payload.projectCode}）`,
+      : isMaterialUploaded
+        ? `【CS Works】制作資料が追加されました（${payload.projectCode}）`
+        : `【CS Works】修正依頼がありました（${payload.projectCode}）`,
     text: isOrder
       ? `CS Worksから正式発注がありました。
 
@@ -495,7 +503,26 @@ ${payload.confirmedDeadline || '-'}
 
 https://estimate.create-support.co.jp/admin
 `
-      : `CS Worksから修正依頼がありました。
+      : isMaterialUploaded
+        ? `CS Worksでお客様から制作資料が追加されました。
+
+■案件
+${projectName}
+
+■お客様
+${payload.customerName || '-'}
+
+■メール
+${payload.customerEmail || '-'}
+
+■追加された制作資料
+${payload.message || '-'}
+
+管理画面で制作資料をご確認ください。
+
+https://estimate.create-support.co.jp/admin/projects/${payload.projectCode}
+`
+        : `CS Worksから修正依頼がありました。
 
 ■案件
 ${projectName}
