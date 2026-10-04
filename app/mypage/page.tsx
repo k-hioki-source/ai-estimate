@@ -17,9 +17,9 @@ type Project = Omit<ProjectBase, 'status'> & {
 };
 type Profile = {
   company_name: string; department_name: string; contact_name: string;
-  phone: string; postal_code: string; address: string;
+  phone: string; postal_code: string; address: string; newsletter_enabled: boolean;
 };
-const emptyProfile: Profile = { company_name:'', department_name:'', contact_name:'', phone:'', postal_code:'', address:'' };
+const emptyProfile: Profile = { company_name:'', department_name:'', contact_name:'', phone:'', postal_code:'', address:'', newsletter_enabled:true };
 
 function fmt(v:string|null){ if(!v)return '―'; return new Intl.DateTimeFormat('ja-JP',{year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(v)); }
 function production(v:string|null){ return v==='photo_trace'?'写真・画像トレース':v==='reference_drawing'?'写真・図面・資料から作図':v==='cad_conversion'?'XVL・3DCADから作成':v||'未設定'; }
@@ -39,11 +39,11 @@ export default function MyPage(){
    const supabase=getSupabaseBrowserClient(); const {data:u}=await supabase.auth.getUser();
    if(!u.user){router.replace('/login');return} setUser(u.user);
    const [{data:p},{data:e},{data:pr}]=await Promise.all([
-     supabase.from('profiles').select('company_name, department_name, contact_name, phone, postal_code, address').eq('id',u.user.id).single(),
+     supabase.from('profiles').select('company_name, department_name, contact_name, phone, postal_code, address, newsletter_enabled').eq('id',u.user.id).single(),
      supabase.from('estimates').select('*').eq('user_id',u.user.id).order('created_at',{ascending:false}),
      supabase.from('projects').select('*').eq('user_id',u.user.id).order('updated_at',{ascending:false}),
    ]);
-   if(p)setProfile({company_name:p.company_name??'',department_name:p.department_name??'',contact_name:p.contact_name??'',phone:p.phone??'',postal_code:p.postal_code??'',address:p.address??''});
+   if(p)setProfile({company_name:p.company_name??'',department_name:p.department_name??'',contact_name:p.contact_name??'',phone:p.phone??'',postal_code:p.postal_code??'',address:p.address??'',newsletter_enabled:p.newsletter_enabled!==false});
    
     const projectRows=(pr??[]) as ProjectBase[];
     const projectIds=projectRows.map(project=>project.id);
@@ -135,6 +135,7 @@ export default function MyPage(){
        <div><label>電話番号</label><input value={profile.phone} onChange={e=>updateProfile('phone',e.target.value)}/></div>
        <div><label>郵便番号</label><input value={profile.postal_code} onChange={e=>updateProfile('postal_code',e.target.value)}/></div>
        <div className="full"><label>住所</label><input value={profile.address} onChange={e=>updateProfile('address',e.target.value)}/></div>
+       <div className="full newsletterSetting"><div><strong>メール通知設定</strong><span>CS Worksからニュース・新機能・メンテナンス情報などのお知らせを受け取ります。</span></div><label className="newsletterToggle"><input type="checkbox" checked={profile.newsletter_enabled} onChange={e=>setProfile(c=>({...c,newsletter_enabled:e.target.checked}))}/><span>{profile.newsletter_enabled?'受け取る':'受け取らない'}</span></label></div>
        {error?<div className="errorBox full">{error}</div>:null}{message?<div className="success full">{message}</div>:null}
        <button className="primaryButton" disabled={saving}>{saving?'保存中…':'お客様情報を保存'}</button>
      </form>
@@ -154,7 +155,8 @@ export default function MyPage(){
      .badge{display:inline-block;padding:5px 9px;border-radius:999px;background:#eefbf3;color:#16733b;font-size:12px;font-weight:800;white-space:nowrap}.badge.attention{background:#fff7ed;color:#c2410c}.badge.paymentWaiting{background:#fff7ed;color:#9a3412;border:1px solid #fdba74}.paymentDue{margin-top:5px;color:#9a3412;font-size:11px;font-weight:800;white-space:nowrap}.paymentDue.overdue{color:#b91c1c}.cardPaymentDue{margin:0 0 10px}.messageBadge{display:inline-flex;align-items:center;gap:3px;padding:5px 9px;border-radius:999px;background:#eff6ff;color:#1d4ed8;font-size:12px;font-weight:900;white-space:nowrap}.noMessage{color:#94a3b8}.cardBadges{display:flex;gap:6px;align-items:center;justify-content:flex-end;flex-wrap:wrap}
      .projectCards{display:none}.empty{padding:24px;text-align:center;color:#64748b}
      .estimateList{margin-top:20px}.estimateRow{width:100%!important;display:flex!important;justify-content:space-between;gap:18px;padding:16px 4px;border:0;border-bottom:1px solid #e5eaf0;background:transparent;color:#0f172a;text-align:left;cursor:pointer}.estimateRow:hover{background:#f8fafc}.estimateRow>div{display:flex;gap:16px;align-items:center;flex-wrap:wrap}.estimateRow span{color:#64748b;font-size:13px}.detailArrow{white-space:nowrap}
-     .accountForm{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.accountForm .full{grid-column:1/-1}.success{padding:12px 14px;border-radius:10px;background:#eefbf3;color:#16733b;font-weight:700}
+     .newsletterSetting{display:flex;align-items:center;justify-content:space-between;gap:20px;margin-top:4px;padding:16px 18px;border:1px solid #dbeafe;border-radius:14px;background:#f8fbff}.newsletterSetting strong,.newsletterSetting span{display:block}.newsletterSetting strong{color:#0f172a;font-size:14px}.newsletterSetting>div>span{margin-top:4px;color:#64748b;font-size:12px;line-height:1.6}.newsletterToggle{display:flex!important;align-items:center;gap:8px;flex:0 0 auto;margin:0!important;font-weight:800;color:#1d4ed8;cursor:pointer}.newsletterToggle input{width:18px!important;height:18px!important;margin:0!important;accent-color:#2563eb}
+      .accountForm{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.accountForm .full{grid-column:1/-1}.success{padding:12px 14px;border-radius:10px;background:#eefbf3;color:#16733b;font-weight:700}
      @media(max-width:900px){.projectTableWrap{display:none}.projectCards{display:block;margin-top:18px}.projectCards button{display:block;width:100%;text-align:left;padding:15px;margin-bottom:10px;border:1px solid #dbe3ec;border-radius:12px;background:#fff;color:#0f172a}.cardTop{display:flex;justify-content:space-between;gap:8px}.projectCards h3{font-size:15px;margin:10px 0}.cardMeta{display:flex;gap:10px;flex-wrap:wrap;padding-top:10px;border-top:1px solid #eef2f7;color:#64748b;font-size:12px}.cardMeta strong{margin-left:auto;color:#0f172a}.estimateRow{display:block}.estimateRow>div{margin-top:7px}.accountForm{grid-template-columns:1fr}.accountForm .full{grid-column:auto}}
      @media(max-width:600px){.widePanel{padding:20px 15px;border-radius:14px}.sectionHead input{width:100%}}
    `}</style>
