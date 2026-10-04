@@ -35,13 +35,12 @@ export async function POST(request: NextRequest) {
 
     const { url, publishableKey, serviceRoleKey } = getSupabaseConfig();
 
-    // 1. Bearer token から利用者本人を確認する。
-    const authClient = createClient(url, publishableKey, {
+    const userClient = createClient(url, publishableKey, {
       global: { headers: { Authorization: `Bearer ${token}` } },
       auth: { persistSession: false, autoRefreshToken: false },
     });
 
-    const { data: userData, error: userError } = await authClient.auth.getUser(token);
+    const { data: userData, error: userError } = await userClient.auth.getUser(token);
     const user = userData.user;
     if (userError || !user) {
       return NextResponse.json({ ok: false, error: 'ログイン情報を確認できませんでした。' }, { status: 401 });
@@ -50,48 +49,45 @@ export async function POST(request: NextRequest) {
     const body = (await request.json()) as DeleteInput;
     const projectId = body.projectId?.trim();
     const fileId = body.fileId?.trim();
+
     if (!projectId || !fileId) {
       return NextResponse.json({ ok: false, error: '削除対象が指定されていません。' }, { status: 400 });
     }
 
-    // 2. service role はRLSを迂回できるため、削除前の所有権確認を必ずサーバー側で行う。
-    const admin = createClient(url, serviceRoleKey, {
-      auth: { persistSession: false, autoRefreshToken: false },
-    });
-
-    // 案件の確認は、実際にお客様画面で利用しているログインユーザー権限で行う。
-    // projects の既存RLS（本人の案件のみ閲覧可）をそのまま所有権確認として利用する。
-    const { data: project, error: projectError } = await authClient
+    // 本人権限＋既存RLSで案件を確認する。
+    const { data: project, error: projectError } = await userClient
       .from('projects')
       .select('id, user_id, status')
       .eq('id', projectId)
-      .eq('user_id', user.id)
       .maybeSingle();
 
     if (projectError) {
-      console.error('Project ownership check error:', projectError);
-      return NextResponse.json(
-        { ok: false, error: `案件確認に失敗しました: ${projectError.message}` },
-        { status: 500 }
-      );
+      console.error('Project lookup error:', projectError);
+      return NextResponse.json({ ok: false, error: `案件確認エラー: ${projectError.message}` }, { status: 500 });
     }
 
-    if (!project) {
-      return NextResponse.json({ ok: false, error: 'この案件を確認できないか、削除権限がありません。' }, { status: 403 });
+    if (!project || project.user_id !== user.id) {
+      return NextResponse.json({ ok: false, error: '案件を確認できませんでした。' }, { status: 404 });
     }
 
     if (!['ordered', 'in_production', 'customer_review', 'revision'].includes(project.status)) {
       return NextResponse.json({ ok: false, error: '現在の案件状態では制作資料を削除できません。' }, { status: 409 });
     }
 
-    const { data: file, error: fileError } = await admin
+    // 本人権限＋既存RLSで対象ファイルを取得する。
+    const { data: file, error: fileError } = await userClient
       .from('project_files')
       .select('id, project_id, uploaded_by, storage_path, file_type')
       .eq('id', fileId)
       .eq('project_id', projectId)
-      .single();
+      .maybeSingle();
 
-    if (fileError || !file) {
+    if (fileError) {
+      console.error('Project file lookup error:', fileError);
+      return NextResponse.json({ ok: false, error: `制作資料確認エラー: ${fileError.message}` }, { status: 500 });
+    }
+
+    if (!file) {
       return NextResponse.json({ ok: false, error: '制作資料が見つかりません。' }, { status: 404 });
     }
 
@@ -99,17 +95,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: false, error: 'この制作資料は削除できません。' }, { status: 403 });
     }
 
-    // 3. Storageを先に削除。失敗時はDB行を残して再試行可能にする。
+    // 所有権確認後だけservice roleを使用する。
+    const admin = createClient(url, serviceRoleKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+
     const { error: storageError } = await admin.storage
       .from('project-files')
       .remove([file.storage_path]);
 
     if (storageError) {
       console.error('Project reference storage delete error:', storageError);
-      return NextResponse.json({ ok: false, error: '保存ファイルを削除できませんでした。' }, { status: 500 });
+      return NextResponse.json({ ok: false, error: `保存ファイルを削除できませんでした: ${storageError.message}` }, { status: 500 });
     }
 
-    // 4. Storage削除後にDB行を削除し、実際に1件消えたことを確認する。
     const { data: deletedRows, error: dbError } = await admin
       .from('project_files')
       .delete()
@@ -120,7 +119,12 @@ export async function POST(request: NextRequest) {
     if (dbError || !deletedRows || deletedRows.length !== 1) {
       console.error('Project reference DB delete error:', dbError, deletedRows);
       return NextResponse.json(
-        { ok: false, error: '保存ファイルは削除されましたが、ファイル情報の削除に失敗しました。管理者へご連絡ください。' },
+        {
+          ok: false,
+          error: dbError
+            ? `保存ファイルは削除されましたが、ファイル情報の削除に失敗しました: ${dbError.message}`
+            : '保存ファイルは削除されましたが、ファイル情報の削除件数を確認できませんでした。',
+        },
         { status: 500 }
       );
     }
@@ -128,6 +132,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true, deletedFileId: file.id });
   } catch (error) {
     console.error('Project reference delete API error:', error);
-    return NextResponse.json({ ok: false, error: '制作資料の削除処理に失敗しました。' }, { status: 500 });
+    const message = error instanceof Error ? error.message : '不明なエラー';
+    return NextResponse.json({ ok: false, error: `制作資料の削除処理に失敗しました: ${message}` }, { status: 500 });
   }
 }
