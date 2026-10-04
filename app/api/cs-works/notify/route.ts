@@ -15,6 +15,7 @@ const allowedTypes: CsWorksMailPayload['type'][] = [
   'ordered',
   'revision_requested',
   'delivered',
+  'material_uploaded',
 ];
 
 export async function POST(request: NextRequest) {
@@ -113,7 +114,11 @@ export async function POST(request: NextRequest) {
 
     // 顧客通知は本人の案件だけ許可
     if (
-      (body.type === 'ordered' || body.type === 'revision_requested') &&
+      (
+        body.type === 'ordered' ||
+        body.type === 'revision_requested' ||
+        body.type === 'material_uploaded'
+      ) &&
       project.user_id !== user.id
     ) {
       return NextResponse.json(
@@ -127,7 +132,13 @@ export async function POST(request: NextRequest) {
       (body.type === 'quote_presented' && project.status === 'quote_presented') ||
       (body.type === 'ordered' && project.status === 'ordered') ||
       (body.type === 'revision_requested' && project.status === 'revision') ||
-      (body.type === 'delivered' && project.status === 'delivered');
+      (body.type === 'delivered' && project.status === 'delivered') ||
+      (
+        body.type === 'material_uploaded' &&
+        ['ordered', 'in_production', 'customer_review', 'revision', 'approved'].includes(
+          project.status
+        )
+      );
 
     if (!validStatus) {
       return NextResponse.json(
