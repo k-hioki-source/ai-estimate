@@ -147,7 +147,7 @@ function projectStatusLabel(status: string) {
 
 async function sendCsWorksNotification(
   supabase: ReturnType<typeof getSupabaseBrowserClient>,
-  type: 'quote_presented' | 'ordered' | 'revision_requested' | 'approved' | 'delivered' | 'material_uploaded',
+  type: 'quote_requested' | 'quote_presented' | 'ordered' | 'revision_requested' | 'approved' | 'delivered' | 'material_uploaded',
   projectId: string,
   message?: string
 ) {
@@ -509,8 +509,16 @@ async function requestFormalQuote(estimate: Estimate) {
       )
     );
 
+    const mailSent = await sendCsWorksNotification(
+      supabase,
+      'quote_requested',
+      newProject.id
+    );
+
     setQuoteMessage(
-      `正式見積りを依頼しました。案件番号：${projectCode}`
+      mailSent
+        ? `正式見積りを依頼しました。案件番号：${projectCode}`
+        : `正式見積りを依頼しました。案件番号：${projectCode}（管理者へのメール通知のみ失敗しました）`
     );
   } catch (e) {
     console.error('Formal quote request error:', e);
