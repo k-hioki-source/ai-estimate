@@ -375,6 +375,7 @@ export type CsWorksMailPayload = {
     | 'delivered'
     | 'material_uploaded';
   projectCode: string;
+  projectId?: string;
   projectTitle?: string;
   customerName?: string;
   customerEmail?: string;
@@ -520,7 +521,9 @@ ${payload.message || '-'}
 
 管理画面で制作資料をご確認ください。
 
-https://estimate.create-support.co.jp/admin/projects/${payload.projectCode}
+${payload.projectId
+  ? `https://estimate.create-support.co.jp/admin/projects/${payload.projectId}`
+  : 'https://estimate.create-support.co.jp/admin'}
 `
         : `CS Worksから修正依頼がありました。
 
