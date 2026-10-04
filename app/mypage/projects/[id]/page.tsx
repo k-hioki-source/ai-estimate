@@ -147,7 +147,7 @@ function projectStatusLabel(status: string) {
 
 async function sendCsWorksNotification(
   supabase: ReturnType<typeof getSupabaseBrowserClient>,
-  type: 'quote_presented' | 'ordered' | 'revision_requested' | 'delivered',
+  type: 'quote_presented' | 'ordered' | 'revision_requested' | 'delivered' | 'material_uploaded',
   projectId: string,
   message?: string
 ) {
@@ -795,7 +795,19 @@ async function submitProjectReview(project: Project, action: 'approval' | 'revis
     }));
     setReferenceFile(null);
     setUploadingReference(false);
-    setReferenceMessage('制作資料を追加しました。');
+
+    const mailSent = await sendCsWorksNotification(
+      supabase,
+      'material_uploaded',
+      project.id,
+      referenceFile.name
+    );
+
+    setReferenceMessage(
+      mailSent
+        ? '制作資料を追加しました。'
+        : '制作資料を追加しました。管理者へのメール通知のみ失敗しました。'
+    );
   }
 
 
