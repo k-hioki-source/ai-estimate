@@ -297,12 +297,12 @@ export default function AdminEmailPage() {
         .field>span{display:block;margin-bottom:7px;color:#0f172a;font-size:13px;font-weight:900}
         .field input,.field textarea{box-sizing:border-box;width:100%;padding:12px 14px;border:1px solid #cbd5e1;border-radius:10px;background:#fff;color:#0f172a;font:inherit}
         .field textarea{resize:vertical;line-height:1.75}
-        .preview{margin-top:24px;padding:22px;border:1px solid #cfe0f4;border-radius:16px;background:#f8fbff;color:#334155}
+        .preview{box-sizing:border-box;width:100%;height:auto;min-height:0;margin-top:24px;padding:22px;border:1px solid #cfe0f4;border-radius:16px;background:#f8fbff;color:#334155;overflow:visible}
         .previewLabel{display:block;margin-bottom:7px;color:#2563eb;font-size:11px;font-weight:900;letter-spacing:.12em}
         .preview>strong{display:block;color:#0f172a;font-size:17px}
         .previewBody{margin-top:18px;white-space:pre-wrap;line-height:1.8}
         .signature{margin-top:24px;color:#64748b;font-size:12px;line-height:1.7}
-        .actions{display:flex;gap:12px;justify-content:flex-end;margin-top:22px}
+        .actions{display:flex;gap:12px;justify-content:flex-end;margin-top:28px}
         .testButton,.sendButton{width:auto!important;min-height:46px;padding:11px 20px;border-radius:10px;font-weight:900;cursor:pointer}
         .testButton{border:1px solid #93c5fd;background:#fff;color:#1d4ed8}
         .sendButton{border:1px solid #2563eb;background:#2563eb;color:#fff}
