@@ -724,6 +724,79 @@ async function submitProjectReview(project: Project, action: 'approval' | 'revis
     setChatText('');
   }
 
+  async function uploadReferenceFile(project: Project) {
+    if (!user || uploadingReference || project.status !== 'ordered') return;
+    if (!referenceFile) {
+      setReferenceError('アップロードする制作資料を選択してください。');
+      return;
+    }
+    if (referenceFile.size > 50 * 1024 * 1024) {
+      setReferenceError('ファイルサイズは50MB以下にしてください。');
+      return;
+    }
+
+    setUploadingReference(true);
+    setReferenceError('');
+    setReferenceMessage('');
+
+    const supabase = getSupabaseBrowserClient();
+    const safeName = referenceFile.name.replace(/[^a-zA-Z0-9._-]+/g, '_');
+    const storagePath = `${project.id}/${Date.now()}-${safeName}`;
+
+    const { error: storageError } = await supabase.storage
+      .from('project-files')
+      .upload(storagePath, referenceFile, {
+        cacheControl: '3600',
+        upsert: false,
+        contentType: referenceFile.type || undefined,
+      });
+
+    if (storageError) {
+      console.error('Reference file storage upload error:', storageError);
+      setUploadingReference(false);
+      setReferenceError('制作資料をアップロードできませんでした。');
+      return;
+    }
+
+    const { data: fileRow, error: insertError } = await (supabase.from('project_files' as any) as any)
+      .insert({
+        project_id: project.id,
+        uploaded_by: user.id,
+        file_name: referenceFile.name,
+        storage_path: storagePath,
+        mime_type: referenceFile.type || null,
+        file_size: referenceFile.size,
+        file_type: 'reference',
+      })
+      .select('*')
+      .single();
+
+    if (insertError) {
+      console.error('Reference file DB insert error:', insertError);
+      await supabase.storage.from('project-files').remove([storagePath]);
+      setUploadingReference(false);
+      setReferenceError('制作資料の情報を保存できませんでした。');
+      return;
+    }
+
+    const { data: signedData } = await supabase.storage
+      .from('project-files')
+      .createSignedUrl(storagePath, 60 * 60);
+
+    const newFile: ProjectFile = {
+      ...(fileRow as ProjectFile),
+      signed_url: signedData?.signedUrl ?? null,
+    };
+
+    setProjectFiles((current) => ({
+      ...current,
+      [project.id]: [newFile, ...(current[project.id] ?? [])],
+    }));
+    setReferenceFile(null);
+    setUploadingReference(false);
+    setReferenceMessage('制作資料を追加しました。');
+  }
+
   async function toggleArchiveProject(project: Project) {
     if (!user || archiving) return;
     const restoring = Boolean(project.archived_at);
