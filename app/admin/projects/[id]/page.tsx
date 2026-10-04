@@ -111,7 +111,10 @@ async function sendCsWorksNotification(
     | 'ordered'
     | 'revision_requested'
     | 'delivered'
-    | 'review_requested',
+    | 'review_requested'
+    | 'admin_message'
+    | 'invoice_issued'
+    | 'payment_completed',
   projectId: string,
   message?: string
 ) {
@@ -546,6 +549,12 @@ export default function AdminPage() {
       'delivered',
       project.id
     );
+  } else if ((data as Project).status === 'invoiced') {
+    mailSent = await sendCsWorksNotification(
+      supabase,
+      'invoice_issued',
+      project.id
+    );
   }
 
   setMessage(
@@ -557,7 +566,11 @@ export default function AdminPage() {
         ? mailSent
           ? `案件 ${project.project_code} を納品済みに変更し、お客様へメール通知しました。`
           : `案件 ${project.project_code} を納品済みに変更しました。メール通知のみ失敗しました。`
-        : `案件 ${project.project_code} を「${statusLabel(nextStatus)}」に変更しました。`
+        : (data as Project).status === 'invoiced'
+          ? mailSent
+            ? `案件 ${project.project_code} の請求書を発行し、お客様へメール通知しました。`
+            : `案件 ${project.project_code} の請求書を発行しました。メール通知のみ失敗しました。`
+          : `案件 ${project.project_code} を「${statusLabel(nextStatus)}」に変更しました。`
   );
 }
 
@@ -594,9 +607,16 @@ export default function AdminPage() {
       )
     );
 
+    const mailSent = await sendCsWorksNotification(
+      supabase,
+      'payment_completed',
+      project.id
+    );
+
     setMessage(
       `案件 ${project.project_code} の入金を確認し、案件を完了しました。` +
-      (invoice?.invoice_code ? `（${invoice.invoice_code}）` : '')
+      (invoice?.invoice_code ? `（${invoice.invoice_code}）` : '') +
+      (mailSent ? ' お客様へメール通知しました。' : ' メール通知のみ失敗しました。')
     );
   }
 
@@ -713,6 +733,16 @@ export default function AdminPage() {
       [project.id]: [...(current[project.id] ?? []), data as ProjectMessage],
     }));
     setChatText('');
+
+    const mailSent = await sendCsWorksNotification(
+      supabase,
+      'admin_message',
+      project.id,
+      text
+    );
+    if (!mailSent) {
+      console.error('Admin message email notification failed.');
+    }
   }
 
   if (loading) {
