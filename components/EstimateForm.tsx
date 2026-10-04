@@ -104,6 +104,29 @@ export default function EstimateForm() {
   const [notes, setNotes] = useState('');
   const [selectedSourceType, setSelectedSourceType] = useState('photo_trace');
   const [selectedUsage, setSelectedUsage] = useState('manual');
+
+  // CS Works: ログイン状態を確認し、未ログイン時だけサービス紹介を表示する
+  useEffect(() => {
+    const supabase = getSupabaseBrowserClient();
+    let mounted = true;
+
+    supabase.auth.getUser().then(({ data }) => {
+      if (!mounted) return;
+      setUser(data.user ?? null);
+      setAuthChecked(true);
+    });
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!mounted) return;
+      setUser(session?.user ?? null);
+      setAuthChecked(true);
+    });
+
+    return () => {
+      mounted = false;
+      authListener.subscription.unsubscribe();
+    };
+  }, []);
   const difficultyStars = useMemo(
     () => (result ? starText(result.vision.complexityScore) : ''),
     [result]
