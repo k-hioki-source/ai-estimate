@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/cs-works/payment-reminder",
+      "schedule": "0 0 * * *"
+    }
+  ]
+}
