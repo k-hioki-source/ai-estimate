@@ -14,6 +14,30 @@ function production(v:string|null){return v==='photo_trace'?'写真・画像ト�
 function usage(v:string|null){return v==='manual'?'取扱説明書・マニュアル':v==='sales'?'販促・営業資料':v==='education'?'教育・安全教材':v||'未設定'}
 function expression(v:string|null){return v==='line'?'白黒線画':v==='color'?'カラーイラスト':v==='real'?'リアルイラスト':v||'未設定'}
 
+async function sendQuoteRequestedNotification(
+ supabase: ReturnType<typeof getSupabaseBrowserClient>,
+ projectId: string
+){
+ try{
+  const {data:{session}}=await supabase.auth.getSession();
+  const token=session?.access_token;
+  if(!token)return false;
+  const response=await fetch('/api/cs-works/notify',{
+   method:'POST',
+   headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`},
+   body:JSON.stringify({type:'quote_requested',projectId}),
+  });
+  if(!response.ok){
+   console.error('Quote requested notification failed:',response.status,await response.text());
+   return false;
+  }
+  return true;
+ }catch(error){
+  console.error('Quote requested notification error:',error);
+  return false;
+ }
+}
+
 export default function EstimateDetailPage(){
  const router=useRouter(); const params=useParams<{id:string}>(); const estimateId=params.id;
  const [user,setUser]=useState<User|null>(null); const [estimate,setEstimate]=useState<Estimate|null>(null); const [project,setProject]=useState<Project|null>(null);
@@ -42,7 +66,13 @@ export default function EstimateDetailPage(){
   }).select('*').single();
   if(pe||!p){setError('正式見積り依頼を送信できませんでした。');setRequesting(false);return}
   await supabase.from('estimates').update({status:'quote_requested'}).eq('id',estimate.id).eq('user_id',user.id);
+
+  const mailSent=await sendQuoteRequestedNotification(supabase,p.id);
+
   setProject(p);setEstimate({...estimate,status:'quote_requested'});setRequesting(false);
+  if(!mailSent){
+   setError('正式見積り依頼は送信されましたが、管理者へのメール通知のみ失敗しました。');
+  }
  }
 
 
