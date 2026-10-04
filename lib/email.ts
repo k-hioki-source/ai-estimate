@@ -370,6 +370,7 @@ https://www.create-support.co.jp/
 export type CsWorksMailPayload = {
   type:
     | 'quote_presented'
+    | 'review_requested'
     | 'ordered'
     | 'revision_requested'
     | 'delivered'
@@ -400,19 +401,29 @@ export async function sendCsWorksEmail(payload: CsWorksMailPayload) {
     ? `${payload.projectCode} / ${payload.projectTitle}`
     : payload.projectCode;
 
-  if (payload.type === 'quote_presented' || payload.type === 'delivered') {
+  if (
+    payload.type === 'quote_presented' ||
+    payload.type === 'review_requested' ||
+    payload.type === 'delivered'
+  ) {
     if (!payload.customerEmail) {
       return { ok: false, error: 'customerEmail is required' };
     }
 
     const isQuote = payload.type === 'quote_presented';
+    const isReviewRequested = payload.type === 'review_requested';
+    const projectPageUrl = payload.projectId
+      ? `https://estimate.create-support.co.jp/mypage/projects/${payload.projectId}`
+      : myPageUrl;
 
     const result = await resend.emails.send({
       from,
       to: payload.customerEmail,
       subject: isQuote
         ? `【CS Works】正式見積りをご確認ください（${payload.projectCode}）`
-        : `【CS Works】納品ファイルをご確認ください（${payload.projectCode}）`,
+        : isReviewRequested
+          ? `【CS Works】制作内容をご確認ください（${payload.projectCode}）`
+          : `【CS Works】納品ファイルをご確認ください（${payload.projectCode}）`,
       text: isQuote
         ? `${payload.customerName || 'お客様'} 様
 
@@ -441,7 +452,30 @@ CS Works
 https://www.create-support.co.jp/
 ━━━━━━━━━━━━━━━━
 `
-        : `${payload.customerName || 'お客様'} 様
+        : isReviewRequested
+          ? `${payload.customerName || 'お客様'} 様
+
+いつもお世話になっております。
+株式会社クリエイトサポートです。
+
+ご依頼いただいた案件について、お客様確認用ファイルを登録しました。
+
+■案件
+${projectName}
+
+下記のCS Works案件ページから内容をご確認ください。
+問題がなければ「この内容で承認する」、
+修正が必要な場合は「修正を依頼する」からご連絡ください。
+
+${projectPageUrl}
+
+━━━━━━━━━━━━━━━━
+株式会社クリエイトサポート
+CS Works
+https://www.create-support.co.jp/
+━━━━━━━━━━━━━━━━
+`
+          : `${payload.customerName || 'お客様'} 様
 
 いつもお世話になっております。
 株式会社クリエイトサポートです。
