@@ -59,18 +59,25 @@ export async function POST(request: NextRequest) {
       auth: { persistSession: false, autoRefreshToken: false },
     });
 
-    const { data: project, error: projectError } = await admin
+    // 案件の確認は、実際にお客様画面で利用しているログインユーザー権限で行う。
+    // projects の既存RLS（本人の案件のみ閲覧可）をそのまま所有権確認として利用する。
+    const { data: project, error: projectError } = await authClient
       .from('projects')
       .select('id, user_id, status')
       .eq('id', projectId)
-      .single();
+      .eq('user_id', user.id)
+      .maybeSingle();
 
-    if (projectError || !project) {
-      return NextResponse.json({ ok: false, error: '案件を確認できませんでした。' }, { status: 404 });
+    if (projectError) {
+      console.error('Project ownership check error:', projectError);
+      return NextResponse.json(
+        { ok: false, error: `案件確認に失敗しました: ${projectError.message}` },
+        { status: 500 }
+      );
     }
 
-    if (project.user_id !== user.id) {
-      return NextResponse.json({ ok: false, error: 'この案件のファイルは削除できません。' }, { status: 403 });
+    if (!project) {
+      return NextResponse.json({ ok: false, error: 'この案件を確認できないか、削除権限がありません。' }, { status: 403 });
     }
 
     if (!['ordered', 'in_production', 'customer_review', 'revision'].includes(project.status)) {
