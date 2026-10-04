@@ -170,7 +170,7 @@ export default function AdminPage(){
      .noMessage{color:#94a3b8}
      .mobileBadges{display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
      .adminHeaderActions{display:flex;gap:8px;align-items:center}
-     .supportButton{display:inline-flex;align-items:center;gap:7px;padding:10px 14px;border:1px solid #dbe3ec;border-radius:10px;background:#fff;color:#0f172a;font-weight:800;cursor:pointer}
+     .supportButton{display:inline-flex;align-items:center;gap:7px;padding:10px 14px;border:1px solid #dbe3ec;border-radius:10px;background:#fff;color:#0f172a;font-weight:800;cursor:pointer;white-space:nowrap;width:auto!important;max-width:none!important;flex:0 0 auto}
      .supportUnread{display:inline-flex;min-width:20px;height:20px;padding:0 6px;align-items:center;justify-content:center;border-radius:999px;background:#dc2626;color:#fff;font-size:11px;font-weight:900;box-sizing:border-box}
     @media (min-width:900px){
       :global(.myPageShell){max-width:1440px!important}
