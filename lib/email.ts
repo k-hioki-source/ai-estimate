@@ -369,6 +369,7 @@ https://www.create-support.co.jp/
 
 export type CsWorksMailPayload = {
   type:
+    | 'quote_requested'
     | 'quote_presented'
     | 'review_requested'
     | 'ordered'
@@ -506,19 +507,40 @@ https://www.create-support.co.jp/
     return { ok: true, emailId: result.data?.id };
   }
 
+  const isQuoteRequested = payload.type === 'quote_requested';
   const isOrder = payload.type === 'ordered';
   const isMaterialUploaded = payload.type === 'material_uploaded';
 
   const result = await resend.emails.send({
     from,
     to: toAdmin,
-    subject: isOrder
-      ? `【CS Works】正式発注がありました（${payload.projectCode}）`
-      : isMaterialUploaded
+    subject: isQuoteRequested
+      ? `【CS Works】正式見積り依頼が届きました（${payload.projectCode}）`
+      : isOrder
+        ? `【CS Works】正式発注がありました（${payload.projectCode}）`
+        : isMaterialUploaded
         ? `【CS Works】制作資料が追加されました（${payload.projectCode}）`
         : `【CS Works】修正依頼がありました（${payload.projectCode}）`,
-    text: isOrder
-      ? `CS Worksから正式発注がありました。
+    text: isQuoteRequested
+      ? `CS Worksで正式見積り依頼が届きました。
+
+■案件
+${projectName}
+
+■お客様
+${payload.customerName || '-'}
+
+■メール
+${payload.customerEmail || '-'}
+
+正式見積りの作成・提示をお願いします。
+
+${payload.projectId
+  ? `https://estimate.create-support.co.jp/admin/projects/${payload.projectId}`
+  : 'https://estimate.create-support.co.jp/admin'}
+`
+      : isOrder
+        ? `CS Worksから正式発注がありました。
 
 ■案件
 ${projectName}
