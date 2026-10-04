@@ -12,6 +12,7 @@ type NotifyBody = {
 
 const allowedTypes: CsWorksMailPayload['type'][] = [
   'quote_presented',
+  'review_requested',
   'ordered',
   'revision_requested',
   'delivered',
@@ -82,7 +83,11 @@ export async function POST(request: NextRequest) {
 
     // 管理者だけが送れる通知
     if (
-      (body.type === 'quote_presented' || body.type === 'delivered') &&
+      (
+        body.type === 'quote_presented' ||
+        body.type === 'review_requested' ||
+        body.type === 'delivered'
+      ) &&
       !isAdmin
     ) {
       return NextResponse.json(
@@ -130,6 +135,7 @@ export async function POST(request: NextRequest) {
     // 通知種別と現在ステータスを照合
     const validStatus =
       (body.type === 'quote_presented' && project.status === 'quote_presented') ||
+      (body.type === 'review_requested' && project.status === 'customer_review') ||
       (body.type === 'ordered' && project.status === 'ordered') ||
       (body.type === 'revision_requested' && project.status === 'revision') ||
       (body.type === 'delivered' && project.status === 'delivered') ||
