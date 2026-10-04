@@ -725,7 +725,7 @@ async function submitProjectReview(project: Project, action: 'approval' | 'revis
   }
 
   async function uploadReferenceFile(project: Project) {
-    if (!user || uploadingReference || project.status !== 'ordered') return;
+    if (!user || uploadingReference || !['ordered', 'in_production', 'customer_review', 'revision'].includes(project.status)) return;
     if (!referenceFile) {
       setReferenceError('アップロードする制作資料を選択してください。');
       return;
@@ -1144,13 +1144,16 @@ async function submitProjectReview(project: Project, action: 'approval' | 'revis
                   </div>
                 </div>
 
-                {project.status === 'ordered' ? (
+                {['ordered', 'in_production', 'customer_review', 'revision'].includes(project.status) ? (
                   <div className="preparationPanel">
                     <div className="stateCard attention">
-                      <strong>制作開始前の準備</strong>
+                      <strong>{project.status === 'ordered' ? '制作開始前の準備' : project.status === 'in_production' ? '制作資料・追加資料' : '追加資料・修正指示資料'}</strong>
                       <p>
-                        正式発注を受け付けました。制作に必要な指示原稿・写真・PDF・図面・参考資料などがある場合は、こちらから追加してください。
-                        クリエイトサポートで内容を確認後、制作を開始します。
+                        {project.status === 'ordered'
+                          ? '正式発注を受け付けました。制作に必要な指示原稿・写真・PDF・図面・参考資料などがある場合は、こちらから追加してください。クリエイトサポートで内容を確認後、制作を開始します。'
+                          : project.status === 'in_production'
+                            ? '制作中に追加で必要になった写真・PDF・図面・指示原稿などがある場合は、こちらから追加してください。'
+                            : '確認・修正に必要な追加資料や修正指示書などがある場合は、こちらから追加してください。'}
                       </p>
                     </div>
 
