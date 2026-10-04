@@ -49,7 +49,7 @@ export default function AdminSitePage() {
         .maybeSingle();
 
       if (loadError) {
-        setError('トップページのお知らせを取得できませんでした。');
+        setError(`トップページのお知らせを取得できませんでした。${loadError.message ? `\n${loadError.message}` : ''}${loadError.code ? `\nエラーコード: ${loadError.code}` : ''}`);
       } else if (data) {
         const a = data as Announcement;
         setId(a.id);
@@ -95,7 +95,7 @@ export default function AdminSitePage() {
       if (!result.error && result.data?.id) setId(result.data.id);
     }
 
-    if (saveError) setError('更新できませんでした。もう一度お試しください。');
+    if (saveError) setError(`更新できませんでした。${saveError.message ? `\n${saveError.message}` : ''}${saveError.code ? `\nエラーコード: ${saveError.code}` : ''}`);
     else setMessage('トップページのお知らせを更新しました。');
     setSaving(false);
   }
@@ -149,7 +149,7 @@ export default function AdminSitePage() {
         .toggleRow input{width:18px;height:18px;margin:0}.toggleRow span{display:flex;flex-direction:column;gap:3px}.toggleRow small{font-weight:500;color:#64748b}
         .preview{margin-top:26px;padding:20px;border:1px solid #dbeafe;border-radius:14px;background:#f8fbff}
         .previewLabel{margin-bottom:7px;color:#2563eb;font-size:11px;font-weight:900;letter-spacing:.08em}.preview strong{font-size:18px}.preview p{margin:8px 0 0;color:#475569;line-height:1.7;white-space:pre-wrap}
-        .error,.success{margin-top:18px;padding:12px 14px;border-radius:10px;font-weight:700}.error{background:#fef2f2;color:#b91c1c}.success{background:#ecfdf5;color:#047857}
+        .error,.success{margin-top:18px;padding:12px 14px;border-radius:10px;font-weight:700;white-space:pre-wrap}.error{background:#fef2f2;color:#b91c1c}.success{background:#ecfdf5;color:#047857}
         .save{margin-top:22px;border:0;border-radius:10px;background:#2563eb;color:#fff;padding:12px 22px;font-weight:900;cursor:pointer}.save:disabled{opacity:.55;cursor:default}
         @media(max-width:650px){.page{padding:22px 14px 50px}.header{align-items:flex-start;flex-direction:column}.card{padding:22px 18px;border-radius:16px}.back{width:100%}}
       `}</style>
