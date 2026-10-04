@@ -11,6 +11,7 @@ type NotifyBody = {
 };
 
 const allowedTypes: CsWorksMailPayload['type'][] = [
+  'quote_requested',
   'quote_presented',
   'review_requested',
   'ordered',
@@ -121,6 +122,7 @@ export async function POST(request: NextRequest) {
     // 顧客通知は本人の案件だけ許可
     if (
       (
+        body.type === 'quote_requested' ||
         body.type === 'ordered' ||
         body.type === 'revision_requested' ||
         body.type === 'approved' ||
@@ -136,10 +138,12 @@ export async function POST(request: NextRequest) {
 
     // 通知種別と現在ステータスを照合
     const validStatus =
+      (body.type === 'quote_requested' && project.status === 'quote_requested') ||
       (body.type === 'quote_presented' && project.status === 'quote_presented') ||
       (body.type === 'review_requested' && project.status === 'customer_review') ||
       (body.type === 'ordered' && project.status === 'ordered') ||
       (body.type === 'revision_requested' && project.status === 'revision') ||
+      (body.type === 'approved' && project.status === 'approved') ||
       (body.type === 'delivered' && project.status === 'delivered') ||
       (
         body.type === 'material_uploaded' &&
