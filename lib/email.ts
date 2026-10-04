@@ -376,7 +376,12 @@ export type CsWorksMailPayload = {
     | 'revision_requested'
     | 'approved'
     | 'delivered'
-    | 'material_uploaded';
+    | 'material_uploaded'
+    | 'customer_message'
+    | 'admin_message'
+    | 'invoice_requested'
+    | 'invoice_issued'
+    | 'payment_completed';
   projectCode: string;
   projectId?: string;
   projectTitle?: string;
@@ -406,7 +411,10 @@ export async function sendCsWorksEmail(payload: CsWorksMailPayload) {
   if (
     payload.type === 'quote_presented' ||
     payload.type === 'review_requested' ||
-    payload.type === 'delivered'
+    payload.type === 'delivered' ||
+    payload.type === 'admin_message' ||
+    payload.type === 'invoice_issued' ||
+    payload.type === 'payment_completed'
   ) {
     if (!payload.customerEmail) {
       return { ok: false, error: 'customerEmail is required' };
@@ -418,16 +426,12 @@ export async function sendCsWorksEmail(payload: CsWorksMailPayload) {
       ? `https://estimate.create-support.co.jp/mypage/projects/${payload.projectId}`
       : myPageUrl;
 
-    const result = await resend.emails.send({
-      from,
-      to: payload.customerEmail,
-      subject: isQuote
-        ? `【CS Works】正式見積りをご確認ください（${payload.projectCode}）`
-        : isReviewRequested
-          ? `【CS Works】制作内容をご確認ください（${payload.projectCode}）`
-          : `【CS Works】納品ファイルをご確認ください（${payload.projectCode}）`,
-      text: isQuote
-        ? `${payload.customerName || 'お客様'} 様
+    let subject = `【CS Works】案件のお知らせ（${payload.projectCode}）`;
+    let text = '';
+
+    if (isQuote) {
+      subject = `【CS Works】正式見積りをご確認ください（${payload.projectCode}）`;
+      text = `${payload.customerName || 'お客様'} 様
 
 いつもお世話になっております。
 株式会社クリエイトサポートです。
@@ -443,19 +447,13 @@ ${payload.quotedAmount != null ? `${payload.quotedAmount.toLocaleString()}円` :
 ■納期
 ${payload.confirmedDeadline || '-'}
 
-下記のCS Works My Pageから内容をご確認いただき、
+下記のCS Works案件ページから内容をご確認いただき、
 問題なければ発注手続きをお願いいたします。
 
-${myPageUrl}
-
-━━━━━━━━━━━━━━━━
-株式会社クリエイトサポート
-CS Works
-https://www.create-support.co.jp/
-━━━━━━━━━━━━━━━━
-`
-        : isReviewRequested
-          ? `${payload.customerName || 'お客様'} 様
+${projectPageUrl}`;
+    } else if (isReviewRequested) {
+      subject = `【CS Works】制作内容をご確認ください（${payload.projectCode}）`;
+      text = `${payload.customerName || 'お客様'} 様
 
 いつもお世話になっております。
 株式会社クリエイトサポートです。
@@ -469,15 +467,10 @@ ${projectName}
 問題がなければ「この内容で承認する」、
 修正が必要な場合は「修正を依頼する」からご連絡ください。
 
-${projectPageUrl}
-
-━━━━━━━━━━━━━━━━
-株式会社クリエイトサポート
-CS Works
-https://www.create-support.co.jp/
-━━━━━━━━━━━━━━━━
-`
-          : `${payload.customerName || 'お客様'} 様
+${projectPageUrl}`;
+    } else if (payload.type === 'delivered') {
+      subject = `【CS Works】納品ファイルをご確認ください（${payload.projectCode}）`;
+      text = `${payload.customerName || 'お客様'} 様
 
 いつもお世話になっております。
 株式会社クリエイトサポートです。
@@ -487,16 +480,69 @@ https://www.create-support.co.jp/
 ■案件
 ${projectName}
 
-下記のCS Works My Pageから納品ファイルをご確認いただけます。
+下記のCS Works案件ページから納品ファイルをご確認いただけます。
 
-${myPageUrl}
+${projectPageUrl}`;
+    } else if (payload.type === 'admin_message') {
+      subject = `【CS Works】メッセージが届きました（${payload.projectCode}）`;
+      text = `${payload.customerName || 'お客様'} 様
+
+CS Worksでクリエイトサポートからメッセージが届きました。
+
+■案件
+${projectName}
+
+■メッセージ
+${payload.message || '-'}
+
+返信・詳細確認はこちら：
+${projectPageUrl}`;
+    } else if (payload.type === 'invoice_issued') {
+      subject = `【CS Works】請求書を発行しました（${payload.projectCode}）`;
+      text = `${payload.customerName || 'お客様'} 様
+
+ご依頼いただいた案件の請求書を発行しました。
+
+■案件
+${projectName}
+
+CS Worksの案件ページから請求書をご確認ください。
+
+${projectPageUrl}`;
+    } else if (payload.type === 'payment_completed') {
+      subject = `【CS Works】ご入金を確認しました（${payload.projectCode}）`;
+      text = `${payload.customerName || 'お客様'} 様
+
+ご入金を確認しました。ありがとうございます。
+こちらの案件は完了となりました。
+
+■案件
+${projectName}
+
+案件履歴はこちらからご確認いただけます。
+
+${projectPageUrl}`;
+    }
+
+    text += `
 
 ━━━━━━━━━━━━━━━━
 株式会社クリエイトサポート
+CS Works｜イラスト・CG制作管理サービス
+
 CS Works
+https://estimate.create-support.co.jp/
+
+株式会社クリエイトサポート
 https://www.create-support.co.jp/
 ━━━━━━━━━━━━━━━━
-`,
+`;
+
+    const result = await resend.emails.send({
+      from,
+      to: payload.customerEmail,
+      subject,
+      text,
     });
 
     if (result.error) {
@@ -510,6 +556,8 @@ https://www.create-support.co.jp/
   const isQuoteRequested = payload.type === 'quote_requested';
   const isOrder = payload.type === 'ordered';
   const isMaterialUploaded = payload.type === 'material_uploaded';
+  const isCustomerMessage = payload.type === 'customer_message';
+  const isInvoiceRequested = payload.type === 'invoice_requested';
 
   const result = await resend.emails.send({
     from,
@@ -520,7 +568,13 @@ https://www.create-support.co.jp/
         ? `【CS Works】正式発注がありました（${payload.projectCode}）`
         : isMaterialUploaded
         ? `【CS Works】制作資料が追加されました（${payload.projectCode}）`
-        : `【CS Works】修正依頼がありました（${payload.projectCode}）`,
+        : isCustomerMessage
+          ? `【CS Works】お客様からメッセージが届きました（${payload.projectCode}）`
+          : isInvoiceRequested
+            ? `【CS Works】請求書発行依頼が届きました（${payload.projectCode}）`
+            : payload.type === 'approved'
+              ? `【CS Works】お客様から承認されました（${payload.projectCode}）`
+              : `【CS Works】修正依頼がありました（${payload.projectCode}）`,
     text: isQuoteRequested
       ? `CS Worksで正式見積り依頼が届きました。
 
@@ -577,6 +631,38 @@ ${payload.customerEmail || '-'}
 ${payload.message || '-'}
 
 管理画面で制作資料をご確認ください。
+
+${payload.projectId
+  ? `https://estimate.create-support.co.jp/admin/projects/${payload.projectId}`
+  : 'https://estimate.create-support.co.jp/admin'}
+`
+      : isCustomerMessage
+        ? `CS Worksでお客様からメッセージが届きました。
+
+■案件
+${projectName}
+
+■お客様
+${payload.customerName || '-'}
+
+■メッセージ
+${payload.message || '-'}
+
+返信・詳細確認：
+${payload.projectId
+  ? `https://estimate.create-support.co.jp/admin/projects/${payload.projectId}`
+  : 'https://estimate.create-support.co.jp/admin'}
+`
+      : isInvoiceRequested
+        ? `CS Worksで請求書発行依頼が届きました。
+
+■案件
+${projectName}
+
+■お客様
+${payload.customerName || '-'}
+
+請求書の発行をお願いします。
 
 ${payload.projectId
   ? `https://estimate.create-support.co.jp/admin/projects/${payload.projectId}`
