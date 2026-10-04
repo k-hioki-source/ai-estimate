@@ -147,7 +147,7 @@ function projectStatusLabel(status: string) {
 
 async function sendCsWorksNotification(
   supabase: ReturnType<typeof getSupabaseBrowserClient>,
-  type: 'quote_presented' | 'ordered' | 'revision_requested' | 'delivered' | 'material_uploaded',
+  type: 'quote_presented' | 'ordered' | 'revision_requested' | 'approved' | 'delivered' | 'material_uploaded',
   projectId: string,
   message?: string
 ) {
@@ -680,6 +680,17 @@ async function submitProjectReview(project: Project, action: 'approval' | 'revis
         console.error(updateError); setReviewingProjectId(null); setReviewError('承認ステータスを更新できませんでした。'); return;
       }
       setProjects((cur) => cur.map((p) => p.id === project.id ? updated : p));
+
+      const mailSent = await sendCsWorksNotification(
+        supabase,
+        'approved',
+        project.id,
+        comment || '確認内容を承認しました。'
+      );
+
+      if (!mailSent) {
+        console.error('Approval email notification failed.');
+      }
     }
     setProjectMessages((cur) => ({ ...cur, [project.id]: [...(cur[project.id] ?? []), msg as ProjectMessage] }));
     setReviewComments((cur) => ({ ...cur, [project.id]: '' }));
