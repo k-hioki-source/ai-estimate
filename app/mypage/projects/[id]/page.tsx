@@ -813,41 +813,47 @@ async function submitProjectReview(project: Project, action: 'approval' | 'revis
     setReferenceError('');
     setReferenceMessage('');
 
-    const supabase = getSupabaseBrowserClient();
+    try {
+      const supabase = getSupabaseBrowserClient();
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
 
-    // Storage 側のRLSは project_files のレコードを参照して所有者を確認するため、
-    // 必ず実ファイルを先に削除し、その後でDBレコードを削除する。
-    const { error: storageDeleteError } = await supabase.storage
-      .from('project-files')
-      .remove([file.storage_path]);
+      if (!accessToken) {
+        setReferenceError('ログイン情報を確認できませんでした。再ログインしてください。');
+        return;
+      }
 
-    if (storageDeleteError) {
-      console.error('Reference file storage delete error:', storageDeleteError);
+      const response = await fetch('/api/cs-works/project-files/delete', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          projectId: project.id,
+          fileId: file.id,
+        }),
+      });
+
+      const result = await response.json().catch(() => null);
+
+      if (!response.ok || !result?.ok) {
+        console.error('Reference file delete API error:', result);
+        setReferenceError(result?.error || '制作資料を削除できませんでした。');
+        return;
+      }
+
+      setProjectFiles((current) => ({
+        ...current,
+        [project.id]: (current[project.id] ?? []).filter((item) => item.id !== file.id),
+      }));
+      setReferenceMessage('制作資料を削除しました。');
+    } catch (deleteError) {
+      console.error('Reference file delete request error:', deleteError);
+      setReferenceError('制作資料を削除できませんでした。時間をおいて再度お試しください。');
+    } finally {
       setDeletingReferenceId(null);
-      setReferenceError('保存ファイルを削除できませんでした。権限設定をご確認ください。');
-      return;
     }
-
-    const { error: deleteError } = await (supabase.from('project_files' as any) as any)
-      .delete()
-      .eq('id', file.id)
-      .eq('project_id', project.id)
-      .eq('uploaded_by', user.id)
-      .eq('file_type', 'reference');
-
-    if (deleteError) {
-      console.error('Reference file DB delete error:', deleteError);
-      setDeletingReferenceId(null);
-      setReferenceError('保存ファイルは削除されましたが、制作資料の登録を削除できませんでした。管理者へご連絡ください。');
-      return;
-    }
-
-    setProjectFiles((current) => ({
-      ...current,
-      [project.id]: (current[project.id] ?? []).filter((item) => item.id !== file.id),
-    }));
-    setDeletingReferenceId(null);
-    setReferenceMessage('制作資料を削除しました。');
   }
 
   async function toggleArchiveProject(project: Project) {
