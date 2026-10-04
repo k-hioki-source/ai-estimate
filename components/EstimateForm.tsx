@@ -796,10 +796,12 @@ async function handleFormalQuoteRequest() {
     ) : null}
 
       <section className="card stackLarge">
-        <div className="privacyCollectionNotice">
-          <strong>個人情報の入力なしで、すぐに概算見積りを試せます。</strong>
-          <span>見積り条件・参考画像・AI算出結果は、サービス改善と正式見積り対応のため運営者が収集・確認します。</span>
-        </div>
+        {authChecked && !user ? (
+          <div className="privacyCollectionNotice">
+            <strong>個人情報の入力なしで、すぐに概算見積りを試せます。</strong>
+            <span>見積り条件・参考画像・AI算出結果は、サービス改善と正式見積り対応のため運営者が収集・確認します。</span>
+          </div>
+        ) : null}
 
         <div id="ai-assistant-section">
         <AiAssistant
