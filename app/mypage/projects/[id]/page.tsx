@@ -191,6 +191,10 @@ const [orderError, setOrderError] = useState('');
   const [declineMessage, setDeclineMessage] = useState('');
   const [declineError, setDeclineError] = useState('');
   const [projectFiles, setProjectFiles] = useState<Record<string, ProjectFile[]>>({});
+  const [referenceFile, setReferenceFile] = useState<File | null>(null);
+  const [uploadingReference, setUploadingReference] = useState(false);
+  const [referenceMessage, setReferenceMessage] = useState('');
+  const [referenceError, setReferenceError] = useState('');
   const [projectMessages, setProjectMessages] = useState<Record<string, ProjectMessage[]>>({});
   const [reviewComments, setReviewComments] = useState<Record<string, string>>({});
   const [reviewingProjectId, setReviewingProjectId] = useState<string | null>(null);
@@ -822,6 +826,7 @@ async function submitProjectReview(project: Project, action: 'approval' | 'revis
     : null;
   const files = project ? (projectFiles[project.id] ?? []) : [];
   const messages = project ? (projectMessages[project.id] ?? []) : [];
+  const referenceFiles = files.filter((file) => file.file_type === 'reference');
   const reviewFiles = files.filter(
     (file) => file.file_type === 'review' || file.file_type === 'revision'
   );
@@ -891,6 +896,8 @@ async function submitProjectReview(project: Project, action: 'approval' | 'revis
           </section>
 
           {orderError ? <div className="errorBox noticeBox">{orderError}</div> : null}
+          {referenceError ? <div className="errorBox noticeBox">{referenceError}</div> : null}
+          {referenceMessage ? <div className="successBox noticeBox">{referenceMessage}</div> : null}
           {orderMessage ? <div className="successBox noticeBox">{orderMessage}</div> : null}
           {declineError ? <div className="errorBox noticeBox">{declineError}</div> : null}
           {declineMessage ? <div className="successBox noticeBox">{declineMessage}</div> : null}
@@ -1060,14 +1067,76 @@ async function submitProjectReview(project: Project, action: 'approval' | 'revis
                 <div className="sectionTitle">
                   <div>
                     <div className="sectionNumber">03</div>
-                    <h3>制作・確認</h3>
+                    <h3>制作準備・制作・確認</h3>
                   </div>
                 </div>
 
                 {project.status === 'ordered' ? (
-                  <div className="stateCard neutral">
-                    <strong>制作開始をお待ちください</strong>
-                    <p>発注を受け付けました。制作準備を進めています。</p>
+                  <div className="preparationPanel">
+                    <div className="stateCard attention">
+                      <strong>制作開始前の準備</strong>
+                      <p>
+                        正式発注を受け付けました。制作に必要な指示原稿・写真・PDF・図面・参考資料などがある場合は、こちらから追加してください。
+                        クリエイトサポートで内容を確認後、制作を開始します。
+                      </p>
+                    </div>
+
+                    <div className="referenceUploadPanel">
+                      <div className="referenceUploadHead">
+                        <div>
+                          <strong>制作資料・指示原稿</strong>
+                          <p>1ファイル50MBまで。必要な資料は複数回追加できます。</p>
+                        </div>
+                        <span className="referenceCount">{referenceFiles.length}件</span>
+                      </div>
+
+                      <div className="referenceUploadControls">
+                        <input
+                          type="file"
+                          onChange={(e) => setReferenceFile(e.target.files?.[0] ?? null)}
+                        />
+                        <button
+                          type="button"
+                          className="primaryButton"
+                          disabled={uploadingReference || !referenceFile}
+                          onClick={() => uploadReferenceFile(project)}
+                        >
+                          {uploadingReference ? 'アップロード中…' : '制作資料を追加'}
+                        </button>
+                      </div>
+
+                      {referenceFiles.length ? (
+                        <div className="fileList">
+                          {referenceFiles.map((file) => (
+                            <div className="fileRow" key={file.id}>
+                              <div>
+                                <strong>{file.file_name}</strong>
+                                <span>
+                                  {file.file_size != null
+                                    ? `${(file.file_size / 1024 / 1024).toFixed(2)} MB ・ `
+                                    : ''}
+                                  {formatDate(file.created_at)}
+                                </span>
+                              </div>
+                              {file.signed_url ? (
+                                <a href={file.signed_url} target="_blank" rel="noreferrer">
+                                  ファイルを開く →
+                                </a>
+                              ) : null}
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="emptyInline referenceEmpty">
+                          追加の制作資料はまだありません。AI見積り時の参考画像は元の見積り詳細から確認できます。
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="preparationNote">
+                      <strong>補足・制作指示について</strong>
+                      <p>「この部分は省略」「このアングルを使用」などの指示やご質問は、下の「メッセージ」からお送りください。</p>
+                    </div>
                   </div>
                 ) : null}
 
@@ -1601,6 +1670,18 @@ async function submitProjectReview(project: Project, action: 'approval' | 'revis
         .stateCard.attention { background: #fffaf2; border-color: #fed7aa; }
         .stateCard.progress { background: #eff6ff; border-color: #bfdbfe; }
         .stateCard.success { background: #f0fdf4; border-color: #bbf7d0; color: #166534; }
+        .preparationPanel { display: grid; gap: 14px; }
+        .referenceUploadPanel { padding: 16px; border-radius: 13px; border: 1px solid #dbe3ec; background: #f8fafc; }
+        .referenceUploadHead { display: flex; justify-content: space-between; gap: 14px; align-items: flex-start; }
+        .referenceUploadHead > div > strong { font-size: 15px; }
+        .referenceUploadHead p { margin: 5px 0 0; color: #64748b; font-size: 12px; line-height: 1.6; }
+        .referenceCount { flex: 0 0 auto; padding: 5px 9px; border-radius: 999px; background: #eaf2ff; color: #1d4ed8; font-size: 11px; font-weight: 900; }
+        .referenceUploadControls { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 14px; }
+        .referenceUploadControls button { width: auto !important; }
+        .referenceEmpty { margin-top: 14px; }
+        .preparationNote { padding: 14px 16px; border-radius: 12px; border: 1px solid #e2e8f0; background: #fff; }
+        .preparationNote strong { font-size: 13px; }
+        .preparationNote p { margin: 5px 0 0; color: #64748b; font-size: 12px; line-height: 1.65; }
         .fileList { margin-top: 14px; display: grid; gap: 8px; }
         .fileRow { padding: 12px 13px; border: 1px solid #e5eaf0; border-radius: 11px; display: flex; justify-content: space-between; gap: 12px; align-items: center; background: #fff; }
         .fileRow span { display: block; color: #64748b; font-size: 11px; margin-top: 4px; }
