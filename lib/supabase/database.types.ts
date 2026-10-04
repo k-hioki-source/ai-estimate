@@ -19,6 +19,7 @@ export type Database = {
           phone: string | null;
           postal_code: string | null;
           address: string | null;
+          newsletter_enabled: boolean;
           created_at: string;
           updated_at: string;
           role: 'customer' | 'admin';
@@ -32,6 +33,7 @@ export type Database = {
           phone?: string | null;
           postal_code?: string | null;
           address?: string | null;
+          newsletter_enabled?: boolean;
           created_at?: string;
           updated_at?: string;
           role?: 'customer' | 'admin';
@@ -44,6 +46,7 @@ export type Database = {
           phone?: string | null;
           postal_code?: string | null;
           address?: string | null;
+          newsletter_enabled?: boolean;
           updated_at?: string;
           role?: 'customer' | 'admin';
         };
