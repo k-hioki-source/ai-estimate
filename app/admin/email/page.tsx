@@ -216,7 +216,12 @@ export default function AdminEmailPage() {
           <div className="signature">
             ━━━━━━━━━━━━━━━━<br />
             株式会社クリエイトサポート<br />
+            CS Works｜イラスト・CG制作管理サービス<br />
+            <br />
             CS Works<br />
+            https://estimate.create-support.co.jp/<br />
+            <br />
+            株式会社クリエイトサポート<br />
             https://www.create-support.co.jp/<br />
             ━━━━━━━━━━━━━━━━
           </div>
