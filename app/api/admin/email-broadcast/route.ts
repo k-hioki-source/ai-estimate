@@ -148,7 +148,12 @@ export async function POST(request: NextRequest) {
 
 ━━━━━━━━━━━━━━━━
 株式会社クリエイトサポート
+CS Works｜イラスト・CG制作管理サービス
+
 CS Works
+https://estimate.create-support.co.jp/
+
+株式会社クリエイトサポート
 https://www.create-support.co.jp/
 ━━━━━━━━━━━━━━━━`;
 
