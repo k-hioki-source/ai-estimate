@@ -158,6 +158,7 @@ export default function AdminPage() {
   const [chatText, setChatText] = useState('');
   const [sendingChat, setSendingChat] = useState(false);
   const [chatError, setChatError] = useState('');
+  const [testingPaymentReminderId, setTestingPaymentReminderId] = useState<string | null>(null);
 
   const [forms, setForms] = useState<
     Record<
@@ -618,6 +619,59 @@ export default function AdminPage() {
       (invoice?.invoice_code ? `（${invoice.invoice_code}）` : '') +
       (mailSent ? ' お客様へメール通知しました。' : ' メール通知のみ失敗しました。')
     );
+  }
+
+  async function testPaymentReminder(project: ProjectWithData) {
+    if (testingPaymentReminderId) return;
+
+    const confirmed = window.confirm(
+      `案件「${project.project_code}」の支払期限リマインダーをテスト送信しますか？\n\nお客様宛て・管理者宛てにテストメールを送信します。\n案件ステータスやリマインダー送信済み日時は変更しません。`
+    );
+    if (!confirmed) return;
+
+    setTestingPaymentReminderId(project.id);
+    setMessage('');
+    setError('');
+
+    try {
+      const supabase = getSupabaseBrowserClient();
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
+
+      if (!accessToken) {
+        setError('ログイン情報を取得できませんでした。再ログインしてからお試しください。');
+        return;
+      }
+
+      const response = await fetch('/api/cs-works/payment-reminder', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ projectId: project.id }),
+      });
+
+      const result = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        console.error('Payment reminder test failed:', response.status, result);
+        setError(
+          `支払期限リマインダーのテスト送信に失敗しました。` +
+          (result?.error ? `（${result.error}）` : `（HTTP ${response.status}）`)
+        );
+        return;
+      }
+
+      setMessage(
+        `案件 ${project.project_code} の支払期限リマインダーをテスト送信しました。お客様宛て・管理者宛てのメールをご確認ください。`
+      );
+    } catch (testError) {
+      console.error('Payment reminder test error:', testError);
+      setError('支払期限リマインダーのテスト送信中にエラーが発生しました。');
+    } finally {
+      setTestingPaymentReminderId(null);
+    }
   }
 
   async function uploadProjectFile(project: ProjectWithData, fileType: 'review' | 'revision' | 'delivery') {
@@ -1231,6 +1285,16 @@ export default function AdminPage() {
                         ? ` ／ 請求額：${invoice.total_amount.toLocaleString()}円`
                         : ''}
                     </p>
+                    <button
+                      type="button"
+                      className="secondaryAction actionButton"
+                      disabled={testingPaymentReminderId === project.id}
+                      onClick={() => testPaymentReminder(project)}
+                    >
+                      {testingPaymentReminderId === project.id
+                        ? 'テスト送信中…'
+                        : '支払リマインダーをテスト送信'}
+                    </button>
                     <button
                       type="button"
                       className="primaryButton actionButton"
