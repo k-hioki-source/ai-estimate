@@ -3,9 +3,9 @@ import Script from 'next/script';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'テクニカルイラストのAI自動見積り｜製品説明図・分解図・取扱説明書対応',
+  title: 'CS Works｜イラスト・CG制作の見積り・発注・納品｜クリエイトサポート',
   description:
-    '参考画像をアップロードするだけで、テクニカルイラスト制作の概算費用をAIが自動算出。取扱説明書、パーツカタログ、販促用イラストに対応。',
+    'CS Worksは、クリエイトサポートへのイラスト・CG制作依頼を、概算見積りから正式見積り、発注、制作確認、納品までオンラインで進められるサービスです。',
   keywords: [
     'AIイラスト見積り',
     'イラスト見積り',
