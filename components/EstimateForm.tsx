@@ -706,16 +706,16 @@ async function handleFormalQuoteRequest() {
     <section className="hero card">
       <div className="heroContent">
         <div className="heroText">
-          <div className="eyebrow">{authChecked && !user ? 'CS Works｜AI概算見積り' : 'AI概算見積り'}</div>
-          <h1 className="heroTitle">イラスト制作の概算見積りをその場で確認できます</h1>
+          <div className="eyebrow">CS WORKS｜CREATE SUPPORT</div>
+          <h1 className="heroTitle">イラスト制作を、もっと簡単に。<br />見積りから納品までオンラインで。</h1>
           <p className="heroLead">
-            参考画像と条件を入力するだけで、AIが案件の複雑さを判定し、概算金額を表示します。
-            取扱説明書・パーツカタログ・機械イラストに対応しています。
+            CS Worksは、クリエイトサポートへのイラスト・CG制作依頼を、
+            概算見積りから正式見積り、発注、制作確認、納品までオンラインで進められるサービスです。
           </p>
           <div className="heroPoints">
-            <div className="miniPoint">その場で金額の目安がわかる</div>
-            <div className="miniPoint">画像を見て複雑さを数値化</div>
-            <div className="miniPoint">正式見積りにもつなげやすい</div>
+            <div className="miniPoint">その場で概算金額を確認</div>
+            <div className="miniPoint">正式見積り・発注までオンライン</div>
+            <div className="miniPoint">制作確認・納品まで一元管理</div>
           </div>
         </div>
         <div className="heroImageWrap">
