@@ -68,18 +68,9 @@ function difficultyLabel(score: number) {
   return '高難度';
 }
 
-type SiteAnnouncement = {
-  id: string;
-  label: string;
-  title: string;
-  body: string;
-  is_active: boolean;
-};
-
 export default function EstimateForm() {
   const [user, setUser] = useState<User | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
-  const [siteAnnouncement, setSiteAnnouncement] = useState<SiteAnnouncement | null>(null);
   const [selectedSample, setSelectedSample] = useState<string | null>(null);
   const [showSamplePanel, setShowSamplePanel] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -136,36 +127,6 @@ export default function EstimateForm() {
       authListener.subscription.unsubscribe();
     };
   }, []);
-
-  // トップページのお知らせをSupabaseから取得
-  useEffect(() => {
-    const supabase = getSupabaseBrowserClient();
-    let mounted = true;
-
-    (async () => {
-      const { data, error } = await (supabase.from('site_announcements' as any) as any)
-        .select('id, label, title, body, is_active')
-        .eq('is_active', true)
-        .order('updated_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (!mounted) return;
-
-      if (error) {
-        console.error('Announcement load error:', error);
-        setSiteAnnouncement(null);
-        return;
-      }
-
-      setSiteAnnouncement((data as SiteAnnouncement | null) ?? null);
-    })();
-
-    return () => {
-      mounted = false;
-    };
-  }, []);
-
   const difficultyStars = useMemo(
     () => (result ? starText(result.vision.complexityScore) : ''),
     [result]
@@ -785,23 +746,21 @@ async function handleFormalQuoteRequest() {
       </section>
     ) : null}
 
-    {authChecked && !user && siteAnnouncement ? (
-      <section className="updateBox" id="ai-estimate">
-        <div className="updateBadge">{siteAnnouncement.label}</div>
-        <div>
-          <h2 className="updateTitle">{siteAnnouncement.title}</h2>
-          <p className="updateText">{siteAnnouncement.body}</p>
-        </div>
-      </section>
-    ) : null}
+    <section className="updateBox" id="ai-estimate">
+      <div className="updateBadge">AI概算見積り</div>
+      <div>
+        <h2 className="updateTitle">画像がなくても、その場で概算を確認できます</h2>
+        <p className="updateText">
+          参考画像をアップロードするか、9種類のサンプルから近いイメージを選択。AIが制作内容を解析して概算金額を算出します。
+        </p>
+      </div>
+    </section>
 
       <section className="card stackLarge">
-        {authChecked && !user ? (
-          <div className="privacyCollectionNotice">
-            <strong>個人情報の入力なしで、すぐに概算見積りを試せます。</strong>
-            <span>見積り条件・参考画像・AI算出結果は、サービス改善と正式見積り対応のため運営者が収集・確認します。</span>
-          </div>
-        ) : null}
+        <div className="privacyCollectionNotice">
+          <strong>個人情報の入力なしで、すぐに概算見積りを試せます。</strong>
+          <span>見積り条件・参考画像・AI算出結果は、サービス改善と正式見積り対応のため運営者が収集・確認します。</span>
+        </div>
 
         <div id="ai-assistant-section">
         <AiAssistant
@@ -1819,17 +1778,8 @@ async function handleFormalQuoteRequest() {
 />
           ) : null}
           
-          <div className="ctaCard card csWorksResultCta">
-            {user ? (
-              <div>
-                <div className="eyebrow">CS Works</div>
-                <h3 className="ctaTitle">この見積りを保存して、案件につなげられます</h3>
-                <p className="muted compactText">
-                  見積り結果の保存後は、マイページから案件の確認やご相談ができます。
-                </p>
-                <Link href="/mypage" className="primaryButton csWorksInlineButton">マイページを開く</Link>
-              </div>
-            ) : (
+          {!user ? (
+            <div className="ctaCard card csWorksResultCta">
               <div>
                 <div className="eyebrow">CS Works</div>
                 <h3 className="ctaTitle">見積りの続きは、CS Worksで。</h3>
@@ -1841,8 +1791,8 @@ async function handleFormalQuoteRequest() {
                   <Link href="/login" className="csWorksSecondaryCta">ログイン</Link>
                 </div>
               </div>
-            )}
-          </div>
+            </div>
+          ) : null}
         </section>
       ) : null}
 
