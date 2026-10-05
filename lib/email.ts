@@ -569,14 +569,16 @@ https://www.create-support.co.jp/
       : isOrder
         ? `【CS Works】正式発注がありました（${payload.projectCode}）`
         : isMaterialUploaded
-        ? `【CS Works】制作資料が追加されました（${payload.projectCode}）`
-        : isCustomerMessage
-          ? `【CS Works】お客様からメッセージが届きました（${payload.projectCode}）`
-          : isInvoiceRequested
-            ? `【CS Works】請求書発行依頼が届きました（${payload.projectCode}）`
-            : payload.type === 'approved'
-              ? `【CS Works】お客様から承認されました（${payload.projectCode}）`
-              : `【CS Works】修正依頼がありました（${payload.projectCode}）`,
+          ? `【CS Works】制作資料が追加されました（${payload.projectCode}）`
+          : isCustomerMessage
+            ? `【CS Works】お客様からメッセージが届きました（${payload.projectCode}）`
+            : isInvoiceRequested
+              ? `【CS Works】請求書発行依頼が届きました（${payload.projectCode}）`
+              : isProjectDeclined
+                ? `【CS Works】お客様が発注を見送りました（${payload.projectCode}）`
+                : payload.type === 'approved'
+                  ? `【CS Works】お客様から承認されました（${payload.projectCode}）`
+                  : `【CS Works】修正依頼がありました（${payload.projectCode}）`,
     text: isQuoteRequested
       ? `CS Worksで正式見積り依頼が届きました。
 
@@ -665,6 +667,24 @@ ${projectName}
 ${payload.customerName || '-'}
 
 請求書の発行をお願いします。
+
+${payload.projectId
+  ? `https://estimate.create-support.co.jp/admin/projects/${payload.projectId}`
+  : 'https://estimate.create-support.co.jp/admin'}
+`
+      : isProjectDeclined
+        ? `CS Worksでお客様が正式見積り後の発注を見送りました。
+
+■案件
+${projectName}
+
+■お客様
+${payload.customerName || '-'}
+
+■メール
+${payload.customerEmail || '-'}
+
+正式見積り・案件内容は履歴として保存されています。
 
 ${payload.projectId
   ? `https://estimate.create-support.co.jp/admin/projects/${payload.projectId}`
