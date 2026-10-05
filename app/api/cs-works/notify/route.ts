@@ -24,6 +24,7 @@ const allowedTypes: CsWorksMailPayload['type'][] = [
   'invoice_requested',
   'invoice_issued',
   'payment_completed',
+  'project_declined',
 ];
 
 export async function POST(request: NextRequest) {
@@ -136,7 +137,8 @@ export async function POST(request: NextRequest) {
         body.type === 'approved' ||
         body.type === 'material_uploaded' ||
         body.type === 'customer_message' ||
-        body.type === 'invoice_requested'
+        body.type === 'invoice_requested' ||
+        body.type === 'project_declined'
       ) &&
       project.user_id !== user.id
     ) {
@@ -158,6 +160,7 @@ export async function POST(request: NextRequest) {
       (body.type === 'invoice_requested' && project.status === 'invoice_requested') ||
       (body.type === 'invoice_issued' && project.status === 'invoiced') ||
       (body.type === 'payment_completed' && project.status === 'completed') ||
+      (body.type === 'project_declined' && project.status === 'cancelled') ||
       (
         (body.type === 'customer_message' || body.type === 'admin_message') &&
         !['cancelled'].includes(project.status)
