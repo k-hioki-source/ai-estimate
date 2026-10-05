@@ -640,8 +640,17 @@ async function orderProject(project: Project) {
   setProjects((current) =>
     current.map((item) => item.id === project.id ? (data as Project) : item)
   );
+
+  const mailSent = await sendCsWorksNotification(
+    supabase,
+    'project_declined',
+    project.id
+  );
+
   setDeclineMessage(
-    `案件 ${project.project_code} は「発注見送り」となりました。正式見積り・案件内容は履歴として保存されています。`
+    mailSent
+      ? `案件 ${project.project_code} は「発注見送り」となりました。正式見積り・案件内容は履歴として保存されています。`
+      : `案件 ${project.project_code} は「発注見送り」となりました。管理者へのメール通知のみ失敗しました。`
   );
 }
 
