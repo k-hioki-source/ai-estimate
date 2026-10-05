@@ -68,6 +68,20 @@ function difficultyLabel(score: number) {
   return '高難度';
 }
 
+const PENDING_ESTIMATE_KEY = 'csworks_pending_estimate';
+
+function savePendingEstimate(payload: unknown) {
+  try {
+    sessionStorage.setItem(PENDING_ESTIMATE_KEY, JSON.stringify(payload));
+  } catch (error) {
+    console.error('見積りの一時保存に失敗しました。', error);
+  }
+}
+
+function clearPendingEstimate() {
+  try { sessionStorage.removeItem(PENDING_ESTIMATE_KEY); } catch {}
+}
+
 export default function EstimateForm() {
   const [user, setUser] = useState<User | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
@@ -127,6 +141,36 @@ export default function EstimateForm() {
       authListener.subscription.unsubscribe();
     };
   }, []);
+
+  // 登録・ログイン後、匿名で作成した見積りを復元する
+  useEffect(() => {
+    if (!authChecked || !user || result) return;
+    try {
+      const raw = sessionStorage.getItem(PENDING_ESTIMATE_KEY);
+      if (!raw) return;
+      const pending = JSON.parse(raw);
+      if (!pending?.result?.estimateId) return;
+
+      setResult(pending.result);
+      if (pending.selectedSourceType) setSelectedSourceType(pending.selectedSourceType);
+      if (pending.selectedUsage) setSelectedUsage(pending.selectedUsage);
+      if (pending.selectedStyle) setSelectedStyle(pending.selectedStyle);
+      setNotes(pending.notes ?? '');
+      setSelectedSample(pending.selectedSample ?? null);
+      if (pending.selectedSample) setPreview(pending.selectedSample);
+
+      setTimeout(() => {
+        document.getElementById('estimate-result')?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start',
+        });
+      }, 150);
+    } catch (error) {
+      console.error('一時保存した見積りの復元に失敗しました。', error);
+      clearPendingEstimate();
+    }
+  }, [authChecked, user, result]);
+
   const difficultyStars = useMemo(
     () => (result ? starText(result.vision.complexityScore) : ''),
     [result]
@@ -279,6 +323,18 @@ if (
     }
 
     setResult(json);
+
+    if (!user) {
+      savePendingEstimate({
+        result: json,
+        selectedSourceType,
+        selectedUsage,
+        selectedStyle,
+        notes,
+        selectedSample,
+      });
+    }
+
     if (json.requiresConsultation) {
       setConsultationMessage('詳しい内容を確認のうえ、個別見積りを希望します。');
     }
@@ -380,6 +436,7 @@ function handleClearForm() {
   setShowEstimateForm(false);
   setSuggestCompleted(false);
   setShowSamplePanel(false);
+  clearPendingEstimate();
 
   const imageInput = document.getElementById('image') as HTMLInputElement | null;
   if (imageInput) {
@@ -1327,7 +1384,7 @@ async function handleFormalQuoteRequest() {
       {error ? <div className="errorBox">エラー: {error}</div> : null}
 
             {result ? (
-        <section className="stackLarge">
+        <section id="estimate-result" className="stackLarge">
           <div ref={pdfContentRef} className="stackLarge pdfCaptureArea">
           <div className="pdfReportHeader">
             <div>
@@ -1784,11 +1841,11 @@ async function handleFormalQuoteRequest() {
                 <div className="eyebrow">CS Works</div>
                 <h3 className="ctaTitle">見積りの続きは、CS Worksで。</h3>
                 <p className="muted compactText">
-                  無料会員登録すると、見積り結果の保存、正式見積り、発注、案件確認、納品までオンラインで進められます。
+                  この見積りは一時的に保持されています。無料会員登録またはログイン後、この画面に戻ってMy Pageへ保存できます。
                 </p>
                 <div className="csWorksResultActions">
-                  <Link href="/signup" className="primaryButton csWorksInlineButton">無料会員登録</Link>
-                  <Link href="/login" className="csWorksSecondaryCta">ログイン</Link>
+                  <Link href="/signup?returnTo=/" className="primaryButton csWorksInlineButton">この見積りを保存して無料会員登録</Link>
+                  <Link href="/login?returnTo=/" className="csWorksSecondaryCta">ログインして保存</Link>
                 </div>
               </div>
             </div>
