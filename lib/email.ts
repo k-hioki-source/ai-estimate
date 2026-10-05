@@ -381,7 +381,8 @@ export type CsWorksMailPayload = {
     | 'admin_message'
     | 'invoice_requested'
     | 'invoice_issued'
-    | 'payment_completed';
+    | 'payment_completed'
+    | 'project_declined';
   projectCode: string;
   projectId?: string;
   projectTitle?: string;
@@ -558,6 +559,7 @@ https://www.create-support.co.jp/
   const isMaterialUploaded = payload.type === 'material_uploaded';
   const isCustomerMessage = payload.type === 'customer_message';
   const isInvoiceRequested = payload.type === 'invoice_requested';
+  const isProjectDeclined = payload.type === 'project_declined';
 
   const result = await resend.emails.send({
     from,
