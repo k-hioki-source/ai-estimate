@@ -147,7 +147,7 @@ function projectStatusLabel(status: string) {
 
 async function sendCsWorksNotification(
   supabase: ReturnType<typeof getSupabaseBrowserClient>,
-  type: 'quote_requested' | 'quote_presented' | 'ordered' | 'revision_requested' | 'approved' | 'delivered' | 'material_uploaded' | 'customer_message' | 'invoice_requested',
+  type: 'quote_requested' | 'quote_presented' | 'ordered' | 'revision_requested' | 'approved' | 'delivered' | 'material_uploaded' | 'customer_message' | 'invoice_requested' | 'project_declined',
   projectId: string,
   message?: string
 ) {
