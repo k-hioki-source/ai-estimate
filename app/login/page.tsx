@@ -2,11 +2,13 @@
 
 import Link from 'next/link';
 import { FormEvent, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { getSupabaseBrowserClient } from '../../lib/supabase/client';
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const returnTo = searchParams.get('returnTo') === '/' ? '/' : '/mypage';
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -32,7 +34,7 @@ export default function LoginPage() {
       return;
     }
 
-    router.push('/mypage');
+    router.push(returnTo);
     router.refresh();
   }
 
@@ -43,7 +45,9 @@ export default function LoginPage() {
         <h1>ログイン</h1>
 
         <p className="muted">
-          クリエイトサポートへの制作依頼・見積り管理をオンラインで。
+          {returnTo === '/'
+            ? '作成した概算見積りは一時的に保持されています。ログイン後、見積り画面に戻ってMy Pageへ保存できます。'
+            : 'クリエイトサポートへの制作依頼・見積り管理をオンラインで。'}
         </p>
 
         <form onSubmit={handleSubmit} className="authForm">
@@ -81,7 +85,7 @@ export default function LoginPage() {
         </p>
 
         <p className="authFoot">
-          初めての方は <Link href="/signup">無料会員登録</Link>
+          初めての方は <Link href={returnTo === '/' ? '/signup?returnTo=/' : '/signup'}>無料会員登録</Link>
         </p>
 
         <Link className="backLink" href="/">
