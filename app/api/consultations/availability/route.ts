@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { adminClient, decryptToken } from '../../../../../lib/google-calendar-auth';
-import { isJapaneseNationalHoliday } from '../../../../../lib/jp-holidays';
+import { adminClient, decryptToken } from '../../../../lib/google-calendar-auth';
+import { isJapaneseNationalHoliday } from '../../../../lib/jp-holidays';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
