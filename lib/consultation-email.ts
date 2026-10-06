@@ -5,6 +5,7 @@ export type ConsultationMailPayload = {
   bookingId: string;
   customerEmail?: string | null;
   customerName?: string | null;
+  companyName?: string | null;
   title: string;
   startsAt: string;
   endsAt: string;
@@ -36,9 +37,11 @@ export async function sendConsultationEmails(payload: ConsultationMailPayload): 
     ].join('\n');
     const customerSubject = confirmed ? '【CS Works】オンライン相談のご予約が確定しました' : '【CS Works】オンライン相談のキャンセルを承りました';
     const adminSubject = confirmed ? '【CS Works】オンライン相談の新規予約' : '【CS Works】オンライン相談のキャンセル通知';
-    const customerDisplayName = payload.customerName?.trim() ? `${payload.customerName.trim()} 様` : 'ご利用者様';
+    const name = payload.customerName?.trim() || '';
+    const company = payload.companyName?.trim() || '';
+    const customerDisplayName = name ? `${company ? `${company}\n` : ''}${name} 様` : 'ご利用者様';
     const customerText = `${customerDisplayName}\n\n株式会社クリエイトサポートです。\n\n${confirmed ? 'オンライン相談のご予約が確定しました。' : 'オンライン相談のキャンセルを承りました。'}\n\n${details}\n${confirmed && payload.meetUrl ? `\nGoogle Meet参加URL：\n${payload.meetUrl}\n` : ''}\n予約履歴：\n${historyUrl}\n\n株式会社クリエイトサポート\n`;
-    const adminText = `CS Worksのオンライン相談が${confirmed ? '予約されました。' : 'キャンセルされました。'}\n\n${details}\n顧客名：${payload.customerName?.trim() || '未設定'}\n顧客メール：${payload.customerEmail || '未設定'}\n${confirmed && payload.meetUrl ? `Google Meet：${payload.meetUrl}\n` : ''}\n管理画面：${adminUrl}\n`;
+    const adminText = `CS Worksのオンライン相談が${confirmed ? '予約されました。' : 'キャンセルされました。'}\n\n${details}\n会社名：${payload.companyName?.trim() || '未設定'}\n顧客名：${payload.customerName?.trim() || '未設定'}\n顧客メール：${payload.customerEmail || '未設定'}\n${confirmed && payload.meetUrl ? `Google Meet：${payload.meetUrl}\n` : ''}\n管理画面：${adminUrl}\n`;
     const tasks: { target: 'customer' | 'admin'; to: string; subject: string; text: string }[] = [
       { target: 'admin', to: admin, subject: adminSubject, text: adminText },
     ];
