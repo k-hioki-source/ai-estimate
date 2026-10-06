@@ -36,6 +36,8 @@ export default function ConsultationHistoryPage() {
   const [error, setError] = useState('');
   const [cancelId, setCancelId] = useState<string | null>(null);
   const [cancelError, setCancelError] = useState('');
+  const [tab, setTab] = useState<'upcoming' | 'past' | 'cancelled'>('upcoming');
+  const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
     let active = true;
@@ -69,6 +71,11 @@ export default function ConsultationHistoryPage() {
     return () => { active = false; };
   }, [router]);
 
+  const upcoming = bookings.filter(b => b.status !== 'cancelled' && b.status !== 'completed' && Date.parse(b.ends_at) > now);
+  const past = bookings.filter(b => b.status !== 'cancelled' && (b.status === 'completed' || Date.parse(b.ends_at) <= now));
+  const cancelled = bookings.filter(b => b.status === 'cancelled');
+  const visibleBookings = tab === 'upcoming' ? upcoming : tab === 'past' ? past : cancelled;
+
   async function cancelBooking(booking: Booking) {
     if (!window.confirm(`${dateTime(booking.starts_at)} の予約をキャンセルしますか？\nGoogleカレンダーの予定も削除されます。`)) return;
     setCancelId(booking.id);
@@ -85,6 +92,7 @@ export default function ConsultationHistoryPage() {
       const result = await response.json() as { error?: string; status?: string };
       if (!response.ok || result.status !== 'cancelled') throw new Error(result.error || 'キャンセルできませんでした');
       setBookings(current => current.map(b => b.id === booking.id ? { ...b, status: 'cancelled' } : b));
+      setNow(Date.now());
     } catch (e) {
       setCancelError(e instanceof Error ? e.message : 'キャンセルに失敗しました');
     } finally {
@@ -99,11 +107,17 @@ export default function ConsultationHistoryPage() {
       <Link href="/mypage">← マイページへ</Link>
     </header>
     <div className="historyActions"><Link href="/mypage/consultations" className="newBooking">＋ 新しい相談を予約する</Link></div>
+    {!loading && !error ? <nav className="historyTabs" aria-label="予約履歴の分類">
+      <button type="button" className={tab === 'upcoming' ? 'selected' : ''} aria-pressed={tab === 'upcoming'} onClick={() => { setNow(Date.now()); setTab('upcoming'); }}>予約中 {upcoming.length}</button>
+      <button type="button" className={tab === 'past' ? 'selected' : ''} aria-pressed={tab === 'past'} onClick={() => { setNow(Date.now()); setTab('past'); }}>過去の相談 {past.length}</button>
+      <button type="button" className={tab === 'cancelled' ? 'selected' : ''} aria-pressed={tab === 'cancelled'} onClick={() => { setNow(Date.now()); setTab('cancelled'); }}>キャンセル {cancelled.length}</button>
+    </nav> : null}
     {cancelError ? <section className="historyPanel" role="alert">{cancelError}</section> : null}
     {loading ? <section className="historyPanel">予約履歴を読み込んでいます…</section>
       : error ? <section className="historyPanel" role="alert">{error}</section>
       : bookings.length === 0 ? <section className="historyPanel"><h2>予約履歴はありません</h2><p>オンライン相談を予約すると、こちらに表示されます。</p></section>
-      : <div className="bookingList">{bookings.map(b => {
+      : visibleBookings.length === 0 ? <section className="historyPanel emptyHistory">{tab === 'upcoming' ? '現在の予約はありません。' : tab === 'past' ? '過去の相談はありません。' : 'キャンセル履歴はありません。'}</section>
+      : <div className="bookingList">{visibleBookings.map(b => {
           const project = b.project_id ? projects[b.project_id] : null;
           const duration = Math.round((Date.parse(b.ends_at) - Date.parse(b.starts_at)) / 60000);
           const validMeet = Boolean(b.google_meet_url && /^https:\/\/meet\.google\.com\/[a-z0-9-]+$/i.test(b.google_meet_url));
@@ -129,7 +143,7 @@ export default function ConsultationHistoryPage() {
       .historyHeader h1{font-size:28px;margin:12px 0}.historyHeader p,.subInfo{color:#64748b;font-size:14px}
       .eyebrow{font-size:12px;letter-spacing:.1em;font-weight:800;color:#2563eb}
       .historyActions{margin:26px 0}.newBooking,.meetLink{display:inline-block;background:#2563eb;color:#fff!important;border-radius:10px;padding:13px 18px;text-decoration:none;font-weight:800}
-      .bookingList{display:grid;gap:16px}.historyPanel{background:#fff;border:1px solid #dbe3ec;border-radius:18px;padding:24px 28px;box-shadow:0 8px 24px rgba(15,23,42,.04)}
+      .historyTabs{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 20px}.historyTabs button{width:auto!important;padding:10px 16px!important;border:1px solid #cbd5e1!important;border-radius:999px!important;background:#fff!important;color:#334155!important;font-size:14px!important;font-weight:700!important;cursor:pointer}.historyTabs button.selected{background:#2563eb!important;border-color:#2563eb!important;color:#fff!important}.emptyHistory{color:#64748b}.bookingList{display:grid;gap:16px}.historyPanel{background:#fff;border:1px solid #dbe3ec;border-radius:18px;padding:24px 28px;box-shadow:0 8px 24px rgba(15,23,42,.04)}
       .bookingHeading{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}.bookingHeading h2{font-size:19px;margin:0}.status{font-size:12px;font-weight:800;background:#eff6ff;color:#1d4ed8;border-radius:20px;padding:6px 10px}
       .meetingTime{font-weight:800;margin:18px 0 8px}.notes{white-space:pre-wrap;overflow-wrap:anywhere;background:#f8fafc;border-radius:10px;padding:12px;font-size:14px}.meetLink{margin-top:12px}
       @media(max-width:600px){.historyPanel{padding:20px 16px}.historyHeader h1{font-size:23px}}
