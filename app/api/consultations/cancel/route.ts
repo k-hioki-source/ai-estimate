@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminClient, decryptToken } from '../../../../lib/google-calendar-auth';
+import { sendConsultationEmails } from '../../../../lib/consultation-email';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -27,7 +28,7 @@ export async function POST(request: NextRequest) {
     const isAdmin = profile?.role === 'admin';
 
     const { data: booking, error: bookingError } = await db.from('consultation_bookings')
-      .select('id,customer_id,staff_id,starts_at,status,google_event_id')
+      .select('id,customer_id,staff_id,starts_at,ends_at,title,project_id,status,google_event_id')
       .eq('id', payload.bookingId).maybeSingle();
     if (bookingError) throw bookingError;
     if (!booking || (!isAdmin && booking.customer_id !== user.id)) {
@@ -81,6 +82,21 @@ export async function POST(request: NextRequest) {
       console.error('Consultation cancel DB update needs manual reconciliation:', updateError?.message, { bookingId: booking.id });
       return json({ error: 'Googleの予定は削除されましたが、予約履歴の更新に失敗しました。運営にお問い合わせください' }, 503);
     }
+    // Google deletion and database cancellation have succeeded.
+    // Mail is best-effort and does not change the cancellation result.
+    const { data: customerData } = await db.auth.admin.getUserById(booking.customer_id);
+    let projectCode: string | null = null;
+    if (booking.project_id) {
+      const { data: projectInfo } = await db.from('projects').select('project_code').eq('id', booking.project_id).maybeSingle();
+      projectCode = projectInfo?.project_code ?? null;
+    }
+    await sendConsultationEmails({
+      action: 'cancelled', bookingId: booking.id,
+      customerEmail: customerData.user?.email ?? null,
+      customerName: (customerData.user?.user_metadata?.full_name as string | undefined) || null,
+      title: booking.title || 'オンライン相談',
+      startsAt: booking.starts_at, endsAt: booking.ends_at, projectCode,
+    });
     return json({ bookingId: booking.id, status: 'cancelled' });
   } catch (error) {
     console.error('Consultation cancellation error:', error instanceof Error ? error.message : 'unknown');
