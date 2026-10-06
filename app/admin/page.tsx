@@ -42,6 +42,28 @@ export default function AdminPage(){
   if(!u.user){router.replace('/login');return}
   const {data:me,error:meErr}=await supabase.from('profiles').select('role').eq('id',u.user.id).single();
   if(meErr||!me||me.role!=='admin'){router.replace('/mypage');return}
+  // 管理者予約一覧と同じAPIから取得（service roleはブラウザに公開しない）
+  try {
+    const {data:sessionData}=await supabase.auth.getSession();
+    const accessToken=sessionData.session?.access_token;
+    if(!accessToken) throw new Error('認証情報を取得できませんでした');
+    const response=await fetch('/api/admin/consultations',{
+      headers:{Authorization:`Bearer ${accessToken}`},cache:'no-store'
+    });
+    if(!response.ok) throw new Error(`予約取得エラー (${response.status})`);
+    const result:unknown=await response.json();
+    const obj=result && typeof result==='object' ? result as Record<string,unknown> : {};
+    const records=Array.isArray(result)?result:
+      Array.isArray(obj.bookings)?obj.bookings:
+      Array.isArray(obj.consultations)?obj.consultations:
+      Array.isArray(obj.data)?obj.data:null;
+    if(!records) throw new Error('予約APIの応答形式が想定と異なります');
+    setConsultations((records as Consultation[]).sort((a,b)=>Date.parse(a.starts_at)-Date.parse(b.starts_at)));
+    setConsultationError('');
+  } catch (consultationLoadError) {
+    console.error('Consultation dashboard load error:',consultationLoadError);
+    setConsultationError('予約情報を取得できませんでした。予約管理画面をご確認ください。');
+  }
   const {count:supportUnreadCount,error:supportUnreadError}=await (supabase.from('support_messages' as any) as any)
     .select('id',{count:'exact',head:true})
     .eq('sender_type','customer')
@@ -205,8 +227,8 @@ export default function AdminPage(){
       .mobileProjectMeta strong{margin-left:auto;color:#0f172a}
       .mobileEmpty{padding:24px;text-align:center;color:#64748b}
     }
-    @media (max-width:600px){
       .consultationPanel{margin-top:22px;padding:24px 28px;border:1px solid #dbe3ec;border-radius:18px;background:#fff}.consultationPanelHead{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}.consultationPanelHead h2{margin:4px 0}.consultationPanelHead p{margin:0;color:#64748b;font-size:13px}.consultationSummary{display:flex;align-items:center;gap:16px;margin:18px 0 4px}.consultationSummary span{color:#64748b;font-size:12px}.consultationRow{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:13px 0;border-bottom:1px solid #e2e8f0;flex-wrap:wrap}.consultationRow strong{font-size:14px}.consultationRow div div{font-size:12px;color:#64748b;margin-top:5px}.consultationActions{display:flex;align-items:center;gap:12px}.consultationActions a{font-size:13px;color:#1d4ed8}.consultationActions button{border:1px solid #dbe3ec;border-radius:8px;padding:8px 12px;background:#fff;color:#0f172a;cursor:pointer}.consultationEmpty{color:#64748b;font-size:13px}
+    @media (max-width:600px){
      .actionCenter{padding:20px 15px}.actionArrow{display:none}
       .adminProjectList{padding:18px 14px;border-radius:14px}
     }
