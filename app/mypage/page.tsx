@@ -15,6 +15,8 @@ type Project = Omit<ProjectBase, 'status'> & {
   archived_at?: string | null;
   invoice?: { payment_due_date: string | null; total_amount: number } | null;
 };
+type ConsultationBooking = { id: string; starts_at: string; ends_at: string; title: string; status: string };
+
 type Profile = {
   company_name: string; department_name: string; contact_name: string;
   phone: string; postal_code: string; address: string; newsletter_enabled: boolean;
@@ -33,6 +35,7 @@ export default function MyPage(){
  const router=useRouter();
  const [user,setUser]=useState<User|null>(null); const [profile,setProfile]=useState<Profile>(emptyProfile);
  const [estimates,setEstimates]=useState<Estimate[]>([]); const [projects,setProjects]=useState<Project[]>([]);
+  const [consultations,setConsultations]=useState<ConsultationBooking[]>([]); const [consultationLoadError,setConsultationLoadError]=useState(false);
  const [loading,setLoading]=useState(true); const [saving,setSaving]=useState(false); const [message,setMessage]=useState(''); const [error,setError]=useState('');
  const [projectFilter,setProjectFilter]=useState<'active'|'all'|'completed'|'archived'>('active'); const [projectSearch,setProjectSearch]=useState('');
  const [estimateSearch,setEstimateSearch]=useState(''); const [estimateFilter,setEstimateFilter]=useState<'current'|'archived'>('current'); const [estimatePage,setEstimatePage]=useState(1);
@@ -80,6 +83,20 @@ export default function MyPage(){
       unread_messages:unreadByProject[project.id]??0,
       invoice:invoiceByProject[project.id]??null
     })));
+    // 予約情報は顧客本人のデータのみ取得（Supabase RLSも適用）
+    const {data:bookingRows,error:bookingError}=await (supabase.from('consultation_bookings' as any) as any)
+      .select('id, starts_at, ends_at, title, status')
+      .eq('customer_id',u.user.id)
+      .eq('status','confirmed')
+      .gt('ends_at',new Date().toISOString())
+      .order('starts_at',{ascending:true});
+    if(bookingError){
+      console.error('Consultation bookings load error:',bookingError);
+      setConsultationLoadError(true);
+    }else{
+      setConsultations((bookingRows??[]) as ConsultationBooking[]);
+      setConsultationLoadError(false);
+    }
     setLoading(false);
  })()},[router]);
 
@@ -91,6 +108,10 @@ export default function MyPage(){
  useEffect(()=>{if(estimatePage>estimatePageCount)setEstimatePage(estimatePageCount)},[estimatePage,estimatePageCount]);
  const projectByEstimate=useMemo(()=>{const map=new Map<string,Project>();for(const p of projects){if(p.estimate_id)map.set(p.estimate_id,p)}return map},[projects]);
  const actionItems=useMemo(()=>{const items:{key:string;projectId:string;projectCode:string;title:string;detail:string;kind:string}[]=[];for(const p of projects){if(p.archived_at)continue;if((p.unread_messages??0)>0)items.push({key:`msg-${p.id}`,projectId:p.id,projectCode:p.project_code,title:'新しいメッセージがあります',detail:`未読 ${p.unread_messages}件`,kind:'message'});if(p.status==='quote_presented')items.push({key:`quote-${p.id}`,projectId:p.id,projectCode:p.project_code,title:'正式見積りをご確認ください',detail:p.quoted_amount!=null?`${p.quoted_amount.toLocaleString()}円`:'正式見積りが届いています',kind:'quote'});if(p.status==='customer_review')items.push({key:`review-${p.id}`,projectId:p.id,projectCode:p.project_code,title:'制作内容の確認をお願いします',detail:p.title??'',kind:'review'});if(p.status==='delivered')items.push({key:`delivery-${p.id}`,projectId:p.id,projectCode:p.project_code,title:'納品内容をご確認ください',detail:p.title??'',kind:'delivery'});}return items},[projects]);
+  const upcomingConsultations=consultations.filter(b=>b.status==='confirmed'&&new Date(b.ends_at).getTime()>Date.now());
+  const nextConsultation=upcomingConsultations[0];
+  const consultationDate=(v:string)=>new Intl.DateTimeFormat('ja-JP',{timeZone:'Asia/Tokyo',month:'long',day:'numeric',weekday:'short',hour:'2-digit',minute:'2-digit'}).format(new Date(v));
+  const consultationTime=(v:string)=>new Intl.DateTimeFormat('ja-JP',{timeZone:'Asia/Tokyo',hour:'2-digit',minute:'2-digit'}).format(new Date(v));
  const actionCount=projects.filter(p=>!p.archived_at&&(p.status==='quote_presented'||p.status==='customer_review'||p.status==='delivered')).length;
 
  function updateProfile(k:keyof Profile,v:string){setProfile(c=>({...c,[k]:v}))}
@@ -109,7 +130,12 @@ export default function MyPage(){
      <section className="dashboardCard"><div className="dashboardIcon">見積</div><h3>見積り履歴</h3><p>保存済みのAI概算見積りを確認できます。</p><a className="dashboardLink" href="#estimate-history">{estimates.filter(e=>!e.archived_at).length}件の見積りを見る →</a></section>
      <section className="dashboardCard"><div className="dashboardIcon">案件</div><h3>プロジェクト</h3><p>正式見積り・制作・確認・納品の状況を確認できます。</p><a className="dashboardLink" href="#project-list">{projects.filter(p=>!p.archived_at).length}件のプロジェクトを見る →{projects.filter(p=>!p.archived_at).reduce((sum,p)=>sum+(p.unread_messages??0),0)>0?`（💬 未読 ${projects.filter(p=>!p.archived_at).reduce((sum,p)=>sum+(p.unread_messages??0),0)}件）`:actionCount?`（確認事項 ${actionCount}件）`:''}</a></section>
    <section className="dashboardCard supportCard"><div className="dashboardIcon">相談</div><h3>運営に相談・問い合わせ</h3><p>制作のご相談や、見積り前のご質問はこちらから。</p><Link className="dashboardLink" href="/mypage/support">相談・問い合わせをする →</Link></section>
-    <section className="dashboardCard"><div className="dashboardIcon">MTG</div><h3>オンライン相談予約</h3><p>空いている日時を選んで、Google Meetで打ち合わせを予約できます。</p><Link className="dashboardLink" href="/mypage/consultations">相談日時を予約する →</Link><Link className="dashboardLink" href="/mypage/consultations/history" style={{marginTop:10}}>予約履歴・Meetリンクを確認 →</Link></section>
+
+     <section className="dashboardCard consultationDashboardCard"><div className="dashboardIcon">MTG</div><h3>オンライン相談予約</h3><p>空いている日時を選んで、Google Meetで打ち合わせを予約できます。</p>
+       {consultationLoadError?<div className="consultationStatus consultationStatusError">予約情報を取得できませんでした。予約履歴からご確認ください。</div>:
+         upcomingConsultations.length>0?<div className="consultationStatus"><strong className="consultationCount">予約あり {upcomingConsultations.length}件</strong><span className="consultationNextLabel">次回の相談予定</span><strong className="consultationNextDate">{consultationDate(nextConsultation.starts_at)}〜{consultationTime(nextConsultation.ends_at)}</strong><span className="consultationNextTitle">{nextConsultation.title}</span></div>:
+         <div className="consultationStatus consultationStatusEmpty">現在、予約はありません</div>}
+       <Link className="dashboardLink" href="/mypage/consultations">相談日時を予約する →</Link><Link className="dashboardLink" href="/mypage/consultations/history" style={{marginTop:10}}>予約履歴・Meetリンクを確認 →</Link></section>
     </div>
 
    <section id="project-list" className="widePanel">
@@ -154,6 +180,13 @@ export default function MyPage(){
    </section>
 
    <style jsx>{`
+       .consultationStatus{display:flex;flex-direction:column;gap:5px;padding:12px;margin:0 0 14px;border:1px solid #bfdbfe;border-radius:12px;background:#f8fbff;color:#0f172a}
+       .consultationCount{align-self:flex-start;padding:4px 9px;border-radius:999px;background:#dcfce7;color:#166534;font-size:12px}
+       .consultationNextLabel{margin-top:5px;color:#64748b;font-size:12px}
+       .consultationNextDate{font-size:14px;line-height:1.5}
+       .consultationNextTitle{font-size:13px;color:#475569;overflow-wrap:anywhere}
+       .consultationStatusEmpty{background:#f8fafc;border-color:#e2e8f0;color:#64748b;font-size:13px}
+       .consultationStatusError{background:#fff7ed;border-color:#fed7aa;color:#9a3412;font-size:12px}
       :global(.myPageGrid){display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:18px!important}
       :global(.dashboardCard){box-sizing:border-box;min-width:0;height:100%;display:flex!important;flex-direction:column}
       :global(.dashboardCard p){flex:1}
