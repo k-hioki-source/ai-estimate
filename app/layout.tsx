@@ -3,7 +3,7 @@ import Script from 'next/script';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'CS Works｜イラスト・CG制作の見積り・発注・納品｜クリエイトサポート',
+  title: 'CS Works｜オンラインテクニカルイラスト依頼サイト｜クリエイトサポート',
   description:
     'CS Worksは、クリエイトサポートへのイラスト・CG制作依頼を、概算見積りから正式見積り、発注、制作確認、納品までオンラインで進められるサービスです。',
   keywords: [
