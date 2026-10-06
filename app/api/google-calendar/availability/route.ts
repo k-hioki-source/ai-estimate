@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { decryptToken, requireAdmin } from '../../../../lib/google-calendar-auth';
 import { isJapaneseNationalHoliday } from '../../../../lib/jp-holidays';
+import { getConsultationHours, timeMinutes, epochForMinutes } from '../../../../lib/consultation-hours';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -82,8 +83,9 @@ export async function GET(request: NextRequest) {
     }
     const busy = calendar.busy.map(v => ({start: Date.parse(v.start), end: Date.parse(v.end)}));
     const slots: {start:string;end:string;label:string}[] = [];
-    const opening = isoAt(date, 9, 30);
-    const closing = isoAt(date, 18, 0);
+    const hours = await getConsultationHours();
+    const opening = epochForMinutes(date, timeMinutes(hours.start));
+    const closing = epochForMinutes(date, timeMinutes(hours.end));
     for (let candidate = opening; candidate + duration * MS_MIN <= closing; candidate += SLOT_STEP_MIN * MS_MIN) {
       // Only propose future slots, at least 24h ahead.
       if (candidate < Date.now() + 24 * 60 * MS_MIN) continue;
@@ -91,7 +93,7 @@ export async function GET(request: NextRequest) {
       // Do not allow any meeting to overlap the lunch closure (12:00-13:00).
       if (candidate < isoAt(date, 13, 0) && finish > isoAt(date, 12, 0)) continue;
       const overlaps = busy.some(v => candidate < v.end + BUFFER_MIN * MS_MIN && finish > v.start - BUFFER_MIN * MS_MIN);
-      if (!overlaps) slots.push({start:new Date(candidate).toISOString(), end:new Date(finish).toISOString(), label:`${formatTime(candidate)}$301C${formatTime(finish)}`});
+      if (!overlaps) slots.push({start:new Date(candidate).toISOString(), end:new Date(finish).toISOString(), label:`${formatTime(candidate)} ～ ${formatTime(finish)}`});
     }
     return NextResponse.json({ date, duration, timezone: TIMEZONE, slots, closed: false }, { headers: { 'Cache-Control': 'no-store' } });
   } catch (error) {
