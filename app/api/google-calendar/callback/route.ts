@@ -36,7 +36,24 @@ export async function GET(request: NextRequest) {
       body: new URLSearchParams({ code, client_id: clientId, client_secret: clientSecret, redirect_uri: redirectUri(), grant_type: 'authorization_code' }),
       cache: 'no-store',
     });
-    if (!exchange.ok) throw new Error(`Google token exchange failed: ${exchange.status}`);
+    
+if (!exchange.ok) {
+  const errorBody = await exchange.json().catch(() => ({}));
+  const googleError =
+    typeof errorBody.error === 'string'
+      ? errorBody.error
+      : 'unknown_error';
+
+  console.error('Google token exchange error:', {
+    status: exchange.status,
+    error: googleError,
+  });
+
+  throw new Error(
+    `Google token exchange failed: ${exchange.status} (${googleError})`
+  );
+}
+
     const tokens = await exchange.json() as { access_token?: string; refresh_token?: string };
     if (!tokens.access_token || !tokens.refresh_token) return done('missing_refresh_token');
     const info = await fetch('https://www.googleapis.com/calendar/v3/users/me/calendarList/primary', {
