@@ -759,21 +759,39 @@ async function handleFormalQuoteRequest() {
 </div>
   
 
-    {/* ヒーロー：AI概算見積りを主役として維持 */}
+    {/* ログイン後は見積り画面として案内。ログイン前は従来の紹介文を表示 */}
     <section className="hero card">
       <div className="heroContent">
         <div className="heroText">
-          <div className="eyebrow">CS WORKS｜CREATE SUPPORT</div>
-          <h1 className="heroTitle">イラスト制作を、もっと簡単に。<br />見積りから納品までオンラインで。</h1>
-          <p className="heroLead">
-            CS Worksは、クリエイトサポートへのイラスト・CG制作依頼を、
-            概算見積りから正式見積り、発注、制作確認、納品までオンラインで進められるサービスです。
-          </p>
-          <div className="heroPoints">
-            <div className="miniPoint">その場で概算金額を確認</div>
-            <div className="miniPoint">正式見積り・発注までオンライン</div>
-            <div className="miniPoint">制作確認・納品まで一元管理</div>
-          </div>
+          {authChecked && user ? (
+            <>
+              <div className="eyebrow">CS WORKS｜AI ESTIMATE</div>
+              <h1 className="heroTitle">AI概算見積り</h1>
+              <p className="heroLead">
+                制作したいイラストの資料をアップロードして、概算費用と制作時間を確認できます。
+                見積り結果はマイページに保存でき、正式見積りや制作依頼へ進められます。
+              </p>
+              <div className="heroPoints">
+                <div className="miniPoint">画像・図面から概算見積り</div>
+                <div className="miniPoint">制作時間・概算金額を確認</div>
+                <div className="miniPoint">見積り結果を保存して依頼へ</div>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="eyebrow">CS WORKS｜CREATE SUPPORT</div>
+              <h1 className="heroTitle">イラスト制作を、もっと簡単に。<br />見積りから納品までオンラインで。</h1>
+              <p className="heroLead">
+                CS Worksは、クリエイトサポートへのイラスト・CG制作依頼を、
+                概算見積りから正式見積り、発注、制作確認、納品までオンラインで進められるサービスです。
+              </p>
+              <div className="heroPoints">
+                <div className="miniPoint">その場で概算金額を確認</div>
+                <div className="miniPoint">正式見積り・発注までオンライン</div>
+                <div className="miniPoint">制作確認・納品まで一元管理</div>
+              </div>
+            </>
+          )}
         </div>
         <div className="heroImageWrap">
           <img src="https://www.create-support.co.jp/public/hydraulic.png" alt="油圧シリンダーのテクニカルイラスト" className="heroImage" />
