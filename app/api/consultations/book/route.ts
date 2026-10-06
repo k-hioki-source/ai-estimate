@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { randomUUID } from 'node:crypto';
 import { adminClient, decryptToken } from '../../../../lib/google-calendar-auth';
 import { isJapaneseNationalHoliday } from '../../../../lib/jp-holidays';
+import { sendConsultationEmails } from '../../../../lib/consultation-email';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -167,6 +168,18 @@ export async function POST(request: NextRequest) {
     const confirmedId = bookingId;
     bookingId = null;
     eventId = null;
+    // The booking is already confirmed; notification failures must not roll it back.
+    let projectCode: string | null = null;
+    if (projectId) {
+      const { data: projectInfo } = await db.from('projects').select('project_code').eq('id', projectId).maybeSingle();
+      projectCode = projectInfo?.project_code ?? null;
+    }
+    await sendConsultationEmails({
+      action: 'confirmed', bookingId: confirmedId,
+      customerEmail: user.email, customerName: (user.user_metadata?.full_name as string | undefined) || null,
+      title: title || 'オンライン相談', startsAt: new Date(start).toISOString(),
+      endsAt: new Date(end).toISOString(), meetUrl, projectCode,
+    });
     return json({ bookingId: confirmedId, start: new Date(start).toISOString(), end: new Date(end).toISOString(), meetUrl, status: 'confirmed' }, 201);
   } catch (error) {
     console.error('Consultation booking error:', errorText(error));
