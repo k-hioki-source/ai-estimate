@@ -10,6 +10,11 @@ export default function AdminCalendarPage() {
   const [busy, setBusy] = useState(false);
   const [connected, setConnected] = useState(false);
   const [email, setEmail] = useState<string | null>(null);
+  const [hoursStart, setHoursStart] = useState('09:30');
+  const [hoursEnd, setHoursEnd] = useState('18:00');
+  const [savingHours, setSavingHours] = useState(false);
+  const [hoursMessage, setHoursMessage] = useState('');
+  const [hoursError, setHoursError] = useState('');
   const [message, setMessage] = useState('');
   const [date, setDate] = useState(() => new Intl.DateTimeFormat('en-US', {timeZone:'Asia/Tokyo',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date()).reduce((o,p) => ({...o,[p.type]:p.value}), {} as Record<string,string>));
   const [duration, setDuration] = useState<30 | 60>(30);
@@ -41,6 +46,9 @@ export default function AdminCalendarPage() {
       const result = await response.json();
       if (!active) return;
       if (response.ok) { setConnected(!!result.connected); setEmail(result.googleEmail); }
+      const settingsResponse = await fetch('/api/admin/consultation-settings', {headers:{Authorization:`Bearer ${session.access_token}`},cache:'no-store'});
+      if (settingsResponse.ok) { const settings = await settingsResponse.json(); if (active) { setHoursStart(settings.start); setHoursEnd(settings.end); } }
+      else if (active) setHoursError('受付時間の設定を取得できません。SQLの適用を確認してください。');
       else setMessage(result.error || '接続状態を取得できませんでした');
       setLoading(false);
     })().catch(() => { if (active) { setMessage('接続状態の取得に失敗しました'); setLoading(false); } });
@@ -82,7 +90,7 @@ export default function AdminCalendarPage() {
     <header className="myPageHeader"><div><div className="authBrand">CS Works ADMIN</div><h1>Googleカレンダー連携</h1></div><button className="logoutButton" type="button" onClick={() => router.push('/admin')}>案件管理へ戻る</button></header>
     <section className="welcomeCard" style={{ marginTop: 24 }}>
       <h2>Google Meet オンライン相談予約</h2>
-      <p>管理者のGoogleカレンダーを連携します。顧客向けの予約受付は今後実装します。</p>
+      <p>管理者のGoogleカレンダーを連携します。お客様のオンライン相談予約に利用するGoogleカレンダーです。</p>
       <p style={{ fontWeight: 700 }}>接続状態：{connected ? '接続済み' : '未接続'}</p>
       {email && <p>Googleカレンダー：{email}</p>}
       {outcome === 'connected' && <p>Googleアカウントを接続しました。</p>}
@@ -92,7 +100,7 @@ export default function AdminCalendarPage() {
     </section>
     {connected && <section className="welcomeCard" style={{marginTop:20,background:'#fff',color:'#0f172a'}}>
       <h2>予約可能時間の確認（管理者用）</h2>
-      <p style={{color:'#334155',lineHeight:1.7}}>平日9:30〜18:00（12:00〜13:00は昼休み）、土日・日本の祝日は休業。30分刻み、既存予定の前後15分を除外。予約開始は24時間以上先、60日以内です。</p>
+      <p style={{color:'#334155',lineHeight:1.7}}>平日{hoursStart}〜{hoursEnd}（12:00〜13:00は昼休み）、土日・日本の祝日は休業。30分刻み、既存予定の前後15分を除外。予約開始は24時間以上先、60日以内です。</p>
       <div style={{display:'flex',gap:12,flexWrap:'wrap',alignItems:'end'}}>
         <label>確認日<br/><input type="date" value={dateValue} onChange={e => {const [year,month,day]=e.target.value.split('-');setDate({year,month,day});setChecked(false);}} style={{padding:10,marginTop:6}} /></label>
         <label>相談時間<br/><select value={duration} onChange={e=>{setDuration(Number(e.target.value) as 30 | 60);setChecked(false);}} style={{padding:10,marginTop:6}}><option value={30}>30分</option><option value={60}>60分</option></select></label>
@@ -100,7 +108,7 @@ export default function AdminCalendarPage() {
       </div>
       {availabilityError && <p role="alert" style={{color:'#b91c1c'}}>{availabilityError}</p>}
       {checked && <div style={{marginTop:18}}><strong>予約可能な時間：{slots.length}件</strong>{slots.length === 0 ? <p>この日は予約可能な時間がありません。</p> : <div style={{display:'flex',flexWrap:'wrap',gap:8,marginTop:12}}>{slots.map(slot=><span key={slot.start} style={{padding:'9px 12px',border:'1px solid #cbd5e1',borderRadius:9,background:'#f8fafc'}}>{formatSlot(slot)}</span>)}</div>}</div>}
-      <p style={{fontSize:12,color:'#64748b',marginTop:18}}>※現在は空き時間の表示テストです。予約の確定やGoogle Meetの発行は行いません。会社独自の休業日設定は今後追加します。祝日の例外年は本番公開前に確認します。</p>
+      <p style={{fontSize:12,color:'#64748b',marginTop:18}}>※この画面は空き時間の確認用です。予約確定やGoogle Meet発行は行いません。受付時間の変更は新規予約に適用され、確定済み予約は変更されません。</p>
     </section>}
   </main>;
 }
