@@ -833,8 +833,17 @@ async function handleFormalQuoteRequest() {
 
       <section className="card stackLarge">
         <div className="privacyCollectionNotice">
-          <strong>個人情報の入力なしで、すぐに概算見積りを試せます。</strong>
-          <span>見積り条件・参考画像・AI算出結果は、サービス改善と正式見積り対応のため運営者が収集・確認します。</span>
+          {authChecked && user ? (
+            <>
+              <strong>AI概算見積りを作成できます。</strong>
+              <span>制作条件や参考画像をもとに概算金額を算出します。見積り結果はマイページに保存して、正式見積りや制作依頼に進められます。</span>
+            </>
+          ) : (
+            <>
+              <strong>個人情報の入力なしで、すぐに概算見積りを試せます。</strong>
+              <span>見積り条件・参考画像・AI算出結果は、サービス改善と正式見積り対応のため運営者が収集・確認します。</span>
+            </>
+          )}
         </div>
 
         <div id="ai-assistant-section">
