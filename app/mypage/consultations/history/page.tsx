@@ -34,6 +34,8 @@ export default function ConsultationHistoryPage() {
   const [projects, setProjects] = useState<Record<string, Project>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [cancelId, setCancelId] = useState<string | null>(null);
+  const [cancelError, setCancelError] = useState('');
 
   useEffect(() => {
     let active = true;
@@ -67,6 +69,29 @@ export default function ConsultationHistoryPage() {
     return () => { active = false; };
   }, [router]);
 
+  async function cancelBooking(booking: Booking) {
+    if (!window.confirm(`${dateTime(booking.starts_at)} の予約をキャンセルしますか？\nGoogleカレンダーの予定も削除されます。`)) return;
+    setCancelId(booking.id);
+    setCancelError('');
+    try {
+      const supabase = getSupabaseBrowserClient();
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      if (!token) throw new Error('ログインし直してください');
+      const response = await fetch('/api/consultations/cancel', {
+        method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ bookingId: booking.id }),
+      });
+      const result = await response.json() as { error?: string; status?: string };
+      if (!response.ok || result.status !== 'cancelled') throw new Error(result.error || 'キャンセルできませんでした');
+      setBookings(current => current.map(b => b.id === booking.id ? { ...b, status: 'cancelled' } : b));
+    } catch (e) {
+      setCancelError(e instanceof Error ? e.message : 'キャンセルに失敗しました');
+    } finally {
+      setCancelId(null);
+    }
+  }
+
   return <main className="consultationHistory">
     <header className="historyHeader">
       <div><span className="eyebrow">CS WORKS / ONLINE MEETING</span><h1>オンライン相談・予約履歴</h1>
@@ -74,6 +99,7 @@ export default function ConsultationHistoryPage() {
       <Link href="/mypage">← マイページへ</Link>
     </header>
     <div className="historyActions"><Link href="/mypage/consultations" className="newBooking">＋ 新しい相談を予約する</Link></div>
+    {cancelError ? <section className="historyPanel" role="alert">{cancelError}</section> : null}
     {loading ? <section className="historyPanel">予約履歴を読み込んでいます…</section>
       : error ? <section className="historyPanel" role="alert">{error}</section>
       : bookings.length === 0 ? <section className="historyPanel"><h2>予約履歴はありません</h2><p>オンライン相談を予約すると、こちらに表示されます。</p></section>
@@ -87,6 +113,12 @@ export default function ConsultationHistoryPage() {
             <p className="subInfo">{project ? `関連案件：${project.project_code || ''} ${project.title || ''}` : '案件なし・新規相談'}</p>
             {b.notes ? <p className="notes">{b.notes}</p> : null}
             {b.status === 'confirmed' && validMeet ? <a className="meetLink" href={b.google_meet_url!} target="_blank" rel="noopener noreferrer">Google Meetに参加する ↗</a> : null}
+            {b.status === 'confirmed' && Date.parse(b.starts_at) - Date.now() >= 24 * 60 * 60 * 1000
+              ? <button type="button" className="cancelButton" disabled={cancelId !== null}
+                  onClick={() => void cancelBooking(b)}>{cancelId === b.id ? 'キャンセル処理中…' : 'この予約をキャンセル'}</button>
+              : null}
+            {b.status === 'confirmed' && Date.parse(b.starts_at) - Date.now() < 24 * 60 * 60 * 1000
+              ? <p className="subInfo">開始24時間以内のキャンセルは運営にお問い合わせください。</p> : null}
             {b.status === 'pending' ? <p className="subInfo">予約処理中です。確定までしばらくお待ちください。</p> : null}
             {b.status === 'confirmed' && !validMeet ? <p className="subInfo">Meetリンクを確認できません。運営にお問い合わせください。</p> : null}
           </section>;
