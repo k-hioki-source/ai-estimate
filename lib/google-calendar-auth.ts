@@ -1,6 +1,6 @@
 import 'server-only';
 import { createClient } from '@supabase/supabase-js';
-import { createCipheriv, randomBytes } from 'node:crypto';
+import { createCipheriv, createDecipheriv, randomBytes } from 'node:crypto';
 
 export const redirectUri = () => {
   const value = process.env.GOOGLE_REDIRECT_URI;
@@ -33,4 +33,16 @@ export function encryptToken(token: string) {
   const cipher = createCipheriv('aes-256-gcm', key, iv);
   const data = Buffer.concat([cipher.update(token, 'utf8'), cipher.final()]);
   return `v1:${iv.toString('base64')}:${cipher.getAuthTag().toString('base64')}:${data.toString('base64')}`;
+}
+
+export function decryptToken(payload: string) {
+  const encoded = process.env.GOOGLE_TOKEN_ENCRYPTION_KEY;
+  if (!encoded) throw new Error('Encryption key missing');
+  const key = Buffer.from(encoded, 'base64');
+  if (key.length !== 32) throw new Error('Encryption key must be 32 bytes');
+  const [version, iv64, tag64, data64] = payload.split(':');
+  if (version !== 'v1' || !iv64 || !tag64 || !data64) throw new Error('Invalid token format');
+  const decipher = createDecipheriv('aes-256-gcm', key, Buffer.from(iv64, 'base64'));
+  decipher.setAuthTag(Buffer.from(tag64, 'base64'));
+  return Buffer.concat([decipher.update(Buffer.from(data64, 'base64')), decipher.final()]).toString('utf8');
 }
