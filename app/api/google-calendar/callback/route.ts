@@ -56,17 +56,13 @@ if (!exchange.ok) {
 
     const tokens = await exchange.json() as { access_token?: string; refresh_token?: string };
     if (!tokens.access_token || !tokens.refresh_token) return done('missing_refresh_token');
-    const info = await fetch('https://www.googleapis.com/calendar/v3/users/me/calendarList/primary', {
-      headers: { Authorization: `Bearer ${tokens.access_token}` }, cache: 'no-store',
-    });
-    if (!info.ok) throw new Error(`Google calendar lookup failed: ${info.status}`);
-    const calendar = await info.json() as { id?: string; summary?: string };
+    
     const db = adminClient();
     const { data: profile } = await db.from('profiles').select('role').eq('id', userId).single();
     if (profile?.role !== 'admin') return done('not_admin');
     const { error } = await db.from('google_calendar_connections').upsert({
       user_id: userId,
-      google_email: calendar.id ?? null,
+      google_email: null,
       encrypted_refresh_token: encryptToken(tokens.refresh_token),
       calendar_id: 'primary',
       connected_at: new Date().toISOString(), updated_at: new Date().toISOString(),
