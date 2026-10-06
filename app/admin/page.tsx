@@ -12,6 +12,7 @@ type Project = Omit<Database['public']['Tables']['projects']['Row'], 'status'> &
     | 'invoice_requested'
     | 'invoiced';
 };
+type Consultation = { id:string; starts_at:string; ends_at:string; title:string; status:string; google_meet_url:string|null; company_name:string|null; contact_name:string|null; customer_email:string|null };
 type Profile = { id:string; company_name:string|null; contact_name:string|null; email:string|null };
 type ProjectInvoice = { project_id:string; payment_due_date:string|null; total_amount:number };
 type ProjectWithData = Project & { customer?: Profile|null; unread_messages?: number; invoice?: ProjectInvoice|null };
@@ -35,7 +36,7 @@ function needsAdminAction(s:Project['status']){
 const filters=[['active','進行中'],['all','すべて'],['quote_requested','見積依頼'],['ordered','発注済み'],['in_production','制作中'],['customer_review','確認中'],['revision','修正'],['approved','承認済・納品待ち'],['delivered','納品済・請求待ち'],['invoice_requested','請求書発行依頼'],['invoiced','入金待ち'],['completed','完了'],['cancelled','発注見送り']] as const;
 
 export default function AdminPage(){
- const router=useRouter(); const [projects,setProjects]=useState<ProjectWithData[]>([]); const [supportUnread,setSupportUnread]=useState(0); const [loading,setLoading]=useState(true); const [error,setError]=useState(''); const [search,setSearch]=useState(''); const [filter,setFilter]=useState('active');
+ const router=useRouter(); const [consultations,setConsultations]=useState<Consultation[]>([]); const [consultationError,setConsultationError]=useState(''); const [projects,setProjects]=useState<ProjectWithData[]>([]); const [supportUnread,setSupportUnread]=useState(0); const [loading,setLoading]=useState(true); const [error,setError]=useState(''); const [search,setSearch]=useState(''); const [filter,setFilter]=useState('active');
  useEffect(()=>{(async()=>{
   const supabase=getSupabaseBrowserClient(); const {data:u}=await supabase.auth.getUser();
   if(!u.user){router.replace('/login');return}
@@ -95,8 +96,15 @@ export default function AdminPage(){
  const visible=useMemo(()=>{const q=search.trim().toLowerCase();return projects.filter(p=>(filter==='all'||(filter==='active'?active.has(p.status):filter==='needs_action'?(p.status==='quote_requested'||p.status==='revision'||p.status==='approved'||p.status==='invoice_requested'):p.status===filter))&&(!q||[p.project_code,p.title,p.customer?.company_name,p.customer?.contact_name,p.customer?.email].some(v=>(v??'').toLowerCase().includes(q))))},[projects,search,filter]);
  if(loading)return <main className="authPage"><section className="authCard"><p>管理画面を読み込んでいます…</p></section></main>;
  return <main className="myPageShell">
-  <header className="myPageHeader"><div><div className="authBrand">CS Works ADMIN</div><h1>案件管理</h1></div><div className="adminHeaderActions"><button className="supportButton" onClick={()=>router.push('/admin/estimates')}>AI見積り</button><button className="supportButton" onClick={()=>router.push('/admin/site')}>トップページ管理</button><button className="supportButton" onClick={()=>router.push('/admin/email')}>メール配信</button><button className="supportButton" onClick={()=>router.push('/admin/calendar')}>Googleカレンダー</button><button className="supportButton" onClick={()=>router.push('/admin/support')}>お問い合わせ{supportUnread>0?<span className="supportUnread">{supportUnread}</span>:null}</button><button className="logoutButton" onClick={()=>router.push('/mypage')}>My Page</button></div></header>
+  <header className="myPageHeader"><div><div className="authBrand">CS Works ADMIN</div><h1>案件管理</h1></div><div className="adminHeaderActions"><button className="supportButton" onClick={()=>router.push('/admin/estimates')}>AI見積り</button><button className="supportButton" onClick={()=>router.push('/admin/site')}>トップページ管理</button><button className="supportButton" onClick={()=>router.push('/admin/email')}>メール配信</button><button className="supportButton" onClick={()=>router.push('/admin/consultations')}>相談予約</button><button className="supportButton" onClick={()=>router.push('/admin/calendar')}>Googleカレンダー</button><button className="supportButton" onClick={()=>router.push('/admin/support')}>お問い合わせ{supportUnread>0?<span className="supportUnread">{supportUnread}</span>:null}</button><button className="logoutButton" onClick={()=>router.push('/mypage')}>My Page</button></div></header>
   <section className="welcomeCard"><span className="statusDot"/> 管理者<h2>プロジェクト</h2><p>進行中の案件を中心に、検索・絞り込みして管理できます。</p></section>
+   <section className="consultationPanel">
+     <div className="consultationPanelHead"><div><div className="authBrand">CONSULTATIONS</div><h2>オンライン相談の予定</h2><p>今後の確定予約とGoogle Meetを確認できます。</p></div><button type="button" className="supportButton" onClick={()=>router.push('/admin/consultations')}>予約一覧・カレンダー →</button></div>
+     {consultationError?<p style={{color:'#b91c1c'}}>{consultationError}</p>:null}
+     <div className="consultationSummary"><strong>今後の予約：{consultations.filter(b=>b.status==='confirmed'&&new Date(b.ends_at).getTime()>Date.now()).length}件</strong><span>直近の予定を最大5件表示</span></div>
+     {consultations.filter(b=>b.status==='confirmed'&&new Date(b.ends_at).getTime()>Date.now()).slice(0,5).map(b=><div className="consultationRow" key={b.id}><div><strong>{new Intl.DateTimeFormat('ja-JP',{timeZone:'Asia/Tokyo',month:'2-digit',day:'2-digit',weekday:'short',hour:'2-digit',minute:'2-digit'}).format(new Date(b.starts_at))}　{b.title}</strong><div>{b.company_name||'会社名未登録'} ／ {b.contact_name||'氏名未登録'}　{b.customer_email||''}</div></div><div className="consultationActions">{b.google_meet_url?<a href={b.google_meet_url} target="_blank" rel="noopener noreferrer">Meet参加 ↗</a>:null}<button type="button" onClick={()=>router.push('/admin/consultations')}>詳細 →</button></div></div>)}
+     {!consultations.some(b=>b.status==='confirmed'&&new Date(b.ends_at).getTime()>Date.now())&&!consultationError?<p className="consultationEmpty">現在、今後の確定予約はありません。</p>:null}
+   </section>
    {actionItems.length>0?<section className="actionCenter"><div className="actionCenterHead"><div><div className="authBrand">ACTION</div><h2>新着・要対応</h2><p>現在、確認・対応が必要な内容をまとめています。</p></div><span className="actionCountBadge">{actionItems.length}件</span></div><div className="actionItems">{actionItems.map(item=><button type="button" key={item.key} className="actionItem" onClick={()=>router.push(`/admin/projects/${item.projectId}`)}><span className={`actionIcon ${item.kind}`}>{item.kind==='message'?'💬':item.kind==='quote'?'見積':item.kind==='revision'?'修正':item.kind==='approved'?'承認':'請求'}</span><span className="actionText"><strong>{item.title}</strong><span>{item.company}　{item.projectCode}　{item.detail}</span></span><strong className="actionArrow">確認する →</strong></button>)}</div></section>:null}
   {error?<div className="errorBox" style={{marginTop:20}}>{error}</div>:null}
   <section className="adminProjectList">
@@ -198,7 +206,8 @@ export default function AdminPage(){
       .mobileEmpty{padding:24px;text-align:center;color:#64748b}
     }
     @media (max-width:600px){
-      .actionCenter{padding:20px 15px}.actionArrow{display:none}
+      .consultationPanel{margin-top:22px;padding:24px 28px;border:1px solid #dbe3ec;border-radius:18px;background:#fff}.consultationPanelHead{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}.consultationPanelHead h2{margin:4px 0}.consultationPanelHead p{margin:0;color:#64748b;font-size:13px}.consultationSummary{display:flex;align-items:center;gap:16px;margin:18px 0 4px}.consultationSummary span{color:#64748b;font-size:12px}.consultationRow{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:13px 0;border-bottom:1px solid #e2e8f0;flex-wrap:wrap}.consultationRow strong{font-size:14px}.consultationRow div div{font-size:12px;color:#64748b;margin-top:5px}.consultationActions{display:flex;align-items:center;gap:12px}.consultationActions a{font-size:13px;color:#1d4ed8}.consultationActions button{border:1px solid #dbe3ec;border-radius:8px;padding:8px 12px;background:#fff;color:#0f172a;cursor:pointer}.consultationEmpty{color:#64748b;font-size:13px}
+     .actionCenter{padding:20px 15px}.actionArrow{display:none}
       .adminProjectList{padding:18px 14px;border-radius:14px}
     }
   `}</style>
