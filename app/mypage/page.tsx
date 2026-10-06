@@ -109,7 +109,7 @@ export default function MyPage(){
      <section className="dashboardCard"><div className="dashboardIcon">見積</div><h3>見積り履歴</h3><p>保存済みのAI概算見積りを確認できます。</p><a className="dashboardLink" href="#estimate-history">{estimates.filter(e=>!e.archived_at).length}件の見積りを見る →</a></section>
      <section className="dashboardCard"><div className="dashboardIcon">案件</div><h3>プロジェクト</h3><p>正式見積り・制作・確認・納品の状況を確認できます。</p><a className="dashboardLink" href="#project-list">{projects.filter(p=>!p.archived_at).length}件のプロジェクトを見る →{projects.filter(p=>!p.archived_at).reduce((sum,p)=>sum+(p.unread_messages??0),0)>0?`（💬 未読 ${projects.filter(p=>!p.archived_at).reduce((sum,p)=>sum+(p.unread_messages??0),0)}件）`:actionCount?`（確認事項 ${actionCount}件）`:''}</a></section>
    <section className="dashboardCard supportCard"><div className="dashboardIcon">相談</div><h3>運営に相談・問い合わせ</h3><p>制作のご相談や、見積り前のご質問はこちらから。</p><Link className="dashboardLink" href="/mypage/support">相談・問い合わせをする →</Link></section>
-    <section className="dashboardCard"><div className="dashboardIcon">MTG</div><h3>オンライン相談予約</h3><p>空いている日時を選んで、Google Meetで打ち合わせを予約できます。</p><Link className="dashboardLink" href="/mypage/consultations">相談日時を予約する →</Link></section>
+    <section className="dashboardCard"><div className="dashboardIcon">MTG</div><h3>オンライン相談予約</h3><p>空いている日時を選んで、Google Meetで打ち合わせを予約できます。</p><Link className="dashboardLink" href="/mypage/consultations">相談日時を予約する →</Link><Link className="dashboardLink" href="/mypage/consultations/history" style={{marginTop:10}}>予約履歴・Meetリンクを確認 →</Link></section>
     </div>
 
    <section id="project-list" className="widePanel">
