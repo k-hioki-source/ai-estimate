@@ -11,6 +11,13 @@ export default function AdminCalendarPage() {
   const [connected, setConnected] = useState(false);
   const [email, setEmail] = useState<string | null>(null);
   const [message, setMessage] = useState('');
+  const [date, setDate] = useState(() => new Intl.DateTimeFormat('en-US', {timeZone:'Asia/Tokyo',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date()).reduce((o,p) => ({...o,[p.type]:p.value}), {} as Record<string,string>));
+  const [duration, setDuration] = useState<30 | 60>(30);
+  const [slots, setSlots] = useState<{start:string;end:string;label:string}[]>([]);
+  const [checking, setChecking] = useState(false);
+  const [checked, setChecked] = useState(false);
+  const [availabilityError, setAvailabilityError] = useState('');
+  const dateValue = `${date.year}-${date.month}-${date.day}`;
   useEffect(() => {
     let active = true;
     setOutcome(new URLSearchParams(window.location.search).get('google'));
@@ -52,6 +59,20 @@ export default function AdminCalendarPage() {
       setBusy(false);
     }
   }
+  async function checkAvailability() {
+    setChecking(true); setChecked(false); setSlots([]); setAvailabilityError('');
+    try {
+      const supabase = getSupabaseBrowserClient();
+      const {data:{session}} = await supabase.auth.getSession();
+      if (!session) throw new Error('再ログインしてください');
+      const params = new URLSearchParams({date: dateValue, duration: String(duration)});
+      const response = await fetch(`/api/google-calendar/availability?${params}`, {headers:{Authorization:`Bearer ${session.access_token}`},cache:'no-store'});
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || '取得に失敗しました');
+      setSlots(result.slots ?? []); setChecked(true);
+    } catch (error) { setAvailabilityError(error instanceof Error ? error.message : '取得に失敗しました'); }
+    finally { setChecking(false); }
+  }
   if (loading) return <main className="authPage"><section className="authCard">確認しています…</section></main>;
   return <main className="myPageShell" style={{ maxWidth: 960, margin: '0 auto', padding: '24px 16px' }}>
     <header className="myPageHeader"><div><div className="authBrand">CS Works ADMIN</div><h1>Googleカレンダー連携</h1></div><button className="logoutButton" type="button" onClick={() => router.push('/admin')}>案件管理へ戻る</button></header>
@@ -65,5 +86,17 @@ export default function AdminCalendarPage() {
       {message && <p role="alert">{message}</p>}
       <button type="button" disabled={busy} onClick={connect} style={{ padding: '10px 18px', cursor: 'pointer' }}>{busy ? '接続中…' : connected ? 'Googleアカウントを再接続' : 'Googleアカウントを接続'}</button>
     </section>
+    {connected && <section className="welcomeCard" style={{marginTop:20,background:'#fff',color:'#0f172a'}}>
+      <h2>予約可能時間の確認（管理者用）</h2>
+      <p>平日9:30$301C18:00、30分刻み、既存予定の前後15分を除外。開始24時間前までの予約を想定しています。</p>
+      <div style={{display:'flex',gap:12,flexWrap:'wrap',alignItems:'end'}}>
+        <label>確認日<br/><input type="date" value={dateValue} onChange={e => {const [year,month,day]=e.target.value.split('-');setDate({year,month,day});setChecked(false);}} style={{padding:10,marginTop:6}} /></label>
+        <label>相談時間<br/><select value={duration} onChange={e=>{setDuration(Number(e.target.value) as 30 | 60);setChecked(false);}} style={{padding:10,marginTop:6}}><option value={30}>30分</option><option value={60}>60分</option></select></label>
+        <button type="button" onClick={checkAvailability} disabled={checking} style={{padding:'11px 20px',cursor:'pointer'}}>{checking?'確認中…':'空き時間を確認'}</button>
+      </div>
+      {availabilityError && <p role="alert" style={{color:'#b91c1c'}}>{availabilityError}</p>}
+      {checked && <div style={{marginTop:18}}><strong>予約可能な時間：{slots.length}件</strong>{slots.length === 0 ? <p>この日は予約可能な時間がありません。</p> : <div style={{display:'flex',flexWrap:'wrap',gap:8,marginTop:12}}>{slots.map(slot=><span key={slot.start} style={{padding:'9px 12px',border:'1px solid #cbd5e1',borderRadius:9,background:'#f8fafc'}}>{slot.label}</span>)}</div>}</div>}
+      <p style={{fontSize:12,color:'#64748b',marginTop:18}}>※現在は空き時間の表示テストです。予約の確定やGoogle Meetの発行は行いません。祝日・休業日設定は今後追加します。</p>
+    </section>}
   </main>;
 }
