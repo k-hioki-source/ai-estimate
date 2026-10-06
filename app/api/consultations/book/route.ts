@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { adminClient, decryptToken } from '../../../../lib/google-calendar-auth';
 import { isJapaneseNationalHoliday } from '../../../../lib/jp-holidays';
 import { sendConsultationEmails } from '../../../../lib/consultation-email';
+import { getConsultationHours, timeMinutes, epochForMinutes } from '../../../../lib/consultation-hours';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -77,11 +78,14 @@ export async function POST(request: NextRequest) {
     const end = start + duration * MINUTE;
     const day = dateInTokyo(start);
     const weekday = new Date(`${day}T12:00:00+09:00`).getUTCDay();
+    const hours = await getConsultationHours();
+    const opening = epochForMinutes(day, timeMinutes(hours.start));
+    const closing = epochForMinutes(day, timeMinutes(hours.end));
     if (day < dateInTokyo(Date.now()) || day > dateInTokyo(Date.now() + 60 * 86_400_000) ||
         start < Date.now() + 24 * 60 * MINUTE || weekday === 0 || weekday === 6 || isJapaneseNationalHoliday(day) ||
-        start < timeAt(day, 9, 30) || end > timeAt(day, 18) ||
+        start < opening || end > closing ||
         (start < timeAt(day, 13) && end > timeAt(day, 12)) ||
-        (start - timeAt(day, 9, 30)) % (30 * MINUTE) !== 0) {
+        (start - opening) % (30 * MINUTE) !== 0) {
       return json({ error: '予約できない日時です。空き時間から選択してください' }, 400);
     }
 
