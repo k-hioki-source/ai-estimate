@@ -18,6 +18,10 @@ export default function AdminCalendarPage() {
   const [checked, setChecked] = useState(false);
   const [availabilityError, setAvailabilityError] = useState('');
   const dateValue = `${date.year}-${date.month}-${date.day}`;
+  const formatSlot = (slot: {start:string;end:string}) => {
+    const fmt = (iso:string) => new Intl.DateTimeFormat('ja-JP', {timeZone:'Asia/Tokyo',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(new Date(iso));
+    return `${fmt(slot.start)} ～ ${fmt(slot.end)}`;
+  };
   useEffect(() => {
     let active = true;
     setOutcome(new URLSearchParams(window.location.search).get('google'));
@@ -88,15 +92,15 @@ export default function AdminCalendarPage() {
     </section>
     {connected && <section className="welcomeCard" style={{marginTop:20,background:'#fff',color:'#0f172a'}}>
       <h2>予約可能時間の確認（管理者用）</h2>
-      <p>平日9:30$301C18:00、30分刻み、既存予定の前後15分を除外。開始24時間前までの予約を想定しています。</p>
+      <p style={{color:'#334155',lineHeight:1.7}}>平日9:30〜18:00（12:00〜13:00は昼休み）、土日・日本の祝日は休業。30分刻み、既存予定の前後15分を除外。予約開始は24時間以上先、60日以内です。</p>
       <div style={{display:'flex',gap:12,flexWrap:'wrap',alignItems:'end'}}>
         <label>確認日<br/><input type="date" value={dateValue} onChange={e => {const [year,month,day]=e.target.value.split('-');setDate({year,month,day});setChecked(false);}} style={{padding:10,marginTop:6}} /></label>
         <label>相談時間<br/><select value={duration} onChange={e=>{setDuration(Number(e.target.value) as 30 | 60);setChecked(false);}} style={{padding:10,marginTop:6}}><option value={30}>30分</option><option value={60}>60分</option></select></label>
         <button type="button" onClick={checkAvailability} disabled={checking} style={{padding:'11px 20px',cursor:'pointer'}}>{checking?'確認中…':'空き時間を確認'}</button>
       </div>
       {availabilityError && <p role="alert" style={{color:'#b91c1c'}}>{availabilityError}</p>}
-      {checked && <div style={{marginTop:18}}><strong>予約可能な時間：{slots.length}件</strong>{slots.length === 0 ? <p>この日は予約可能な時間がありません。</p> : <div style={{display:'flex',flexWrap:'wrap',gap:8,marginTop:12}}>{slots.map(slot=><span key={slot.start} style={{padding:'9px 12px',border:'1px solid #cbd5e1',borderRadius:9,background:'#f8fafc'}}>{slot.label}</span>)}</div>}</div>}
-      <p style={{fontSize:12,color:'#64748b',marginTop:18}}>※現在は空き時間の表示テストです。予約の確定やGoogle Meetの発行は行いません。祝日・休業日設定は今後追加します。</p>
+      {checked && <div style={{marginTop:18}}><strong>予約可能な時間：{slots.length}件</strong>{slots.length === 0 ? <p>この日は予約可能な時間がありません。</p> : <div style={{display:'flex',flexWrap:'wrap',gap:8,marginTop:12}}>{slots.map(slot=><span key={slot.start} style={{padding:'9px 12px',border:'1px solid #cbd5e1',borderRadius:9,background:'#f8fafc'}}>{formatSlot(slot)}</span>)}</div>}</div>}
+      <p style={{fontSize:12,color:'#64748b',marginTop:18}}>※現在は空き時間の表示テストです。予約の確定やGoogle Meetの発行は行いません。会社独自の休業日設定は今後追加します。祝日の例外年は本番公開前に確認します。</p>
     </section>}
   </main>;
 }
