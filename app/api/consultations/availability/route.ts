@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminClient, decryptToken } from '../../../../lib/google-calendar-auth';
 import { isJapaneseNationalHoliday } from '../../../../lib/jp-holidays';
+import { getConsultationHours, timeMinutes, epochForMinutes } from '../../../../lib/consultation-hours';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -101,8 +102,9 @@ export async function GET(request: NextRequest) {
     if (bookingsError) throw bookingsError;
     busy.push(...(bookings ?? []).map(v => ({ start: Date.parse(v.starts_at), end: Date.parse(v.ends_at) })));
 
+    const hours = await getConsultationHours();
     const slots: { start: string; end: string; label: string }[] = [];
-    for (let start = epochAt(date, 9, 30); start + duration * MINUTE <= epochAt(date, 18); start += 30 * MINUTE) {
+    for (let start = epochForMinutes(date, timeMinutes(hours.start)); start + duration * MINUTE <= epochForMinutes(date, timeMinutes(hours.end)); start += 30 * MINUTE) {
       const end = start + duration * MINUTE;
       if (start < Date.now() + 24 * 60 * MINUTE) continue;
       if (start < epochAt(date, 13) && end > epochAt(date, 12)) continue;
