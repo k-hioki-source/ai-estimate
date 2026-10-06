@@ -174,9 +174,37 @@ export async function POST(request: NextRequest) {
       const { data: projectInfo } = await db.from('projects').select('project_code').eq('id', projectId).maybeSingle();
       projectCode = projectInfo?.project_code ?? null;
     }
+    // Prefer the registered profile; fall back to authentication metadata.
+    // Read the profile defensively because older deployments may use different field names.
+    let customerName: string | null = null;
+    let companyName: string | null = null;
+    try {
+      const { data: customerProfile, error: customerProfileError } = await db
+        .from('profiles').select('*').eq('id', user.id).maybeSingle();
+      if (customerProfileError) throw customerProfileError;
+      const profile = (customerProfile ?? {}) as Record<string, unknown>;
+      const metadata = (user.user_metadata ?? {}) as Record<string, unknown>;
+      const firstString = (...values: unknown[]) => values.find(
+        (value): value is string => typeof value === 'string' && value.trim().length > 0
+      ) as string | undefined;
+      customerName = firstString(
+        profile.full_name, profile.name, profile.display_name, profile.contact_name,
+        metadata.full_name, metadata.name, metadata.display_name
+      )?.trim() ?? null;
+      companyName = firstString(
+        profile.company_name, profile.company, metadata.company_name, metadata.company
+      )?.trim() ?? null;
+    } catch (profileError) {
+      console.error('Consultation customer profile lookup failed', {
+        bookingId: confirmedId, error: errorText(profileError),
+      });
+      const metadata = (user.user_metadata ?? {}) as Record<string, unknown>;
+      customerName = typeof metadata.full_name === 'string' ? metadata.full_name.trim() || null : null;
+      companyName = typeof metadata.company_name === 'string' ? metadata.company_name.trim() || null : null;
+    }
     await sendConsultationEmails({
       action: 'confirmed', bookingId: confirmedId,
-      customerEmail: user.email, customerName: (user.user_metadata?.full_name as string | undefined) || null,
+      customerEmail: user.email, customerName, companyName,
       title: title || 'オンライン相談', startsAt: new Date(start).toISOString(),
       endsAt: new Date(end).toISOString(), meetUrl, projectCode,
     });
