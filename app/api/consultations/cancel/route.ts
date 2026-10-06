@@ -83,20 +83,57 @@ export async function POST(request: NextRequest) {
       return json({ error: 'Googleの予定は削除されましたが、予約履歴の更新に失敗しました。運営にお問い合わせください' }, 503);
     }
     // Google deletion and database cancellation have succeeded.
-    // Mail is best-effort and does not change the cancellation result.
-    const { data: customerData } = await db.auth.admin.getUserById(booking.customer_id);
-    let projectCode: string | null = null;
-    if (booking.project_id) {
-      const { data: projectInfo } = await db.from('projects').select('project_code').eq('id', booking.project_id).maybeSingle();
-      projectCode = projectInfo?.project_code ?? null;
+    // Notifications are best-effort; profile lookup must never undo a cancellation.
+    try {
+      const { data: customerData, error: customerError } = await db.auth.admin.getUserById(booking.customer_id);
+      if (customerError) console.error('Consultation cancellation customer lookup failed', { bookingId: booking.id, error: customerError.message });
+
+      const metadata = (customerData.user?.user_metadata ?? {}) as Record<string, unknown>;
+      const firstString = (...values: unknown[]) => values.find(
+        (value): value is string => typeof value === 'string' && value.trim().length > 0
+      ) as string | undefined;
+      let customerName = firstString(metadata.full_name, metadata.name, metadata.display_name)?.trim() ?? null;
+      let companyName = firstString(metadata.company_name, metadata.company)?.trim() ?? null;
+
+      try {
+        const { data: customerProfile, error: profileLookupError } = await db.from('profiles')
+          .select('*').eq('id', booking.customer_id).maybeSingle();
+        if (profileLookupError) throw profileLookupError;
+        const profileData = (customerProfile ?? {}) as Record<string, unknown>;
+        customerName = firstString(
+          profileData.full_name, profileData.name, profileData.display_name, profileData.contact_name,
+          customerName
+        )?.trim() ?? null;
+        companyName = firstString(
+          profileData.company_name, profileData.company, companyName
+        )?.trim() ?? null;
+      } catch (profileLookupError) {
+        console.error('Consultation cancellation profile lookup failed', {
+          bookingId: booking.id,
+          error: profileLookupError instanceof Error ? profileLookupError.message : String(profileLookupError),
+        });
+      }
+
+      let projectCode: string | null = null;
+      if (booking.project_id) {
+        const { data: projectInfo, error: projectError } = await db.from('projects')
+          .select('project_code').eq('id', booking.project_id).maybeSingle();
+        if (projectError) console.error('Consultation cancellation project lookup failed', { bookingId: booking.id, error: projectError.message });
+        projectCode = projectInfo?.project_code ?? null;
+      }
+      await sendConsultationEmails({
+        action: 'cancelled', bookingId: booking.id,
+        customerEmail: customerData.user?.email ?? (booking.customer_id === user.id ? user.email : null),
+        customerName, companyName,
+        title: booking.title || 'オンライン相談',
+        startsAt: booking.starts_at, endsAt: booking.ends_at, projectCode,
+      });
+    } catch (notificationError) {
+      console.error('Consultation cancellation notification failed', {
+        bookingId: booking.id,
+        error: notificationError instanceof Error ? notificationError.message : String(notificationError),
+      });
     }
-    await sendConsultationEmails({
-      action: 'cancelled', bookingId: booking.id,
-      customerEmail: customerData.user?.email ?? null,
-      customerName: (customerData.user?.user_metadata?.full_name as string | undefined) || null,
-      title: booking.title || 'オンライン相談',
-      startsAt: booking.starts_at, endsAt: booking.ends_at, projectCode,
-    });
     return json({ bookingId: booking.id, status: 'cancelled' });
   } catch (error) {
     console.error('Consultation cancellation error:', error instanceof Error ? error.message : 'unknown');
