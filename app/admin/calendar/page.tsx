@@ -49,7 +49,7 @@ export default function AdminCalendarPage() {
       const settingsResponse = await fetch('/api/admin/consultation-settings', {headers:{Authorization:`Bearer ${session.access_token}`},cache:'no-store'});
       if (settingsResponse.ok) { const settings = await settingsResponse.json(); if (active) { setHoursStart(settings.start); setHoursEnd(settings.end); } }
       else if (active) setHoursError('受付時間の設定を取得できません。SQLの適用を確認してください。');
-      else setMessage(result.error || '接続状態を取得できませんでした');
+      if (!response.ok && active) setMessage(result.error || '接続状態を取得できませんでした');
       setLoading(false);
     })().catch(() => { if (active) { setMessage('接続状態の取得に失敗しました'); setLoading(false); } });
     return () => { active = false; };
@@ -69,6 +69,34 @@ export default function AdminCalendarPage() {
     } catch (error) {
       setMessage(error instanceof Error ? error.message : '接続に失敗しました');
       setBusy(false);
+    }
+  }
+  async function saveHours() {
+    setHoursMessage(''); setHoursError('');
+    if (hoursStart >= hoursEnd) {
+      setHoursError('終了時間は開始時間より後にしてください。');
+      return;
+    }
+    setSavingHours(true);
+    try {
+      const supabase = getSupabaseBrowserClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('再ログインしてください');
+      const response = await fetch('/api/admin/consultation-settings', {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ start: hoursStart, end: hoursEnd }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || '受付時間を保存できませんでした');
+      setHoursStart(result.start);
+      setHoursEnd(result.end);
+      setChecked(false);
+      setHoursMessage('受付時間を保存しました。新しい予約から適用されます。');
+    } catch (error) {
+      setHoursError(error instanceof Error ? error.message : '受付時間を保存できませんでした');
+    } finally {
+      setSavingHours(false);
     }
   }
   async function checkAvailability() {
@@ -98,6 +126,22 @@ export default function AdminCalendarPage() {
       {message && <p role="alert">{message}</p>}
       <button type="button" disabled={busy} onClick={connect} style={{ padding: '10px 18px', cursor: 'pointer' }}>{busy ? '接続中…' : connected ? 'Googleアカウントを再接続' : 'Googleアカウントを接続'}</button>
     </section>
+    {connected && <section className="welcomeCard" style={{marginTop:20,background:'#fff',color:'#0f172a'}}>
+      <h2>オンライン相談・受付時間設定</h2>
+      <p style={{color:'#334155'}}>平日の予約受付時間を設定します。土日・祝日と12:00〜13:00の昼休みは引き続き予約できません。</p>
+      <div style={{display:'flex',gap:12,flexWrap:'wrap',alignItems:'end',marginTop:16}}>
+        <label>受付開始<br/><select value={hoursStart} onChange={e=>{setHoursStart(e.target.value);setHoursMessage('');}} style={{padding:10,marginTop:6}}>
+          {Array.from({length:19},(_,i)=>{const total=9*60+i*30;const t=`${String(Math.floor(total/60)).padStart(2,'0')}:${String(total%60).padStart(2,'0')}`;return <option key={t} value={t}>{t}</option>;})}
+        </select></label>
+        <label>受付終了<br/><select value={hoursEnd} onChange={e=>{setHoursEnd(e.target.value);setHoursMessage('');}} style={{padding:10,marginTop:6}}>
+          {Array.from({length:19},(_,i)=>{const total=9*60+i*30;const t=`${String(Math.floor(total/60)).padStart(2,'0')}:${String(total%60).padStart(2,'0')}`;return <option key={t} value={t}>{t}</option>;})}
+        </select></label>
+        <button type="button" onClick={saveHours} disabled={savingHours || hoursStart >= hoursEnd} style={{padding:'11px 20px',cursor:'pointer'}}>{savingHours?'保存中…':'設定を保存'}</button>
+      </div>
+      {hoursMessage && <p role="status" style={{color:'#166534',marginTop:12}}>{hoursMessage}</p>}
+      {hoursError && <p role="alert" style={{color:'#b91c1c',marginTop:12}}>{hoursError}</p>}
+      <p style={{fontSize:12,color:'#64748b',marginTop:12}}>変更後も確定済みの予約は維持されます。</p>
+    </section>}
     {connected && <section className="welcomeCard" style={{marginTop:20,background:'#fff',color:'#0f172a'}}>
       <h2>予約可能時間の確認（管理者用）</h2>
       <p style={{color:'#334155',lineHeight:1.7}}>平日{hoursStart}〜{hoursEnd}（12:00〜13:00は昼休み）、土日・日本の祝日は休業。30分刻み、既存予定の前後15分を除外。予約開始は24時間以上先、60日以内です。</p>
