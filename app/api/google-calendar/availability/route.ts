@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { decryptToken, requireAdmin } from '../../../../lib/google-calendar-auth';
+import { isJapaneseNationalHoliday } from '../../../../lib/jp-holidays';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -36,7 +37,7 @@ export async function GET(request: NextRequest) {
     if (date < tokyoDate(0) || date > tokyoDate(60)) {
       return NextResponse.json({ error: '本日から60日以内の日付を指定してください' }, { status: 400 });
     }
-    if ([0, 6].includes(dayOfWeek(date))) {
+    if ([0, 6].includes(dayOfWeek(date)) || isJapaneseNationalHoliday(date)) {
       return NextResponse.json({ date, duration, timezone: TIMEZONE, slots: [], closed: true }, { headers: { 'Cache-Control': 'no-store' } });
     }
     const { data: connection, error: dbError } = await admin.db.from('google_calendar_connections')
@@ -87,6 +88,8 @@ export async function GET(request: NextRequest) {
       // Only propose future slots, at least 24h ahead.
       if (candidate < Date.now() + 24 * 60 * MS_MIN) continue;
       const finish = candidate + duration * MS_MIN;
+      // Do not allow any meeting to overlap the lunch closure (12:00-13:00).
+      if (candidate < isoAt(date, 13, 0) && finish > isoAt(date, 12, 0)) continue;
       const overlaps = busy.some(v => candidate < v.end + BUFFER_MIN * MS_MIN && finish > v.start - BUFFER_MIN * MS_MIN);
       if (!overlaps) slots.push({start:new Date(candidate).toISOString(), end:new Date(finish).toISOString(), label:`${formatTime(candidate)}$301C${formatTime(finish)}`});
     }
