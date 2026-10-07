@@ -1201,6 +1201,13 @@ async function submitProjectReview(project: Project, action: 'approval' | 'revis
                     <div className="quoteDecisionActions">
                       <button
                         type="button"
+                        className="quoteDocumentButton"
+                        onClick={() => window.open(`/mypage/projects/${project.id}/quote`, '_blank', 'noopener,noreferrer')}
+                      >
+                        正式見積書を表示
+                      </button>
+                      <button
+                        type="button"
                         className="primaryButton"
                         onClick={() => orderProject(project)}
                         disabled={orderingProjectId === project.id || decliningProjectId === project.id}
@@ -1846,6 +1853,8 @@ async function submitProjectReview(project: Project, action: 'approval' | 'revis
         .stateCard .primaryButton { margin-top: 14px; width: auto !important; }
         .quoteDecisionActions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 14px; }
         .quoteDecisionActions .primaryButton { margin-top: 0; }
+        .quoteDocumentButton { width: auto !important; padding: 12px 18px; border: 1px solid #93c5fd; border-radius: 10px; background: #fff; color: #1d4ed8; font-weight: 900; cursor: pointer; }
+        .quoteDocumentButton:hover { background: #eff6ff; }
         .declineOrderButton { width: auto !important; padding: 12px 18px; border: 1px solid #cbd5e1; border-radius: 10px; background: #fff; color: #64748b; font-weight: 800; cursor: pointer; }
         .declineOrderButton:hover { background: #f8fafc; color: #334155; }
         .declineOrderButton:disabled { opacity: .55; cursor: default; }
