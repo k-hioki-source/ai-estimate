@@ -1250,15 +1250,26 @@ async function submitProjectReview(project: Project, action: 'approval' | 'revis
                         ? `発注日：${formatDate(project.ordered_at)}`
                         : '正式発注を受け付けています。'}
                     </p>
-                    {projectOrder ? (
-                      <button
-                        type="button"
-                        className="orderDocumentButton"
-                        onClick={() => router.push(`/mypage/projects/${project.id}/order`)}
-                      >
-                        発注書を表示
-                      </button>
-                    ) : null}
+                    <div className="orderedDocumentActions">
+                      {project.quote_presented_at ? (
+                        <button
+                          type="button"
+                          className="quoteDocumentButton"
+                          onClick={() => window.open(`/mypage/projects/${project.id}/quote`, '_blank', 'noopener,noreferrer')}
+                        >
+                          正式見積書を表示
+                        </button>
+                      ) : null}
+                      {projectOrder ? (
+                        <button
+                          type="button"
+                          className="orderDocumentButton"
+                          onClick={() => router.push(`/mypage/projects/${project.id}/order`)}
+                        >
+                          発注書を表示
+                        </button>
+                      ) : null}
+                    </div>
                   </div>
                 ) : null}
               </section>
@@ -1855,6 +1866,9 @@ async function submitProjectReview(project: Project, action: 'approval' | 'revis
         .quoteDecisionActions .primaryButton { margin-top: 0; }
         .quoteDocumentButton { width: auto !important; padding: 12px 18px; border: 1px solid #93c5fd; border-radius: 10px; background: #fff; color: #1d4ed8; font-weight: 900; cursor: pointer; }
         .quoteDocumentButton:hover { background: #eff6ff; }
+        .orderedDocumentActions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
+        .orderedDocumentActions .quoteDocumentButton,
+        .orderedDocumentActions .orderDocumentButton { margin-top: 0; }
         .declineOrderButton { width: auto !important; padding: 12px 18px; border: 1px solid #cbd5e1; border-radius: 10px; background: #fff; color: #64748b; font-weight: 800; cursor: pointer; }
         .declineOrderButton:hover { background: #f8fafc; color: #334155; }
         .declineOrderButton:disabled { opacity: .55; cursor: default; }
