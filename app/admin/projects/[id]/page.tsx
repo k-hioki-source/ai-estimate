@@ -428,6 +428,8 @@ export default function AdminPage() {
         quoted_amount: amount,
         quoted_hours: hours,
         confirmed_deadline: form.deadline,
+        quote_presented_at:
+          project.quote_presented_at ?? new Date().toISOString(),
         status: 'quote_presented',
       })
       .eq('id', project.id)
