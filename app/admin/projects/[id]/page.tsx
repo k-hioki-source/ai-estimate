@@ -1551,6 +1551,18 @@ export default function AdminPage() {
               <div className="sideCard">
                 <span className="sideLabel">帳票</span>
                 <div className="documentLinks">
+                  {project.quote_presented_at ? (
+                    <button
+                      type="button"
+                      className="documentButton"
+                      onClick={() => router.push(`/mypage/projects/${project.id}/quote`)}
+                    >
+                      見積書を表示
+                    </button>
+                  ) : (
+                    <div className="documentUnavailable">正式見積り提示後に見積書を表示できます。</div>
+                  )}
+
                   {[
                     'ordered',
                     'in_production',
