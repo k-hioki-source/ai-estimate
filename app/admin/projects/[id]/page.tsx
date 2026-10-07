@@ -1555,7 +1555,7 @@ export default function AdminPage() {
                     <button
                       type="button"
                       className="documentButton"
-                      onClick={() => router.push(`/mypage/projects/${project.id}/quote`)}
+                      onClick={() => window.open(`/mypage/projects/${project.id}/quote`, '_blank', 'noopener,noreferrer')}
                     >
                       見積書を表示
                     </button>
@@ -1577,7 +1577,7 @@ export default function AdminPage() {
                     <button
                       type="button"
                       className="documentButton"
-                      onClick={() => router.push(`/mypage/projects/${project.id}/order`)}
+                      onClick={() => window.open(`/mypage/projects/${project.id}/order`, '_blank', 'noopener,noreferrer')}
                     >
                       発注書を表示
                     </button>
@@ -1589,7 +1589,7 @@ export default function AdminPage() {
                     <button
                       type="button"
                       className="documentButton"
-                      onClick={() => router.push(`/mypage/projects/${project.id}/delivery`)}
+                      onClick={() => window.open(`/mypage/projects/${project.id}/delivery`, '_blank', 'noopener,noreferrer')}
                     >
                       納品書を表示
                     </button>
@@ -1601,7 +1601,7 @@ export default function AdminPage() {
                     <button
                       type="button"
                       className="documentButton"
-                      onClick={() => router.push(`/mypage/projects/${project.id}/invoice`)}
+                      onClick={() => window.open(`/mypage/projects/${project.id}/invoice`, '_blank', 'noopener,noreferrer')}
                     >
                       請求書を表示
                     </button>
