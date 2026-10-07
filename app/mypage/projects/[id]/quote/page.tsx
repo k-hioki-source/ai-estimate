@@ -193,7 +193,10 @@ export default function ProjectQuotePage() {
           <div className="issuer">
             <div className="issuerTitle">発行者</div>
             <strong>株式会社クリエイトサポート</strong>
-            <div>愛知県豊田市</div>
+            <div>〒444-2216</div>
+            <div>愛知県豊田市九久平町澤ノ堂15番地1</div>
+            <div>代表 日置 勝己</div>
+            <div>登録番号：T1180301029001</div>
           </div>
         </section>
 
