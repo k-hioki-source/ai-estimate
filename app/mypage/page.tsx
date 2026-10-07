@@ -122,6 +122,24 @@ export default function MyPage(){
 
  return <main className="myPageShell">
    <header className="myPageHeader"><div><div className="authBrand">CS Works</div><h1>My Page</h1></div><button className="logoutButton" onClick={logout}>ログアウト</button></header>
+   <div className="myPageTwoColumn">
+     <aside className="myPageSidebar">
+       <div className="sidebarTitle">メニュー</div>
+       <nav className="sidebarNav">
+         <a href="#mypage-top" className="sidebarNavItem active">マイページTOP</a>
+         <a href="#project-list" className="sidebarNavItem">プロジェクト</a>
+         <a href="#estimate-history" className="sidebarNavItem">見積り履歴</a>
+         <Link href="/mypage/support" className="sidebarNavItem">メッセージ・相談</Link>
+         <Link href="/mypage/consultations" className="sidebarNavItem">オンライン相談</Link>
+       </nav>
+       <div className="sidebarDivider"/>
+       <Link href="/" className="sidebarAction">＋ AI概算見積り</Link>
+       <div className="sidebarAccount">
+         <strong>{profile.company_name || 'お客様'}</strong>
+         <span>{profile.contact_name ? `${profile.contact_name} 様` : user?.email}</span>
+       </div>
+     </aside>
+     <div className="myPageMain" id="mypage-top">
    <section className="welcomeCard"><span className="statusDot"/> ログイン中<h2>{profile.contact_name?`${profile.contact_name} 様`:'CS Worksへようこそ'}</h2><p>{user?.email}</p></section>
    {actionItems.length>0?<section className="actionCenter"><div className="actionCenterHead"><div><div className="authBrand">ACTION</div><h2>お知らせ・要対応</h2><p>現在ご確認いただきたい内容をまとめています。</p></div><span className="actionCountBadge">{actionItems.length}件</span></div><div className="actionItems">{actionItems.map(item=><button type="button" key={item.key} className="actionItem" onClick={()=>router.push(`/mypage/projects/${item.projectId}`)}><span className={`actionIcon ${item.kind}`}>{item.kind==='message'?'💬':item.kind==='quote'?'見積':item.kind==='review'?'確認':'納品'}</span><span className="actionText"><strong>{item.title}</strong><span>{item.projectCode}　{item.detail}</span></span><strong className="actionArrow">確認する →</strong></button>)}</div></section>:null}
 
@@ -179,7 +197,23 @@ export default function MyPage(){
      </form>
    </section>
 
+       </div>
+   </div>
+
    <style jsx>{`
+       .myPageTwoColumn{display:grid;grid-template-columns:210px minmax(0,1fr);gap:24px;align-items:start;margin-top:22px}
+       .myPageSidebar{position:sticky;top:18px;box-sizing:border-box;padding:18px 12px;border:1px solid #e2e8f0;border-radius:18px;background:#fff;box-shadow:0 10px 28px rgba(15,23,42,.04)}
+       .sidebarTitle{padding:0 10px 10px;color:#94a3b8;font-size:11px;font-weight:900;letter-spacing:.08em}
+       .sidebarNav{display:flex;flex-direction:column;gap:4px}
+       .sidebarNavItem{display:flex;align-items:center;min-height:42px;padding:0 11px;border-radius:10px;color:#334155;text-decoration:none;font-size:13px;font-weight:800}
+       .sidebarNavItem:hover{background:#f8fafc;color:#1d4ed8}.sidebarNavItem.active{background:#eff6ff;color:#1d4ed8}
+       .sidebarDivider{height:1px;margin:14px 8px;background:#e2e8f0}
+       .sidebarAction{display:flex;align-items:center;justify-content:center;padding:11px 10px;border:1px solid #bfdbfe;border-radius:10px;background:#f8fbff;color:#1d4ed8;text-decoration:none;font-size:12px;font-weight:900}
+       .sidebarAction:hover{background:#eff6ff}
+       .sidebarAccount{display:flex;flex-direction:column;gap:4px;margin:16px 8px 2px;padding-top:14px;border-top:1px solid #e2e8f0;min-width:0}
+       .sidebarAccount strong{font-size:12px;color:#0f172a;overflow-wrap:anywhere}.sidebarAccount span{font-size:11px;color:#64748b;overflow-wrap:anywhere}
+       .myPageMain{min-width:0}
+       @media(max-width:900px){.myPageTwoColumn{display:block;margin-top:18px}.myPageSidebar{position:static;display:flex;gap:8px;overflow-x:auto;margin-bottom:18px;padding:10px;border-radius:14px}.sidebarTitle,.sidebarDivider,.sidebarAccount{display:none}.sidebarNav{flex-direction:row;gap:6px;flex:0 0 auto}.sidebarNavItem{min-height:38px;white-space:nowrap;padding:0 10px}.sidebarAction{flex:0 0 auto;white-space:nowrap}}
        .consultationStatus{display:flex;flex-direction:column;gap:5px;padding:12px;margin:0 0 14px;border:1px solid #bfdbfe;border-radius:12px;background:#f8fbff;color:#0f172a}
        .consultationCount{align-self:flex-start;padding:4px 9px;border-radius:999px;background:#dcfce7;color:#166534;font-size:12px}
        .consultationNextLabel{margin-top:5px;color:#64748b;font-size:12px}
