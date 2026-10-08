@@ -26,6 +26,14 @@ type Message = {
   created_at: string;
 };
 
+type Attachment = {
+  id: string;
+  message_id: string;
+  file_name: string;
+  storage_path: string;
+  file_size: number;
+};
+
 type Customer = {
   company_name: string;
   department_name: string;
@@ -49,6 +57,8 @@ export default function AdminSupportThreadPage() {
   const [thread, setThread] = useState<Thread | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [customer, setCustomer] = useState<Customer | null>(null);
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [reply, setReply] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
@@ -107,6 +117,18 @@ export default function AdminSupportThreadPage() {
       setError('メッセージを読み込めませんでした。');
     }
 
+    const { data: attachmentData, error: attachmentError } =
+      await (supabase.from('support_attachments' as any) as any)
+        .select('id, message_id, file_name, storage_path, file_size')
+        .eq('thread_id', threadId)
+        .order('created_at', { ascending: true });
+
+    if (attachmentError) {
+      console.error(attachmentError);
+      setError('添付ファイルの一覧を取得できませんでした。');
+    }
+    setAttachments((attachmentData ?? []) as Attachment[]);
+
     const rows = (messageData ?? []) as Message[];
     setThread(threadData as Thread);
     setMessages(rows);
@@ -126,6 +148,38 @@ export default function AdminSupportThreadPage() {
   }
 
   useEffect(() => { load(); }, [threadId]);
+
+  async function downloadAttachment(attachment: Attachment) {
+    if (downloadingId) return;
+    setDownloadingId(attachment.id);
+    setError('');
+    try {
+      const supabase = getSupabaseBrowserClient();
+      const { data, error: downloadError } = await supabase.storage
+        .from('support-attachments')
+        .download(attachment.storage_path);
+      if (downloadError || !data) throw downloadError ?? new Error('ファイルが取得できません');
+      const url = URL.createObjectURL(data);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = attachment.file_name;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 60000);
+    } catch (e) {
+      console.error(e);
+      setError('添付ファイルをダウンロードできませんでした。');
+    } finally {
+      setDownloadingId(null);
+    }
+  }
+
+  function formatSize(size: number) {
+    return size >= 1048576
+      ? `${(size / 1048576).toFixed(1)} MB`
+      : `${Math.max(1, Math.ceil(size / 1024))} KB`;
+  }
 
   async function sendReply(ev: FormEvent) {
     ev.preventDefault();
@@ -244,8 +298,22 @@ export default function AdminSupportThreadPage() {
                   <span>{fmt(message.created_at)}</span>
                 </div>
                 <div className="messageBody">{message.message}</div>
+                {attachments.filter(a => a.message_id === message.id).map(attachment => (
+                  <div className="attachment" key={attachment.id}>
+                    <div className="attachmentInfo">
+                      <span className="attachmentName">📎 {attachment.file_name}</span>
+                      <span className="attachmentSize">{formatSize(attachment.file_size)}</span>
+                    </div>
+                    <button type="button" className="attachmentButton"
+                      disabled={downloadingId !== null}
+                      onClick={() => downloadAttachment(attachment)}>
+                      {downloadingId === attachment.id ? '取得中…' : 'ダウンロード'}
+                    </button>
+                  </div>
+                ))}
               </article>
             ))}
+            {error ? <div className="error">{error}</div> : null}
             {!messages.length ? <div className="empty">メッセージはありません。</div> : null}
           </div>
 
