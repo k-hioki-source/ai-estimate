@@ -87,6 +87,19 @@ export async function POST(request: NextRequest) {
       type = firstMessage?.[0]?.id === msg.id ? 'new_inquiry' : 'customer_reply';
     }
 
+    // Unique message_id claim prevents repeated requests from sending duplicate mail.
+    // A failed or uncertain delivery remains recorded and is not auto-retried.
+    const { error: claimError } = await supabase
+      .from('support_email_notifications')
+      .insert({ message_id: msg.id, requested_by: user.id, status: 'processing' });
+    if (claimError) {
+      if (claimError.code === '23505') {
+        return NextResponse.json({ ok: true, alreadyProcessed: true });
+      }
+      console.error('Support notify: claim failed', claimError);
+      return NextResponse.json({ error: '通知履歴を登録できませんでした。' }, { status: 500 });
+    }
+
     const result = await sendSupportEmail({
       type,
       threadId: thread.id,
@@ -96,6 +109,12 @@ export async function POST(request: NextRequest) {
       customerEmail: customerProfile?.email ?? (thread.user_id === user.id ? user.email : undefined) ?? undefined,
       attachmentCount: count ?? 0,
     });
+    const { error: statusError } = await supabase
+      .from('support_email_notifications')
+      .update({ status: result.ok ? 'sent' : 'failed', updated_at: new Date().toISOString() })
+      .eq('message_id', msg.id)
+      .eq('status', 'processing');
+    if (statusError) console.error('Support notify: status update failed', statusError);
     if (!result.ok) {
       console.error('Support notify: mail delivery failed', result.error);
       return NextResponse.json({ ok: false, error: '通知メールを送信できませんでした。メッセージは保存されています。' }, { status: 502 });
