@@ -226,8 +226,34 @@ export default function SupportThreadPage() {
       }
     }
     if (uploaded.length) setAttachments(current => [...current, ...uploaded]);
+
+    // 保存済みの返信IDだけを通知APIに渡す。添付登録完了後に通知する。
+    // 通知が失敗しても返信は保存済みなので、本文を再送信させない。
+    try {
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
+      if (sessionError || !accessToken) {
+        throw new Error('通知用のログイン情報を取得できませんでした。');
+      }
+      const notifyResponse = await fetch('/api/support/notify', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ messageId: data.id }),
+      });
+      if (!notifyResponse.ok) {
+        const result = await notifyResponse.json().catch(() => null);
+        throw new Error(result?.error || `通知APIエラー (${notifyResponse.status})`);
+      }
+    } catch (notifyError) {
+      console.error('お問い合わせ返信のメール通知に失敗:', notifyError);
+      setError('返信本文は保存されましたが、管理者へのメール通知に失敗した可能性があります。返信を再送信せず、必要に応じて管理者にご連絡ください。');
+    }
+
     if (failed.length) {
-      setError(`返信本文は送信されましたが、添付ファイル（${failed.join('、')}）の送信に失敗しました。再送信せず、管理者にご連絡ください。`);
+      setError(current => [current, `返信本文は送信されましたが、添付ファイル（${failed.join('、')}）の送信に失敗しました。再送信せず、管理者にご連絡ください。`].filter(Boolean).join('\n'));
     }
     setSending(false);
   }
