@@ -15,6 +15,7 @@ type Project = Omit<ProjectBase, 'status'> & {
   archived_at?: string | null;
   invoice?: { payment_due_date: string | null; total_amount: number } | null;
 };
+type SupportNotice = { threadId: string; subject: string; unread: number; latestAt: string };
 type ConsultationBooking = { id: string; starts_at: string; ends_at: string; title: string; status: string };
 
 type Profile = {
@@ -35,6 +36,7 @@ export default function MyPage(){
  const router=useRouter();
  const [user,setUser]=useState<User|null>(null); const [profile,setProfile]=useState<Profile>(emptyProfile);
  const [estimates,setEstimates]=useState<Estimate[]>([]); const [projects,setProjects]=useState<Project[]>([]);
+  const [supportNotices,setSupportNotices]=useState<SupportNotice[]>([]);
   const [consultations,setConsultations]=useState<ConsultationBooking[]>([]); const [consultationLoadError,setConsultationLoadError]=useState(false);
  const [loading,setLoading]=useState(true); const [saving,setSaving]=useState(false); const [message,setMessage]=useState(''); const [error,setError]=useState('');
  const [projectFilter,setProjectFilter]=useState<'active'|'all'|'completed'|'archived'>('active'); const [projectSearch,setProjectSearch]=useState('');
@@ -83,6 +85,34 @@ export default function MyPage(){
       unread_messages:unreadByProject[project.id]??0,
       invoice:invoiceByProject[project.id]??null
     })));
+    // 運営への問い合わせ：管理者から届いた未読返信を取得
+    const {data:supportThreads,error:supportThreadError}=await (supabase.from('support_threads' as any) as any)
+      .select('id, subject').eq('user_id',u.user.id);
+    if(supportThreadError){
+      console.error('Support thread load error:',supportThreadError);
+    }else{
+      const threadRows=(supportThreads??[]) as {id:string;subject:string}[];
+      if(threadRows.length){
+        const {data:supportMessages,error:supportMessageError}=await (supabase.from('support_messages' as any) as any)
+          .select('thread_id, created_at')
+          .in('thread_id',threadRows.map(t=>t.id))
+          .eq('sender_type','admin')
+          .is('read_by_customer_at',null)
+          .order('created_at',{ascending:false});
+        if(supportMessageError){
+          console.error('Support unread message load error:',supportMessageError);
+        }else{
+          const counts=new Map<string,{unread:number;latestAt:string}>();
+          for(const m of (supportMessages??[]) as {thread_id:string;created_at:string}[]){
+            const old=counts.get(m.thread_id);
+            counts.set(m.thread_id,{unread:(old?.unread??0)+1,latestAt:old?.latestAt??m.created_at});
+          }
+          setSupportNotices(threadRows.filter(t=>counts.has(t.id)).map(t=>({
+            threadId:t.id,subject:t.subject,unread:counts.get(t.id)!.unread,latestAt:counts.get(t.id)!.latestAt
+          })).sort((a,b)=>b.latestAt.localeCompare(a.latestAt)));
+        }
+      }else setSupportNotices([]);
+    }
     // 予約情報は顧客本人のデータのみ取得（Supabase RLSも適用）
     const {data:bookingRows,error:bookingError}=await (supabase.from('consultation_bookings' as any) as any)
       .select('id, starts_at, ends_at, title, status')
@@ -107,7 +137,7 @@ export default function MyPage(){
  useEffect(()=>{setEstimatePage(1)},[estimateSearch,estimateFilter]);
  useEffect(()=>{if(estimatePage>estimatePageCount)setEstimatePage(estimatePageCount)},[estimatePage,estimatePageCount]);
  const projectByEstimate=useMemo(()=>{const map=new Map<string,Project>();for(const p of projects){if(p.estimate_id)map.set(p.estimate_id,p)}return map},[projects]);
- const actionItems=useMemo(()=>{const items:{key:string;projectId:string;projectCode:string;title:string;detail:string;kind:string}[]=[];for(const p of projects){if(p.archived_at)continue;if((p.unread_messages??0)>0)items.push({key:`msg-${p.id}`,projectId:p.id,projectCode:p.project_code,title:'新しいメッセージがあります',detail:`未読 ${p.unread_messages}件`,kind:'message'});if(p.status==='quote_presented')items.push({key:`quote-${p.id}`,projectId:p.id,projectCode:p.project_code,title:'正式見積りをご確認ください',detail:p.quoted_amount!=null?`${p.quoted_amount.toLocaleString()}円`:'正式見積りが届いています',kind:'quote'});if(p.status==='customer_review')items.push({key:`review-${p.id}`,projectId:p.id,projectCode:p.project_code,title:'制作内容の確認をお願いします',detail:p.title??'',kind:'review'});if(p.status==='delivered')items.push({key:`delivery-${p.id}`,projectId:p.id,projectCode:p.project_code,title:'納品内容をご確認ください',detail:p.title??'',kind:'delivery'});}return items},[projects]);
+ const actionItems=useMemo(()=>{const items:{key:string;href:string;projectCode:string;title:string;detail:string;kind:string}[]=[];for(const n of supportNotices)items.push({key:`support-${n.threadId}`,href:`/mypage/support/${n.threadId}`,projectCode:n.subject,title:'運営から返信が届いています',detail:`未読 ${n.unread}件`,kind:'support'});for(const p of projects){if(p.archived_at)continue;if((p.unread_messages??0)>0)items.push({key:`msg-${p.id}`,href:`/mypage/projects/${p.id}`,projectCode:p.project_code,title:'新しいメッセージがあります',detail:`未読 ${p.unread_messages}件`,kind:'message'});if(p.status==='quote_presented')items.push({key:`quote-${p.id}`,href:`/mypage/projects/${p.id}`,projectCode:p.project_code,title:'正式見積りをご確認ください',detail:p.quoted_amount!=null?`${p.quoted_amount.toLocaleString()}円`:'正式見積りが届いています',kind:'quote'});if(p.status==='customer_review')items.push({key:`review-${p.id}`,href:`/mypage/projects/${p.id}`,projectCode:p.project_code,title:'制作内容の確認をお願いします',detail:p.title??'',kind:'review'});if(p.status==='delivered')items.push({key:`delivery-${p.id}`,href:`/mypage/projects/${p.id}`,projectCode:p.project_code,title:'納品内容をご確認ください',detail:p.title??'',kind:'delivery'});}return items},[projects,supportNotices]);
   const upcomingConsultations=consultations.filter(b=>b.status==='confirmed'&&new Date(b.ends_at).getTime()>Date.now());
   const nextConsultation=upcomingConsultations[0];
   const consultationDate=(v:string)=>new Intl.DateTimeFormat('ja-JP',{timeZone:'Asia/Tokyo',month:'long',day:'numeric',weekday:'short',hour:'2-digit',minute:'2-digit'}).format(new Date(v));
@@ -141,13 +171,13 @@ export default function MyPage(){
      </aside>
      <div className="myPageMain" id="mypage-top">
    <section className="welcomeCard"><span className="statusDot"/> ログイン中<h2>{profile.contact_name?`${profile.contact_name} 様`:'CS Worksへようこそ'}</h2><p>{user?.email}</p></section>
-   {actionItems.length>0?<section className="actionCenter"><div className="actionCenterHead"><div><div className="authBrand">ACTION</div><h2>お知らせ・要対応</h2><p>現在ご確認いただきたい内容をまとめています。</p></div><span className="actionCountBadge">{actionItems.length}件</span></div><div className="actionItems">{actionItems.map(item=><button type="button" key={item.key} className="actionItem" onClick={()=>router.push(`/mypage/projects/${item.projectId}`)}><span className={`actionIcon ${item.kind}`}>{item.kind==='message'?'💬':item.kind==='quote'?'見積':item.kind==='review'?'確認':'納品'}</span><span className="actionText"><strong>{item.title}</strong><span>{item.projectCode}　{item.detail}</span></span><strong className="actionArrow">確認する →</strong></button>)}</div></section>:null}
+   {actionItems.length>0?<section className="actionCenter"><div className="actionCenterHead"><div><div className="authBrand">ACTION</div><h2>お知らせ・要対応</h2><p>現在ご確認いただきたい内容をまとめています。</p></div><span className="actionCountBadge">{actionItems.length}件</span></div><div className="actionItems">{actionItems.map(item=><button type="button" key={item.key} className="actionItem" onClick={()=>router.push(item.href)}><span className={`actionIcon ${item.kind}`}>{item.kind==='message'||item.kind==='support'?'💬':item.kind==='quote'?'見積':item.kind==='review'?'確認':'納品'}</span><span className="actionText"><strong>{item.title}</strong><span>{item.projectCode}　{item.detail}</span></span><strong className="actionArrow">確認する →</strong></button>)}</div></section>:null}
 
    <div className="myPageGrid">
      <section className="dashboardCard"><div className="dashboardIcon">AI</div><h3>AI概算見積り</h3><p>新しい制作内容をAIで概算見積りできます。</p><Link className="dashboardLink" href="/">新しい見積りを作成 →</Link></section>
      <section className="dashboardCard"><div className="dashboardIcon">見積</div><h3>見積り履歴</h3><p>保存済みのAI概算見積りを確認できます。</p><a className="dashboardLink" href="#estimate-history">{estimates.filter(e=>!e.archived_at).length}件の見積りを見る →</a></section>
      <section className="dashboardCard"><div className="dashboardIcon">案件</div><h3>プロジェクト</h3><p>正式見積り・制作・確認・納品の状況を確認できます。</p><a className="dashboardLink" href="#project-list">{projects.filter(p=>!p.archived_at).length}件のプロジェクトを見る →{projects.filter(p=>!p.archived_at).reduce((sum,p)=>sum+(p.unread_messages??0),0)>0?`（💬 未読 ${projects.filter(p=>!p.archived_at).reduce((sum,p)=>sum+(p.unread_messages??0),0)}件）`:actionCount?`（確認事項 ${actionCount}件）`:''}</a></section>
-   <section className="dashboardCard supportCard"><div className="dashboardIcon">相談</div><h3>運営に相談・問い合わせ</h3><p>制作のご相談や、見積り前のご質問はこちらから。</p><Link className="dashboardLink" href="/mypage/support">相談・問い合わせをする →</Link></section>
+   <section className="dashboardCard supportCard"><div className="dashboardIcon">相談</div><h3>運営に相談・問い合わせ</h3><p>制作のご相談や、見積り前のご質問はこちらから。</p><Link className="dashboardLink" href="/mypage/support">{supportNotices.length>0?`運営からの未読返信 ${supportNotices.reduce((sum,n)=>sum+n.unread,0)}件を確認 →`:'相談・問い合わせをする →'}</Link></section>
 
      <section className="dashboardCard consultationDashboardCard"><div className="dashboardIcon">MTG</div><h3>オンライン相談予約</h3><p>空いている日時を選んで、Google Meetで打ち合わせを予約できます。</p>
        {consultationLoadError?<div className="consultationStatus consultationStatusError">予約情報を取得できませんでした。予約履歴からご確認ください。</div>:
