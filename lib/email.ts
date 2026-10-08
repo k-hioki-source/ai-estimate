@@ -739,3 +739,69 @@ https://estimate.create-support.co.jp/admin
 
   return { ok: true, emailId: result.data?.id };
 }
+
+// =========================================================
+// CS Works 運営への相談・問い合わせメール通知
+// サーバー側のAPIからのみ呼び出してください。
+// =========================================================
+export type SupportMailPayload = {
+  type: 'new_inquiry' | 'customer_reply' | 'admin_reply';
+  threadId: string;
+  subject: string;
+  message: string;
+  customerName?: string;
+  customerEmail?: string;
+  attachmentCount?: number;
+};
+
+export async function sendSupportEmail(payload: SupportMailPayload) {
+  const apiKey = process.env.RESEND_API_KEY;
+  const from = process.env.FROM_EMAIL || 'onboarding@resend.dev';
+  const toAdmin = process.env.NOTIFY_TO_EMAIL || 'k-hioki@create-support.co.jp';
+  if (!apiKey) {
+    console.error('CS Works support mail: RESEND_API_KEY is missing');
+    return { ok: false, error: 'Mail configuration is missing' };
+  }
+
+  const isAdminReply = payload.type === 'admin_reply';
+  if (isAdminReply && !payload.customerEmail) {
+    return { ok: false, error: 'Customer email is missing' };
+  }
+  const to = isAdminReply ? payload.customerEmail! : toAdmin;
+  const detailUrl = `https://estimate.create-support.co.jp/${isAdminReply ? 'mypage' : 'admin'}/support/${encodeURIComponent(payload.threadId)}`;
+  const mailSubject = payload.type === 'new_inquiry'
+    ? `【CS Works】新しいお問い合わせ：${payload.subject}`
+    : payload.type === 'customer_reply'
+      ? `【CS Works】お問い合わせに返信がありました：${payload.subject}`
+      : `【CS Works】運営から返信が届きました：${payload.subject}`;
+  const body = [
+    isAdminReply ? `${payload.customerName || 'お客様'} 様` : 'CS Worksにお問い合わせが届きました。',
+    '',
+    isAdminReply ? '株式会社クリエイトサポートからお問い合わせへの返信が届きました。' : '',
+    `■件名：${payload.subject}`,
+    ...(!isAdminReply ? [`■お客様：${payload.customerName || '―'}`, `■メール：${payload.customerEmail || '―'}`] : []),
+    '',
+    '■メッセージ',
+    payload.message,
+    '',
+    `■添付ファイル：${payload.attachmentCount ?? 0}件（ファイルはCS Worksでご確認ください）`,
+    '',
+    '■詳細・返信はこちら（ログインが必要です）',
+    detailUrl,
+    '',
+    '※このメールは通知専用です。添付ファイルはメールには含まれません。',
+    '株式会社クリエイトサポート / CS Works',
+  ].filter((line, index, arr) => !(line === '' && arr[index - 1] === '')).join('\n');
+
+  try {
+    const result = await new Resend(apiKey).emails.send({ from, to, subject: mailSubject, text: body });
+    if (result.error) {
+      console.error('CS Works support mail send failed:', result.error);
+      return { ok: false, error: result.error };
+    }
+    return { ok: true, emailId: result.data?.id };
+  } catch (error) {
+    console.error('CS Works support mail exception:', error);
+    return { ok: false, error: 'Mail send failed' };
+  }
+}
