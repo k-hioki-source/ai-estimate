@@ -60,6 +60,7 @@ export default function AdminSupportThreadPage() {
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [reply, setReply] = useState('');
+  const [replyFiles, setReplyFiles] = useState<File[]>([]);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [changingStatus, setChangingStatus] = useState(false);
@@ -181,6 +182,18 @@ export default function AdminSupportThreadPage() {
       : `${Math.max(1, Math.ceil(size / 1024))} KB`;
   }
 
+  function chooseReplyFiles(event: React.ChangeEvent<HTMLInputElement>) {
+    const selected = Array.from(event.target.files ?? []);
+    event.target.value = '';
+    const allowed = new Set(['jpg', 'jpeg', 'png', 'webp', 'pdf', 'ai', 'eps', 'zip']);
+    if (selected.length > 5 || selected.some(file => file.size === 0 || file.size > 20 * 1024 * 1024 || !allowed.has(file.name.split('.').pop()?.toLowerCase() ?? ''))) {
+      setError('添付はJPG・PNG・WebP・PDF・AI・EPS・ZIP、最大5ファイル、各20MB以内で選択してください。');
+      return;
+    }
+    setError('');
+    setReplyFiles(selected);
+  }
+
   async function sendReply(ev: FormEvent) {
     ev.preventDefault();
     if (!user || !thread || sending || thread.status !== 'open') return;
@@ -217,8 +230,38 @@ export default function AdminSupportThreadPage() {
       .update({ updated_at: new Date().toISOString() })
       .eq('id', thread.id);
 
+    // 本文の送信は完了済み。添付失敗時も再送信せず、同じ返信に対して案内する。
     setMessages(current => [...current, data as Message]);
     setReply('');
+    const uploaded: Attachment[] = [];
+    const failures: string[] = [];
+    for (const file of replyFiles) {
+      const ext = file.name.split('.').pop()!.toLowerCase();
+      const path = `${user.id}/${thread.id}/${data.id}/${crypto.randomUUID()}.${ext}`;
+      const { error: uploadError } = await supabase.storage.from('support-attachments')
+        .upload(path, file, { contentType: 'application/octet-stream', upsert: false });
+      if (uploadError) {
+        console.error('添付アップロード失敗:', uploadError);
+        failures.push(file.name);
+        continue;
+      }
+      const { data: attachmentRow, error: attachmentError } = await (supabase.from('support_attachments' as any) as any)
+        .insert({ thread_id: thread.id, message_id: data.id, user_id: user.id,
+          file_name: file.name, storage_path: path, file_size: file.size })
+        .select('id, message_id, file_name, storage_path, file_size').single();
+      if (attachmentError || !attachmentRow) {
+        console.error('添付登録失敗:', attachmentError);
+        await supabase.storage.from('support-attachments').remove([path]);
+        failures.push(file.name);
+      } else {
+        uploaded.push(attachmentRow as Attachment);
+      }
+    }
+    if (uploaded.length) setAttachments(current => [...current, ...uploaded]);
+    setReplyFiles([]);
+    if (failures.length) {
+      setError(`返信本文は送信済みですが、${failures.join('、')} の添付に失敗しました。本文を再送信しないでください。`);
+    }
     setSending(false);
   }
 
@@ -323,6 +366,12 @@ export default function AdminSupportThreadPage() {
                 お客様へ返信
                 <textarea value={reply} onChange={e => setReply(e.target.value)} rows={7} placeholder="返信内容をご記入ください。" />
               </label>
+              <label className="fileField">
+                添付ファイル（最大5件・各20MB）
+                <input type="file" multiple accept=".jpg,.jpeg,.png,.webp,.pdf,.ai,.eps,.zip"
+                  disabled={sending} onChange={chooseReplyFiles} />
+              </label>
+              {replyFiles.length ? <div className="fileNames">{replyFiles.map((file, i) => <div key={i}>📎 {file.name}</div>)}</div> : null}
               {error ? <div className="error">{error}</div> : null}
               <button className="primary" disabled={sending}>{sending ? '送信中…' : '返信を送信'}</button>
             </form>
