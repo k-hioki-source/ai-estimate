@@ -31,6 +31,8 @@ export default function SupportPage() {
   const [subject, setSubject] = useState('');
   const [body, setBody] = useState('');
   const [error, setError] = useState('');
+  const [files, setFiles] = useState<File[]>([]);
+  const [uploadStatus, setUploadStatus] = useState('');
 
   useEffect(() => {
     (async () => {
@@ -77,6 +79,21 @@ export default function SupportPage() {
     })();
   }, [router]);
 
+  function selectFiles(next: FileList | null) {
+    const selected = Array.from(next ?? []);
+    if (selected.length > 5 || selected.some(f => f.size === 0 || f.size > 20 * 1024 * 1024)) {
+      setError('添付は最大5ファイル、1ファイル20MBまでです。');
+      return;
+    }
+    const allowed = /\.(jpg|jpeg|png|webp|pdf|ai|eps|zip)$/i;
+    if (selected.some(f => !allowed.test(f.name))) {
+      setError('対応形式：JPG、PNG、WebP、PDF、AI、EPS、ZIP');
+      return;
+    }
+    setError('');
+    setFiles(selected);
+  }
+
   async function createInquiry(ev: FormEvent) {
     ev.preventDefault();
     if (!user || sending) return;
@@ -90,6 +107,7 @@ export default function SupportPage() {
 
     setSending(true);
     setError('');
+    setUploadStatus('');
     const supabase = getSupabaseBrowserClient();
 
     const { data: thread, error: threadError } =
@@ -105,22 +123,51 @@ export default function SupportPage() {
       return;
     }
 
-    const { error: messageError } =
+    const { data: savedMessage, error: messageError } =
       await (supabase.from('support_messages' as any) as any)
         .insert({
           thread_id: thread.id,
           user_id: user.id,
           sender_type: 'customer',
           message: cleanBody
-        });
+        })
+        .select('id')
+        .single();
 
-    if (messageError) {
+    if (messageError || !savedMessage) {
       console.error(messageError);
       setError('お問い合わせ本文を送信できませんでした。');
       setSending(false);
       return;
     }
 
+    // 添付は非公開Storageへ保存し、メッセージIDに紐付けます。
+    // SQLセットアップ前は添付を選ばずに通常の問い合わせを利用できます。
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      setUploadStatus(`添付ファイルを保存中（${i + 1}/${files.length}）`);
+      const extension = file.name.split('.').pop()?.toLowerCase() || 'bin';
+      const storagePath = `${user.id}/${thread.id}/${savedMessage.id}/${crypto.randomUUID()}.${extension}`;
+      const { error: uploadError } = await supabase.storage
+        .from('support-attachments')
+        .upload(storagePath, file, { upsert: false, contentType: 'application/octet-stream' });
+      if (uploadError) {
+        console.error(uploadError);
+        window.alert(`お問い合わせ本文は送信されましたが、「${file.name}」の添付に失敗しました。詳細画面でご確認ください。`);
+        router.push(`/mypage/support/${thread.id}`);
+        return;
+      }
+      const { error: attachmentError } = await (supabase.from('support_attachments' as any) as any)
+        .insert({ thread_id: thread.id, message_id: savedMessage.id, user_id: user.id,
+          file_name: file.name, storage_path: storagePath, file_size: file.size });
+      if (attachmentError) {
+        console.error(attachmentError);
+        await supabase.storage.from('support-attachments').remove([storagePath]);
+        window.alert(`お問い合わせ本文は送信されましたが、「${file.name}」の添付登録に失敗しました。詳細画面でご確認ください。`);
+        router.push(`/mypage/support/${thread.id}`);
+        return;
+      }
+    }
     router.push(`/mypage/support/${thread.id}`);
   }
 
@@ -164,6 +211,14 @@ export default function SupportPage() {
                 rows={8}
               />
             </label>
+            <label className="attachmentField">
+              参考資料を添付（任意）
+              <input type="file" multiple accept=".jpg,.jpeg,.png,.webp,.pdf,.ai,.eps,.zip"
+                disabled={sending} onChange={e => selectFiles(e.target.files)} />
+              <span className="attachmentHint">最大5ファイル／各20MB。JPG・PNG・WebP・PDF・AI・EPS・ZIP対応</span>
+              {files.length > 0 ? <span className="attachmentNames">{files.map(f => f.name).join(' ／ ')}</span> : null}
+            </label>
+            {uploadStatus ? <div className="uploadStatus">{uploadStatus}</div> : null}
             {error ? <div className="error">{error}</div> : null}
             <button className="primary" disabled={sending}>
               {sending ? '送信中…' : '運営に問い合わせる'}
@@ -214,6 +269,7 @@ export default function SupportPage() {
         .form{display:grid;gap:16px}.form label{display:grid;gap:7px;font-size:13px;font-weight:800}
         .form input,.form textarea{box-sizing:border-box;width:100%;padding:12px 13px;border:1px solid #cbd5e1;border-radius:10px;font:inherit;color:#0f172a;background:#fff}
         .form textarea{resize:vertical;line-height:1.7}.form input:focus,.form textarea:focus{outline:2px solid #bfdbfe;border-color:#60a5fa}
+        .attachmentHint{font-size:12px;color:#64748b;font-weight:400}.attachmentNames{font-size:12px;color:#1d4ed8;overflow-wrap:anywhere}.uploadStatus{font-size:13px;color:#1d4ed8;font-weight:700}
         .primary{padding:13px 16px;border:0;border-radius:10px;background:#0f172a;color:#fff;font-weight:900;cursor:pointer}.primary:disabled{opacity:.55;cursor:not-allowed}
         .error{padding:11px 13px;border-radius:10px;background:#fef2f2;color:#b91c1c;font-weight:700;font-size:13px}
         .threadList{display:grid;gap:10px}.thread{width:100%;padding:16px;border:1px solid #e2e8f0;border-radius:12px;background:#fff;text-align:left;color:#0f172a;cursor:pointer}
