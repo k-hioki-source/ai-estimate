@@ -51,6 +51,7 @@ export default function SupportThreadPage() {
   const [attachments, setAttachments] = useState<SupportAttachment[]>([]);
   const [openingAttachment, setOpeningAttachment] = useState<string | null>(null);
   const [reply, setReply] = useState('');
+  const [replyFiles, setReplyFiles] = useState<File[]>([]);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
@@ -145,6 +146,18 @@ export default function SupportThreadPage() {
     }
   }
 
+  function chooseReplyFiles(list: FileList | null) {
+    const selected = Array.from(list ?? []);
+    const allowed = /\.(jpe?g|png|webp|pdf|ai|eps|zip)$/i;
+    if (selected.length > 5 || selected.some(f => f.size === 0 || f.size > 20 * 1024 * 1024 || !allowed.test(f.name))) {
+      setError('添付はJPG・PNG・WebP・PDF・AI・EPS・ZIP、最大5ファイル、各20MB以内で選択してください。');
+      setReplyFiles([]);
+      return;
+    }
+    setError('');
+    setReplyFiles(selected);
+  }
+
   async function sendReply(ev: FormEvent) {
     ev.preventDefault();
     if (!user || !thread || sending || thread.status !== 'open') return;
@@ -183,6 +196,39 @@ export default function SupportThreadPage() {
 
     setMessages(current => [...current, data as Message]);
     setReply('');
+    setReplyFiles([]);
+
+    const uploaded: SupportAttachment[] = [];
+    const failed: string[] = [];
+    for (const file of replyFiles) {
+      const ext = file.name.split('.').pop()?.toLowerCase() ?? 'bin';
+      const storagePath = `${user.id}/${thread.id}/${data.id}/${crypto.randomUUID()}.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from('support-attachments')
+        .upload(storagePath, file, { contentType: 'application/octet-stream', upsert: false });
+      if (uploadError) {
+        console.error('返信添付のアップロード失敗:', uploadError);
+        failed.push(file.name);
+        continue;
+      }
+      const { data: saved, error: attachmentError } = await (supabase.from('support_attachments' as any) as any)
+        .insert({ thread_id: thread.id, message_id: data.id, user_id: user.id,
+          file_name: file.name, storage_path: storagePath, file_size: file.size })
+        .select('id, message_id, file_name, file_size, storage_path')
+        .single();
+      if (attachmentError || !saved) {
+        console.error('返信添付の登録失敗:', attachmentError);
+        failed.push(file.name);
+        const { error: removeError } = await supabase.storage.from('support-attachments').remove([storagePath]);
+        if (removeError) console.warn('未登録ファイルの削除に失敗:', removeError);
+      } else {
+        uploaded.push(saved as SupportAttachment);
+      }
+    }
+    if (uploaded.length) setAttachments(current => [...current, ...uploaded]);
+    if (failed.length) {
+      setError(`返信本文は送信されましたが、添付ファイル（${failed.join('、')}）の送信に失敗しました。再送信せず、管理者にご連絡ください。`);
+    }
     setSending(false);
   }
 
@@ -266,6 +312,12 @@ export default function SupportThreadPage() {
                 placeholder="追加のご質問やご連絡をご記入ください。"
               />
             </label>
+            <label className="fileLabel">
+              添付ファイル（最大5件・各20MB）
+              <input type="file" multiple accept=".jpg,.jpeg,.png,.webp,.pdf,.ai,.eps,.zip"
+                disabled={sending} onChange={e => chooseReplyFiles(e.target.files)} />
+              {replyFiles.length ? <span className="fileNames">{replyFiles.map(f => f.name).join('、')}</span> : null}
+            </label>
             {error ? <div className="error">{error}</div> : null}
             <button className="primary" disabled={sending}>
               {sending ? '送信中…' : '返信を送信'}
@@ -288,6 +340,8 @@ export default function SupportThreadPage() {
         .message.customer{margin-left:auto;background:#eff6ff;border-color:#bfdbfe}.message.admin{margin-right:auto;background:#fff}.message.system{max-width:100%;background:#f8fafc;color:#64748b}
         .messageHead{display:flex;justify-content:space-between;gap:14px;margin-bottom:8px;font-size:12px}.messageHead span{color:#64748b;white-space:nowrap}
         .messageBody{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.75}
+        .fileLabel input{width:100%;font-weight:400;font-size:13px}.fileNames{font-size:12px;color:#475569;overflow-wrap:anywhere;font-weight:400}
+        .attachmentList{display:grid;gap:6px;margin-top:8px}.attachmentButton{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;max-width:100%;padding:9px 12px;border:0;border-radius:10px;background:#fff;color:#0f172a;cursor:pointer;text-align:left}.attachmentButton span{overflow-wrap:anywhere}.attachmentButton small{white-space:nowrap}.attachmentError{margin-top:14px}
         .replyForm{display:grid;gap:13px;margin-top:28px;padding-top:24px;border-top:1px solid #e2e8f0}.replyForm label{display:grid;gap:8px;font-size:13px;font-weight:900}
         textarea{box-sizing:border-box;width:100%;padding:13px;border:1px solid #cbd5e1;border-radius:10px;font:inherit;line-height:1.7;resize:vertical}
         textarea:focus{outline:2px solid #bfdbfe;border-color:#60a5fa}.primary{justify-self:end;padding:12px 20px;border:0;border-radius:10px;background:#0f172a;color:#fff;font-weight:900;cursor:pointer}.primary:disabled{opacity:.55}
