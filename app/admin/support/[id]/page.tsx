@@ -259,8 +259,38 @@ export default function AdminSupportThreadPage() {
     }
     if (uploaded.length) setAttachments(current => [...current, ...uploaded]);
     setReplyFiles([]);
-    if (failures.length) {
-      setError(`返信本文は送信済みですが、${failures.join('、')} の添付に失敗しました。本文を再送信しないでください。`);
+
+    // 添付登録完了後に、保存済みの返信IDでお客様宛ての通知を依頼する。
+    // 通知が失敗しても本文は保存済みなので、返信を再送信させない。
+    let notificationError = '';
+    try {
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
+      if (sessionError || !accessToken) {
+        throw new Error('通知用のログイン情報を取得できませんでした。');
+      }
+      const notifyResponse = await fetch('/api/support/notify', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ messageId: data.id }),
+      });
+      if (!notifyResponse.ok) {
+        const result = await notifyResponse.json().catch(() => null);
+        throw new Error(result?.error || `通知APIエラー (${notifyResponse.status})`);
+      }
+    } catch (notifyError) {
+      console.error('管理者返信のメール通知に失敗:', notifyError);
+      notificationError = '返信本文は保存されましたが、お客様へのメール通知に失敗した可能性があります。本文を再送信せず、通知設定やログをご確認ください。';
+    }
+
+    const attachmentErrorMessage = failures.length
+      ? `返信本文は送信済みですが、${failures.join('、')} の添付に失敗しました。本文を再送信しないでください。`
+      : '';
+    if (notificationError || attachmentErrorMessage) {
+      setError([notificationError, attachmentErrorMessage].filter(Boolean).join('\n'));
     }
     setSending(false);
   }
