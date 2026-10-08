@@ -141,6 +141,32 @@ export default function SupportPage() {
       return;
     }
 
+    // メッセージ保存後に通知します。通知失敗は問い合わせ送信の成否に影響させません。
+    // 添付登録が終わった後に呼ぶことで、通知メールの添付件数も反映されます。
+    async function notifyAdmin() {
+      try {
+        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+        const accessToken = sessionData.session?.access_token;
+        if (sessionError || !accessToken) {
+          console.error('Support notification: session unavailable', sessionError);
+          return;
+        }
+        const response = await fetch('/api/support/notify', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify({ messageId: savedMessage.id }),
+        });
+        if (!response.ok) {
+          console.error('Support notification failed:', response.status, await response.text());
+        }
+      } catch (notificationError) {
+        console.error('Support notification exception:', notificationError);
+      }
+    }
+
     // 添付は非公開Storageへ保存し、メッセージIDに紐付けます。
     // SQLセットアップ前は添付を選ばずに通常の問い合わせを利用できます。
     for (let i = 0; i < files.length; i++) {
@@ -154,6 +180,7 @@ export default function SupportPage() {
       if (uploadError) {
         console.error(uploadError);
         window.alert(`お問い合わせ本文は送信されましたが、「${file.name}」の添付に失敗しました。詳細画面でご確認ください。`);
+        await notifyAdmin();
         router.push(`/mypage/support/${thread.id}`);
         return;
       }
@@ -164,10 +191,12 @@ export default function SupportPage() {
         console.error(attachmentError);
         await supabase.storage.from('support-attachments').remove([storagePath]);
         window.alert(`お問い合わせ本文は送信されましたが、「${file.name}」の添付登録に失敗しました。詳細画面でご確認ください。`);
+        await notifyAdmin();
         router.push(`/mypage/support/${thread.id}`);
         return;
       }
     }
+    await notifyAdmin();
     router.push(`/mypage/support/${thread.id}`);
   }
 
