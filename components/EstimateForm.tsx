@@ -651,15 +651,49 @@ async function handleFormalQuoteRequest() {
       ]);
 
       const source = pdfContentRef.current;
+      // PDF用の複製だけをA4向けに整える。画面表示のレイアウトは変更しない。
       const canvas = await html2canvas(source, {
         scale: 2,
         useCORS: true,
         backgroundColor: '#ffffff',
         logging: false,
-        windowWidth: source.scrollWidth,
+        windowWidth: 1100,
+        onclone: (clonedDocument) => {
+          const clonedSource = clonedDocument.querySelector('.pdfCaptureArea') as HTMLElement | null;
+          if (!clonedSource) return;
+          clonedSource.style.width = '794px';
+          clonedSource.style.maxWidth = '794px';
+          clonedSource.style.padding = '10px';
+          clonedSource.style.boxSizing = 'border-box';
+
+          const style = clonedDocument.createElement('style');
+          style.textContent = `
+            .pdfCaptureArea { gap: 10px !important; }
+            .pdfCaptureArea .pdfReportHeader { padding: 14px 18px !important; gap: 12px !important; border-radius: 10px !important; flex-direction: row !important; align-items: center !important; }
+            .pdfCaptureArea .pdfReportTitle { font-size: 23px !important; }
+            .pdfCaptureArea .pdfReportSubTitle { margin-top: 3px !important; font-size: 10px !important; }
+            .pdfCaptureArea .pdfEstimateMeta { min-width: 190px !important; padding: 8px 10px !important; }
+            .pdfCaptureArea .pdfReferenceImageCard { padding: 9px !important; border-radius: 10px !important; }
+            .pdfCaptureArea .pdfSectionLabel { margin-bottom: 5px !important; }
+            .pdfCaptureArea .pdfReferenceImage { max-height: 185px !important; }
+            .pdfCaptureArea .resultHero { padding: 15px 18px !important; }
+            .pdfCaptureArea .resultTopGrid { gap: 12px !important; }
+            .pdfCaptureArea .confidenceBox { padding: 10px 12px !important; margin-top: 8px !important; }
+            .pdfCaptureArea .confidenceBox p { margin-top: 4px !important; margin-bottom: 4px !important; }
+            .pdfCaptureArea .confidencePoints { margin-top: 6px !important; }
+            .pdfCaptureArea .confidencePoints ul { margin-top: 4px !important; margin-bottom: 4px !important; }
+            .pdfCaptureArea .resultBox { padding: 12px 14px !important; }
+            .pdfCaptureArea .resultBox .list { margin-top: 8px !important; margin-bottom: 6px !important; }
+            .pdfCaptureArea .resultBox li { padding-top: 4px !important; padding-bottom: 4px !important; }
+            .pdfCaptureArea .footerNote { margin-top: 7px !important; }
+            .pdfCaptureArea .pdfReportFooter { padding: 12px 16px !important; margin-top: 0 !important; border-radius: 10px !important; }
+            .pdfCaptureArea .pdfFooterCompany { margin-bottom: 6px !important; }
+            .pdfCaptureArea .pdfFooterGrid { gap: 12px !important; line-height: 1.45 !important; grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+          `;
+          clonedDocument.head.appendChild(style);
+        },
       });
 
-      const imageData = canvas.toDataURL('image/jpeg', 0.95);
       const pdf = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
@@ -672,53 +706,15 @@ async function handleFormalQuoteRequest() {
       const margin = 10;
       const usableWidth = pageWidth - margin * 2;
       const usableHeight = pageHeight - margin * 2;
-      const imageHeight = (canvas.height * usableWidth) / canvas.width;
+      const aspectRatio = canvas.height / canvas.width;
 
-      if (imageHeight <= usableHeight) {
-        pdf.addImage(imageData, 'JPEG', margin, margin, usableWidth, imageHeight, undefined, 'FAST');
-      } else {
-        const pageCanvas = document.createElement('canvas');
-        const pageContext = pageCanvas.getContext('2d');
-
-        if (!pageContext) {
-          throw new Error('PDF生成用の描画領域を作成できませんでした。');
-        }
-
-        const pixelsPerMm = canvas.width / usableWidth;
-        const pageSliceHeight = Math.floor(usableHeight * pixelsPerMm);
-        let sourceY = 0;
-        let pageIndex = 0;
-
-        while (sourceY < canvas.height) {
-          const sliceHeight = Math.min(pageSliceHeight, canvas.height - sourceY);
-          pageCanvas.width = canvas.width;
-          pageCanvas.height = sliceHeight;
-          pageContext.clearRect(0, 0, pageCanvas.width, pageCanvas.height);
-          pageContext.fillStyle = '#ffffff';
-          pageContext.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
-          pageContext.drawImage(
-            canvas,
-            0,
-            sourceY,
-            canvas.width,
-            sliceHeight,
-            0,
-            0,
-            canvas.width,
-            sliceHeight
-          );
-
-          const sliceData = pageCanvas.toDataURL('image/jpeg', 0.95);
-          const sliceHeightMm = sliceHeight / pixelsPerMm;
-
-          if (pageIndex > 0) pdf.addPage();
-          pdf.addImage(sliceData, 'JPEG', margin, margin, usableWidth, sliceHeightMm, undefined, 'FAST');
-
-          sourceY += sliceHeight;
-          pageIndex += 1;
-        }
-      }
-
+      // 幅・高さの両方で縮尺を制限し、ページ追加せず必ず1ページに配置する。
+      const outputWidth = Math.min(usableWidth, usableHeight / aspectRatio);
+      const outputHeight = outputWidth * aspectRatio;
+      const x = (pageWidth - outputWidth) / 2;
+      const y = margin;
+      const imageData = canvas.toDataURL('image/jpeg', 0.95);
+      pdf.addImage(imageData, 'JPEG', x, y, outputWidth, outputHeight, undefined, 'FAST');
       pdf.save(`${result.estimateId || 'AI概算見積り'}.pdf`);
     } catch (e) {
       console.error(e);
