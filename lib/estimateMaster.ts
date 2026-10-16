@@ -41,6 +41,25 @@ function normalize(text: string) {
     .replace(/Ｄ/g, 'd');
 }
 
+// AI説明中の「複雑な形状もない」等を肯定的な高密度根拠と誤認しない。
+// 数値スコアによる高密度判定はこの関数の対象外。
+function hasPositiveColorComplexity(aiText: string) {
+  const keywords = ['多くの細部', '細かいパーツ', '複雑な形状', '高密度'];
+  for (const keyword of keywords) {
+    let start = 0;
+    while (true) {
+      const index = aiText.indexOf(keyword, start);
+      if (index < 0) break;
+      start = index + keyword.length;
+      const tail = aiText.slice(start).split(/[。\n、，,.！!？?]/, 1)[0].slice(0, 18);
+      // キーワード直後の否定・不要・少量表現だけを除外する。
+      const negated = /^(?:が|は|も|を|の|で|では|などが|などは|なども|という)?(?:ほとんど|あまり)?(?:ない|なく|なし|不要|少な|乏し|見られない|認められない|必要ない|必要としない|求められない|ではない|ではなく|でない)/.test(tail);
+      if (!negated) return true;
+    }
+  }
+  return false;
+}
+
 function hasExplicitCutaway(userText: string) {
   return includesAny(userText, [
     '断面図', '断面を', '断面で', '透過図', '透過表現', '透過して',
@@ -160,7 +179,7 @@ function chooseCategory(input: MasterEstimateInput, userText: string, aiText: st
     const complexColor =
       dense ||
       difficulty >= 65 ||
-      includesAny(aiText, ['多くの細部', '細かいパーツ', '複雑な形状', '高密度']);
+      hasPositiveColorComplexity(aiText);
     if (complexColor) {
       return { key: 'color_complex', label: 'カラーイラスト・高密度', baseHours: 5, reason: '細部・形状分割・色分けが多いカラーイラスト基準' };
     }
