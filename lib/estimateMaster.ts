@@ -70,7 +70,7 @@ function hasExplicitCutaway(userText: string) {
 function aiPositiveCutaway(aiText: string) {
   const mentions = includesAny(aiText, ['断面図', '断面表現', '透過図', '透過表現', 'カットモデル']);
   const negates = includesAny(aiText, [
-    '断面ではない', '断面図ではない', '断面や分解図ではなく', '断面不要', '断面は不要', '断面表現は不要',
+    '断面ではない', '断面図ではない', '断面図や分解図ではなく', '断面図や分解図ではない', '断面や分解図ではなく', '断面や分解図ではない', '断面不要', '断面は不要', '断面表現は不要',
     '透過ではない', '透過図ではない', '透過不要', '透過は不要', '透過表現は不要',
     '内部構造が少ない', '内部構造は少ない', '内部構造なし', '内部構造はない'
   ]);
