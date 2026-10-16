@@ -895,6 +895,16 @@ const confidence = calculateConfidence({
   isHighDensityLineTrace,
 });
 
+// 3エンジンの算出工数が大きく食い違う場合は、
+// AI単独の認識評価が高くても見積り精度を「高」と表示しない。
+// 金額・工数の計算ロジックには影響させない。
+if (integratedEstimate.level === '低') {
+  confidence.score = Math.min(confidence.score, 74);
+  confidence.level = '中';
+  confidence.comment =
+    '3方式の算出工数に差があるため、概算金額には幅が生じる可能性があります。正式見積りでの確認をおすすめします。';
+}
+
 
 
 
