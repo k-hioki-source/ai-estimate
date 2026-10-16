@@ -210,6 +210,11 @@ export function calculateMasterEstimate(input: MasterEstimateInput) {
   const userText = normalize(input.notes || '');
   const aiText = normalize(input.aiSummary || '');
   const text = normalize(`${userText} ${aiText}`);
+  // AI説明文の否定表現を機械構造の肯定的な根拠として扱わない。
+  const positiveAiText = aiText.replace(
+    /複雑な(?:機械構造|機械要素|機械|構造)(?:や機械要素)?(?:が|は)?(?:なく|ない|少ない|不要|ではなく|ではない)/g,
+    ''
+  );
   const category = chooseCategory(input, userText, aiText, text);
   const adjustments: Adjustment[] = [];
   const add = (key: string, label: string, hours: number, condition: boolean) => {
@@ -237,10 +242,16 @@ export function calculateMasterEstimate(input: MasterEstimateInput) {
     category.key !== 'new_state' && includesAny(text, ['別アングル', '視点変更', '背面', '側面']));
   add('detail', '部分拡大図追加', 2, includesAny(text, ['拡大図', '詳細図', '部分図']));
 
+  const isCharacterIllustration =
+    includesAny(userText, ['立ち絵', 'キャラクター', 'アニメ塗り', '人物イラスト']) ||
+    (includesAny(aiText, ['立ち絵', 'キャラクター', 'アニメ塗り']) &&
+      !input.isIndustrialProduct);
+  const machineEvidence = normalize(`${userText} ${positiveAiText}`);
   const trulyComplexStructure =
-    includesAny(text, ['内部機構', '内部部品', '多数部品', '30部品', '40部品', '50部品']) ||
-    (includesAny(text, ['複雑な機械', '複雑な構造']) &&
-      !includesAny(text, ['複雑な構造解析は不要', '構造解析は不要']));
+    !isCharacterIllustration &&
+    (includesAny(machineEvidence, ['内部機構', '内部部品', '多数部品', '30部品', '40部品', '50部品']) ||
+      (includesAny(machineEvidence, ['複雑な機械', '複雑な構造']) &&
+        !includesAny(machineEvidence, ['複雑な構造解析は不要', '構造解析は不要'])));
   add('complex_machine', '複雑な機械構造', 5,
     !categoryIncludesComplexity &&
     !['real', 'equipment_concept', 'science_concept', 'isometric_composition'].includes(category.key) &&
@@ -330,8 +341,13 @@ export function calculateIntegratedEstimate(input: {
       ? Math.min(input.aiHours || input.masterHours, input.masterHours)
       : 0;
 
-  // 実績マスター適合度90%以上はマスターを最終基準にする。
-  const masterAnchoredHours = input.masterMatchScore >= 90 ? input.masterHours : 0;
+  // マスター適合度が高くても、他の2エンジンがともに大幅に低い場合は
+  // マスターを無条件採用しない（分類誤りによる過大見積りを抑制）。
+  const masterIsOutlier = hasAi &&
+    input.masterHours >= input.systemHours * 2 &&
+    input.masterHours >= (input.aiHours || 0) * 2;
+  const masterAnchoredHours =
+    input.masterMatchScore >= 90 && !masterIsOutlier ? input.masterHours : 0;
 
   const hours = masterAnchoredHours > 0
     ? ceilHalf(Math.max(1, masterAnchoredHours))
