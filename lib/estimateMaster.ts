@@ -343,9 +343,13 @@ export function calculateIntegratedEstimate(input: {
 
   // マスター適合度が高くても、他の2エンジンがともに大幅に低い場合は
   // マスターを無条件採用しない（分類誤りによる過大見積りを抑制）。
+  // 現行・AIの両方がマスターより明確に低い場合、
+  // マスター適合度だけを根拠に高い工数へ固定しない。
+  // 1.4倍以上かつ1時間以上の差を必要とし、小さな丸め差は除外。
+  const lowerEngineMaximum = Math.max(input.systemHours, input.aiHours || 0);
   const masterIsOutlier = hasAi &&
-    input.masterHours >= input.systemHours * 2 &&
-    input.masterHours >= (input.aiHours || 0) * 2;
+    input.masterHours >= lowerEngineMaximum * 1.4 &&
+    input.masterHours - lowerEngineMaximum >= 1;
   const masterAnchoredHours =
     input.masterMatchScore >= 90 && !masterIsOutlier ? input.masterHours : 0;
 
