@@ -795,6 +795,29 @@ async function handleFormalQuoteRequest() {
       </div>
     </section>
 
+    {/* NDA案内は未ログイン時のみ、メインビジュアルの下に表示 */}
+    {authChecked && !user ? (
+      <section aria-labelledby="csw-nda-title" style={{
+        display: 'flex', alignItems: 'flex-start', gap: 16,
+        padding: '20px 24px', border: '1px solid #cbdcf7',
+        borderRadius: 16, background: '#f3f7ff', color: '#17345f',
+      }}>
+        <span aria-hidden="true" style={{ fontSize: 26, lineHeight: 1.3 }}>🛡️</span>
+        <div>
+          <h2 id="csw-nda-title" style={{ margin: '0 0 6px', fontSize: 'clamp(16px, 2.3vw, 20px)', lineHeight: 1.5 }}>
+            秘密保持契約（NDA）のオンライン締結に対応
+          </h2>
+          <p style={{ margin: 0, fontSize: 14, lineHeight: 1.8, color: '#455d7c' }}>
+            機密情報を含む制作資料について、電子契約サービス「freeeサイン」を利用した秘密保持契約に対応しています。
+            ご希望の場合は、担当者より電子契約のご案内をお送りします。
+          </p>
+          <p style={{ margin: '6px 0 0', fontSize: 12, lineHeight: 1.6, color: '#65758d' }}>
+            ※契約書の送付は担当者の確認後となります。即時締結を保証するものではありません。
+          </p>
+        </div>
+      </section>
+    ) : null}
+
     {authChecked && !user ? (
       <section className="csWorksBridge card">
         <div className="csWorksBridgeTop">
