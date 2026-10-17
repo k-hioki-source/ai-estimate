@@ -187,9 +187,9 @@ export default function MyPage(){
       <section id="nda-contract" className="dashboardCard ndaDashboardCard" style={{border:'1px solid #bfdbfe',background:'#f8fbff'}}>
         <div className="dashboardIcon">NDA</div>
         <h3>秘密保持契約（NDA）</h3>
-        <p>機密情報を含む制作資料について、電子契約サービス「freeeサイン」を利用した秘密保持契約のオンライン締結に対応しています。</p>
-        <p style={{fontSize:12,color:'#64748b',marginTop:0}}>現在は担当者が内容を確認し、個別に電子契約をご案内します。即時締結ではありません。</p>
-        <Link className="dashboardLink" href="/mypage/support">NDA締結について運営に相談する →</Link>
+        <p>機密情報を含む制作資料も安心してご相談いただけるよう、オンラインでの秘密保持契約に対応しています。</p>
+        <p style={{fontSize:12,color:'#64748b',marginTop:0}}>ご希望のお客様には、freeeサインで電子契約をご案内します。</p>
+        <Link className="dashboardLink" href="/mypage/support">NDA締結を相談する →</Link>
       </section>
     </div>
 
