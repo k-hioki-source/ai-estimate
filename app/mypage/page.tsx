@@ -184,6 +184,13 @@ export default function MyPage(){
          upcomingConsultations.length>0?<div className="consultationStatus"><strong className="consultationCount">予約あり {upcomingConsultations.length}件</strong><span className="consultationNextLabel">次回の相談予定</span><strong className="consultationNextDate">{consultationDate(nextConsultation.starts_at)}〜{consultationTime(nextConsultation.ends_at)}</strong><span className="consultationNextTitle">{nextConsultation.title}</span></div>:
          <div className="consultationStatus consultationStatusEmpty">現在、予約はありません</div>}
        <Link className="dashboardLink" href="/mypage/consultations">相談日時を予約する →</Link><Link className="dashboardLink" href="/mypage/consultations/history" style={{marginTop:10}}>予約履歴・Meetリンクを確認 →</Link></section>
+      <section id="nda-contract" className="dashboardCard ndaDashboardCard" style={{gridColumn:'1 / -1',height:'auto',border:'1px solid #bfdbfe',background:'#f8fbff'}}>
+        <div className="dashboardIcon">NDA</div>
+        <h3>秘密保持契約（NDA）</h3>
+        <p>機密情報を含む制作資料について、電子契約サービス「freeeサイン」を利用した秘密保持契約のオンライン締結に対応しています。</p>
+        <p style={{fontSize:12,color:'#64748b',marginTop:0}}>現在は担当者が内容を確認し、個別に電子契約をご案内します。即時締結ではありません。</p>
+        <Link className="dashboardLink" href="/mypage/support">NDA締結について運営に相談する →</Link>
+      </section>
     </div>
 
    <section id="project-list" className="widePanel">
