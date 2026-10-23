@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import type { User } from '@supabase/supabase-js';
 import { getSupabaseBrowserClient } from '../lib/supabase/client';
 import HeaderLinks from "./HeaderLinks";
@@ -85,7 +86,9 @@ function clearPendingEstimate() {
   } catch {}
 }
 
-export default function EstimateForm() {
+export default function EstimateForm({ mode = 'estimate' }: { mode?: 'landing' | 'estimate' }) {
+  const router = useRouter();
+  const isLanding = mode === 'landing';
   const [user, setUser] = useState<User | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
   const [selectedSample, setSelectedSample] = useState<string | null>(null);
@@ -95,14 +98,32 @@ export default function EstimateForm() {
   const [customerName, setCustomerName] = useState('');
   const [email, setEmail] = useState('');
   const [assistText, setAssistText] = useState('');
+  // トップの文章は同じタブの見積りページにだけ一度引き継ぐ。
+  const LANDING_DRAFT_KEY = 'csworks_landing_estimate_draft';
+  function goToEstimate() {
+    try {
+      if (assistText.trim()) sessionStorage.setItem(LANDING_DRAFT_KEY, assistText.trim());
+      else sessionStorage.removeItem(LANDING_DRAFT_KEY);
+    } catch {}
+    router.push('/estimate');
+  }
+
   useEffect(() => {
   const params = new URLSearchParams(window.location.search);
+  if (isLanding) return;
+  try {
+    const draft = sessionStorage.getItem('csworks_landing_estimate_draft');
+    if (draft) {
+      setAssistText(draft);
+      sessionStorage.removeItem('csworks_landing_estimate_draft');
+    }
+  } catch {}
   const agentText = params.get('agentText');
 
   if (agentText) {
     setAssistText(agentText);
   }
-}, []);
+}, [isLanding]);
   const [assistLoading, setAssistLoading] = useState(false);
   const [assistReason, setAssistReason] = useState<string | null>(null);
   const [lastFormData, setLastFormData] = useState<FormData | null>(null);
@@ -144,6 +165,10 @@ export default function EstimateForm() {
       authListener.subscription.unsubscribe();
     };
   }, []);
+
+  useEffect(() => {
+    if (isLanding && authChecked && user) router.replace('/estimate');
+  }, [isLanding, authChecked, user, router]);
 
   // 登録・ログイン後、匿名で作成した見積りを復元する
   useEffect(() => {
@@ -751,6 +776,8 @@ async function handleFormalQuoteRequest() {
   { label: '3DCG風イラスト', path: '/samples/estimate/3dcg.jpg' },
 ];
   
+  if (isLanding && (!authChecked || user)) return null;
+
   return (
   <div className="stackLarge">
 
@@ -767,8 +794,8 @@ async function handleFormalQuoteRequest() {
   
 
     {/* CS Works v5: 最初に実際のAI概算見積り窓口を表示 */}
-    {!result && <section className={`cswTopHero ${authChecked && user ? 'cswTopHeroLoggedIn' : ''}`} aria-label="CS Works AI概算見積り">
-      {(!authChecked || !user) && <div className="cswTopHeroCopy">
+    {(isLanding || !result) && <section className={`cswTopHero ${!isLanding ? 'cswTopHeroLoggedIn' : ''}`} aria-label="CS Works AI概算見積り">
+      {isLanding && <div className="cswTopHeroCopy">
         <div className="eyebrow">CS WORKS｜CREATE SUPPORT</div>
         {authChecked && user ? (
           <h1 className="cswTopHeadline">AI概算見積り</h1>
@@ -794,8 +821,8 @@ async function handleFormalQuoteRequest() {
       </div>}
       <div className="cswTopEstimate" id="ai-estimate">
         <div className="cswTopEstimateTitle">
-          <strong>{authChecked && user ? 'AI概算見積りを作成' : 'まずは無料でAI概算見積り'}</strong>
-          {authChecked && user ? <Link href="/mypage" className="cswTopAccountLink">マイページへ →</Link> : <span>登録不要</span>}
+          <strong>{isLanding ? 'まずは無料でAI概算見積り' : 'AI概算見積りを作成'}</strong>
+          {!isLanding && user ? <Link href="/mypage" className="cswTopAccountLink">マイページへ →</Link> : <span>登録不要</span>}
         </div>
         <div id="ai-assistant-section" className="cswSimpleAssistant">
           <label htmlFor="csw-request" className="cswSimpleLabel">どんなイラストを作りたいですか？</label>
@@ -816,10 +843,11 @@ async function handleFormalQuoteRequest() {
               <button key={label} type="button" onClick={() => setAssistText(value)}>{label}</button>
             ))}
           </div>
-          <button type="button" className="cswSimplePrimary" disabled={assistLoading} onClick={handleSuggestForm}>
-            {assistLoading ? 'AIが条件を整理しています…' : '✦ 無料でAI見積りを始める →'}
+          <button type="button" className="cswSimplePrimary" disabled={!isLanding && assistLoading} onClick={isLanding ? goToEstimate : handleSuggestForm}>
+            {!isLanding && assistLoading ? 'AIが条件を整理しています…' : '✦ 無料でAI見積りを始める →'}
           </button>
           <button type="button" className="cswSimpleManual" onClick={() => {
+            if (isLanding) { goToEstimate(); return; }
             setSuggestCompleted(false);
             setShowEstimateForm(true);
             setTimeout(() => document.getElementById('estimate-form-details')?.scrollIntoView({behavior:'smooth',block:'start'}),100);
@@ -830,7 +858,7 @@ async function handleFormalQuoteRequest() {
     </section>}
 
 
-    {authChecked && !user && !result && (
+    {isLanding && (
     <section className="updateBox" id="csw-announcements">
       <div className="updateBadge">AI概算見積り</div>
       <div>
@@ -845,7 +873,7 @@ async function handleFormalQuoteRequest() {
 
 
 
-    {authChecked && !user && !result ? (
+    {isLanding ? (
       <section className="csWorksBridge card">
         <div className="csWorksBridgeTop">
           <div>
@@ -868,9 +896,9 @@ async function handleFormalQuoteRequest() {
     ) : null}
 
     {/* お客様への安心案内：プライバシーとNDAを同じ段にまとめる */}
-    {!result && <div className="cswTrustGrid">
+    {isLanding && <div className="cswTrustGrid">
       <div className="cswTrustPrivacy">
-    {authChecked && !user && <div className="cswPrivacyAfterHero">
+    {isLanding && <div className="cswPrivacyAfterHero">
           <div className="privacyCollectionNotice">
             <strong>個人情報の入力なしで、すぐに概算見積りを試せます。</strong>
             <span>見積り条件・参考画像・AI算出結果は、サービス改善と正式見積り対応のため運営者が収集・確認します。</span>
@@ -880,7 +908,7 @@ async function handleFormalQuoteRequest() {
       </div>
       <div className="cswTrustNda">
     {/* NDA案内は未ログイン時のみ、メインビジュアルの下に表示 */}
-    {authChecked && !user ? (
+    {isLanding ? (
       <section aria-labelledby="csw-nda-title" style={{
         display: 'flex', alignItems: 'flex-start', gap: 16,
         padding: '20px 24px', borderLeft: '4px solid #93b8e9',
@@ -909,6 +937,7 @@ async function handleFormalQuoteRequest() {
 
 
 
+      {!isLanding && <>
       <section className="card stackLarge" style={{ display: showEstimateForm ? undefined : 'none' }}>
 
         {showEstimateForm ? (
@@ -1929,6 +1958,8 @@ async function handleFormalQuoteRequest() {
         </section>
       ) : null}
 
+      </>}
+
       <style>{`
         .csWorksHero { overflow: hidden; padding: 0; background: linear-gradient(135deg, #f7fbff 0%, #ffffff 55%, #eef8ff 100%); border: 1px solid #d7e7f7; }
         .csWorksHeroContent { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(320px, .85fr); gap: 42px; align-items: center; padding: 54px 52px; }
@@ -1991,19 +2022,19 @@ async function handleFormalQuoteRequest() {
       `}</style>
 
       {/* 制作内容とサービス紹介 */}
-{authChecked && !user && !result && <section className="cswV5Section" id="csw-works"><h2>技術資料から販促ビジュアルまで。</h2>
+{isLanding && <section className="cswV5Section" id="csw-works"><h2>技術資料から販促ビジュアルまで。</h2>
 <div className="cswV5Cards">
 <article><div className="cswV5Art"><img src="/images/suspension.jpg" alt="制作実績：自動車サスペンションの技術線画" /></div><b>取扱説明書・技術線画</b><p>製品写真やCAD資料をもとに、細部まで伝わる技術線画を制作。</p></article>
 <article><div className="cswV5Art"><img src="/images/exploded-view.jpg" alt="制作実績：機械部品の分解図・パーツカタログ用線画" /></div><b>分解図・パーツカタログ</b><p>部品構成や組付け関係をわかりやすく伝える分解図を制作。</p></article>
 <article><div className="cswV5Art"><img src="/images/power-tool.jpg" alt="制作実績：電動工具のカラー技術イラスト" /></div><b>3DCG・リアルイラスト</b><p>形状や質感をわかりやすく伝えるカラーイラストを制作。</p></article>
 </div></section>}
-{authChecked && !user && !result && <>
+{isLanding && <>
   <section className="cswSampleResult" aria-label="AI概算見積り結果の表示例">
     <div className="cswSampleCopy">
       <div className="cswSampleEyebrow">SEE THE RESULT</div>
       <h2>見積りの目安が、<br />すぐに分かる。</h2>
       <p>制作方法、難易度、想定工数をAIが分析。概算を確認してから、正式見積りに進めます。複雑な3DCGや動画は個別相談にも対応します。</p>
-      <a href="#ai-estimate" className="cswSampleButton">無料で試してみる →</a>
+      <Link href="/estimate" className="cswSampleButton">無料で試してみる →</Link>
     </div>
     <div className="cswSampleResultCard">
       <div className="cswSampleResultHead"><strong>AI概算見積り結果</strong><span>表示例</span></div>
@@ -2026,7 +2057,7 @@ async function handleFormalQuoteRequest() {
       </div>
     </div>
   </section>
-  <section className="cswFinalCta"><div><h2>まずは、制作費の目安を確認。</h2><p>登録不要。作りたいイラストを文章で伝えるだけ。</p></div><a href="#ai-estimate">AI概算見積りを試す →</a></section>
+  <section className="cswFinalCta"><div><h2>まずは、制作費の目安を確認。</h2><p>登録不要。作りたいイラストを文章で伝えるだけ。</p></div><Link href="/estimate">AI概算見積りを試す →</Link></section>
 </>}
 <style>{`
 
