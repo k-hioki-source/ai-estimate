@@ -234,7 +234,32 @@ export function calculateMasterEstimate(input: MasterEstimateInput) {
     /複雑な(?:機械構造|機械要素|機械|構造)(?:や機械要素)?(?:が|は)?(?:なく|ない|少ない|不要|ではなく|ではない)/g,
     ''
   );
-  const category = chooseCategory(input, userText, aiText, text);
+  // 写真と同じ構図の単純な外観線画は、フォームで参考資料から作図を
+  // 選択していても、工数マスター上は写真トレースとして扱う。
+  // 角度変更・新規構成・断面などの作図が必要な場合は対象外。
+  const photoTraceRequest = includesAny(userText, [
+    '製品写真から', '写真から', '支給資料：写真', '支給資料:写真',
+  ]);
+  const newDrawingRequest = includesAny(userText, [
+    '別角度', '角度変更', '別アングル', '視点変更', '見えない部分',
+    '写真にない', '描き起こし', '新規作図', '新規に作図',
+    'オリジナル', '写真を参考に', '図面を参考に',
+    '断面', '分解図', '内部構造', '構造変更',
+  ]);
+  const simplePhotoTrace =
+    input.sourceType === 'reference_drawing' &&
+    photoTraceRequest && !newDrawingRequest &&
+    input.usage === 'manual' && input.style === 'line' &&
+    input.workType === 'simple_trace' &&
+    (input.difficultyScore ?? 100) <= 45 &&
+    (input.partDensity ?? 100) <= 55 &&
+    (input.lineDifficulty ?? 100) <= 55 &&
+    (input.structureComplexity ?? 100) <= 55 &&
+    !input.isExplodedView && !input.hasLeaderLines && !input.hasPartNumbers;
+  const normalizedInput = simplePhotoTrace
+    ? { ...input, sourceType: 'photo_trace' }
+    : input;
+  const category = chooseCategory(normalizedInput, userText, aiText, text);
   const adjustments: Adjustment[] = [];
   const add = (key: string, label: string, hours: number, condition: boolean) => {
     if (condition) adjustments.push({ key, label, hours });
@@ -296,7 +321,8 @@ export function calculateMasterEstimate(input: MasterEstimateInput) {
   // v4: 断面・透過補正はユーザーの明示指示、またはAIが肯定的に断面を認識した場合のみ。
   // 「断面図ではない」「断面や分解図ではなく」などの否定文では絶対に加算しない。
   const userExplicitCutaway = hasExplicitCutaway(userText);
-  const aiExplicitCutaway = aiPositiveCutaway(aiText);
+  // AIの説明文だけでは断面・透過の制作指示が確定しないため加算しない。
+  const aiExplicitCutaway = false;
   add('cutaway', '断面・透過表現', 3,
     !categoryIncludesStructure && (userExplicitCutaway || aiExplicitCutaway));
 
@@ -325,6 +351,7 @@ export function calculateMasterEstimate(input: MasterEstimateInput) {
     maxHours,
     matchScore,
     reason: category.reason,
+    simplePhotoTrace,
   };
 }
 
@@ -333,6 +360,7 @@ export function calculateIntegratedEstimate(input: {
   aiHours?: number;
   masterHours: number;
   masterMatchScore: number;
+  simplePhotoTrace?: boolean;
 }) {
   const values = [input.systemHours, input.aiHours || 0, input.masterHours].filter((v) => v > 0);
   if (values.length < 2) {
@@ -362,7 +390,16 @@ export function calculateIntegratedEstimate(input: {
 
   // マスター適合度は分類の一致度であり、工数の正確性を保証しない。
   // 3方式の加重平均を基本とし、従来の過小見積り防止下限は維持する。
-  const hours = ceilHalf(Math.max(1, weightedHours, antiLowFloor));
+  // 現行エンジンと工数マスターの双方が簡易トレースと判定した場合に限り、
+  // AI単独の過大推定による下限の引き上げを防止する。
+  // 複雑案件の既存の過小見積り防止下限は維持する。
+  const reliableSimpleTrace =
+    input.simplePhotoTrace === true &&
+    input.systemHours <= 1.5 &&
+    input.masterHours <= 1.5;
+  const hours = reliableSimpleTrace
+    ? ceilHalf(Math.max(1, input.systemHours, input.masterHours))
+    : ceilHalf(Math.max(1, weightedHours, antiLowFloor));
 
   let agreementScore = Math.round(100 - spreadRate * 70);
   agreementScore = Math.round((agreementScore * 0.7) + (input.masterMatchScore * 0.3));
