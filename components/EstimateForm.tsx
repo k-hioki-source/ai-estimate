@@ -767,7 +767,7 @@ async function handleFormalQuoteRequest() {
   
 
     {/* CS Works v5: 最初に実際のAI概算見積り窓口を表示 */}
-    <section className={`cswTopHero ${authChecked && user ? 'cswTopHeroLoggedIn' : ''}`} aria-label="CS Works AI概算見積り">
+    {!result && <section className={`cswTopHero ${authChecked && user ? 'cswTopHeroLoggedIn' : ''}`} aria-label="CS Works AI概算見積り">
       {(!authChecked || !user) && <div className="cswTopHeroCopy">
         <div className="eyebrow">CS WORKS｜CREATE SUPPORT</div>
         {authChecked && user ? (
@@ -827,10 +827,10 @@ async function handleFormalQuoteRequest() {
           {!user && <p className="cswSimpleFootnote">会員登録なしで概算見積りをお試しいただけます</p>}
         </div>
       </div>
-    </section>
+    </section>}
 
 
-    {authChecked && !user && (
+    {authChecked && !user && !result && (
     <section className="updateBox" id="csw-announcements">
       <div className="updateBadge">AI概算見積り</div>
       <div>
@@ -845,7 +845,7 @@ async function handleFormalQuoteRequest() {
 
 
 
-    {authChecked && !user ? (
+    {authChecked && !user && !result ? (
       <section className="csWorksBridge card">
         <div className="csWorksBridgeTop">
           <div>
@@ -868,7 +868,7 @@ async function handleFormalQuoteRequest() {
     ) : null}
 
     {/* お客様への安心案内：プライバシーとNDAを同じ段にまとめる */}
-    <div className="cswTrustGrid">
+    {!result && <div className="cswTrustGrid">
       <div className="cswTrustPrivacy">
     {authChecked && !user && <div className="cswPrivacyAfterHero">
           <div className="privacyCollectionNotice">
@@ -902,7 +902,7 @@ async function handleFormalQuoteRequest() {
       </section>
     ) : null}
       </div>
-    </div>
+    </div>}
 
 
 
@@ -1456,6 +1456,11 @@ async function handleFormalQuoteRequest() {
 
             {result ? (
         <section id="estimate-result" className="stackLarge">
+          <div className="cswResultNavigation">
+            <button type="button" onClick={() => { handleClearForm(); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
+              ← 新しい見積りを作成
+            </button>
+          </div>
           <div ref={pdfContentRef} className="stackLarge pdfCaptureArea">
           <div className="pdfReportHeader">
             <div>
@@ -1986,13 +1991,13 @@ async function handleFormalQuoteRequest() {
       `}</style>
 
       {/* 制作内容とサービス紹介 */}
-{authChecked && !user && <section className="cswV5Section" id="csw-works"><h2>技術資料から販促ビジュアルまで。</h2>
+{authChecked && !user && !result && <section className="cswV5Section" id="csw-works"><h2>技術資料から販促ビジュアルまで。</h2>
 <div className="cswV5Cards">
 <article><div className="cswV5Art"><img src="/images/suspension.jpg" alt="制作実績：自動車サスペンションの技術線画" /></div><b>取扱説明書・技術線画</b><p>製品写真やCAD資料をもとに、細部まで伝わる技術線画を制作。</p></article>
 <article><div className="cswV5Art"><img src="/images/exploded-view.jpg" alt="制作実績：機械部品の分解図・パーツカタログ用線画" /></div><b>分解図・パーツカタログ</b><p>部品構成や組付け関係をわかりやすく伝える分解図を制作。</p></article>
 <article><div className="cswV5Art"><img src="/images/power-tool.jpg" alt="制作実績：電動工具のカラー技術イラスト" /></div><b>3DCG・リアルイラスト</b><p>形状や質感をわかりやすく伝えるカラーイラストを制作。</p></article>
 </div></section>}
-{authChecked && !user && <>
+{authChecked && !user && !result && <>
   <section className="cswSampleResult" aria-label="AI概算見積り結果の表示例">
     <div className="cswSampleCopy">
       <div className="cswSampleEyebrow">SEE THE RESULT</div>
@@ -2025,6 +2030,7 @@ async function handleFormalQuoteRequest() {
 </>}
 <style>{`
 
+.cswResultNavigation{display:flex;justify-content:flex-end;margin:0 0 10px}.cswResultNavigation button{border:1px solid #bdd3ef;background:#fff;color:#1657a7;border-radius:10px;padding:11px 18px;font-size:14px;font-weight:800;cursor:pointer}.cswResultNavigation button:hover{background:#eef5ff}
 .cswSimpleAssistant{display:flex;flex-direction:column;gap:14px;padding:12px 2px 4px}
 .cswSimpleLabel{font-size:17px;font-weight:850;color:#172f51;line-height:1.5}
 .cswSimpleTextarea{width:100%;min-height:142px;box-sizing:border-box;border:1.5px solid #b7cdec;border-radius:12px;padding:17px 18px;background:#fff;color:#173253;font:inherit;font-size:16px;line-height:1.75;resize:vertical}
