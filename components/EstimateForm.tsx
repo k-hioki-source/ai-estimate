@@ -69,6 +69,7 @@ function difficultyLabel(score: number) {
 }
 
 const PENDING_ESTIMATE_KEY = 'csworks_pending_estimate';
+const RESTORE_ESTIMATE_KEY = 'csworks_restore_estimate_after_login';
 
 function savePendingEstimate(payload: unknown) {
   try {
@@ -79,7 +80,10 @@ function savePendingEstimate(payload: unknown) {
 }
 
 function clearPendingEstimate() {
-  try { sessionStorage.removeItem(PENDING_ESTIMATE_KEY); } catch {}
+  try {
+    sessionStorage.removeItem(PENDING_ESTIMATE_KEY);
+    sessionStorage.removeItem(RESTORE_ESTIMATE_KEY);
+  } catch {}
 }
 
 export default function EstimateForm() {
@@ -146,6 +150,14 @@ export default function EstimateForm() {
   useEffect(() => {
     if (!authChecked || !user || result) return;
     try {
+      // ログイン・登録から「この見積りを保存」へ戻る場合だけ復元する。
+      // 通常の見積りページ訪問では過去の結果を表示しない。
+      const shouldRestore = sessionStorage.getItem(RESTORE_ESTIMATE_KEY) === '1';
+      sessionStorage.removeItem(RESTORE_ESTIMATE_KEY);
+      if (!shouldRestore) {
+        clearPendingEstimate();
+        return;
+      }
       const raw = sessionStorage.getItem(PENDING_ESTIMATE_KEY);
       if (!raw) return;
       const pending = JSON.parse(raw);
@@ -756,8 +768,8 @@ async function handleFormalQuoteRequest() {
   
 
     {/* CS Works v5: 最初に実際のAI概算見積り窓口を表示 */}
-    <section className="cswTopHero" aria-label="CS Works AI概算見積り">
-      <div className="cswTopHeroCopy">
+    <section className={`cswTopHero ${authChecked && user ? 'cswTopHeroLoggedIn' : ''}`} aria-label="CS Works AI概算見積り">
+      {(!authChecked || !user) && <div className="cswTopHeroCopy">
         <div className="eyebrow">CS WORKS｜CREATE SUPPORT</div>
         {authChecked && user ? (
           <h1 className="cswTopHeadline">AI概算見積り</h1>
@@ -780,11 +792,11 @@ async function handleFormalQuoteRequest() {
         </figure>
         <p className="cswTopCredit">制作・品質管理：株式会社クリエイトサポート</p>
         {user ? <Link href="/mypage" className="cswTopAccountLink">マイページへ →</Link> : null}
-      </div>
+      </div>}
       <div className="cswTopEstimate" id="ai-estimate">
         <div className="cswTopEstimateTitle">
-          <strong>まずは無料でAI概算見積り</strong>
-          <span>登録不要</span>
+          <strong>{authChecked && user ? 'AI概算見積りを作成' : 'まずは無料でAI概算見積り'}</strong>
+          {authChecked && user ? <Link href="/mypage" className="cswTopAccountLink">マイページへ →</Link> : <span>登録不要</span>}
         </div>
         <div id="ai-assistant-section">
         <AiAssistant
@@ -810,7 +822,7 @@ async function handleFormalQuoteRequest() {
       </div>
     </section>
 
-    <section className="updateBox" id="csw-announcements">
+    {authChecked && !user && <section className="updateBox" id="csw-announcements">
       <div className="updateBadge">AI概算見積り</div>
       <div>
         <h2 className="updateTitle">画像がなくても、その場で概算を確認できます</h2>
@@ -818,7 +830,7 @@ async function handleFormalQuoteRequest() {
           参考画像をアップロードするか、9種類のサンプルから近いイメージを選択。AIが制作内容を解析して概算金額を算出します。
         </p>
       </div>
-    </section>
+    </section>}
 
 
     {/* NDA案内は未ログイン時のみ、メインビジュアルの下に表示 */}
@@ -1880,8 +1892,8 @@ async function handleFormalQuoteRequest() {
                   この見積りは一時的に保持されています。無料会員登録またはログイン後、この画面に戻ってMy Pageへ保存できます。
                 </p>
                 <div className="csWorksResultActions">
-                  <Link href="/signup?returnTo=%2Festimate" className="primaryButton csWorksInlineButton">この見積りを保存して無料会員登録</Link>
-                  <Link href="/login?returnTo=%2Festimate" className="csWorksSecondaryCta">ログインして保存</Link>
+                  <Link href="/signup?returnTo=%2Festimate" onClick={() => sessionStorage.setItem(RESTORE_ESTIMATE_KEY, '1')} className="primaryButton csWorksInlineButton">この見積りを保存して無料会員登録</Link>
+                  <Link href="/login?returnTo=%2Festimate" onClick={() => sessionStorage.setItem(RESTORE_ESTIMATE_KEY, '1')} className="csWorksSecondaryCta">ログインして保存</Link>
                 </div>
               </div>
             </div>
@@ -1951,13 +1963,13 @@ async function handleFormalQuoteRequest() {
       `}</style>
 
       {/* 制作内容とサービス紹介 */}
-<section className="cswV5Section" id="csw-works"><h2>技術資料から販促ビジュアルまで。</h2>
+{authChecked && !user && <section className="cswV5Section" id="csw-works"><h2>技術資料から販促ビジュアルまで。</h2>
 <div className="cswV5Cards">
 <article><div className="cswV5Art"><img src="/images/suspension.jpg" alt="制作実績：自動車サスペンションの技術線画" /></div><b>取扱説明書・技術線画</b><p>製品写真やCAD資料をもとに、細部まで伝わる技術線画を制作。</p></article>
 <article><div className="cswV5Art"><img src="/images/exploded-view.jpg" alt="制作実績：機械部品の分解図・パーツカタログ用線画" /></div><b>分解図・パーツカタログ</b><p>部品構成や組付け関係をわかりやすく伝える分解図を制作。</p></article>
 <article><div className="cswV5Art"><img src="/images/power-tool.jpg" alt="制作実績：電動工具のカラー技術イラスト" /></div><b>3DCG・リアルイラスト</b><p>形状や質感をわかりやすく伝えるカラーイラストを制作。</p></article>
-</div></section>
-<section className="cswV5Section"><h2>AIの速さと、制作会社の品質を。</h2><p>専門スタッフが制作を担当。見積りから納品までオンラインで管理できます。</p></section>
+</div></section>}
+{authChecked && !user && <section className="cswV5Section"><h2>AIの速さと、制作会社の品質を。</h2><p>専門スタッフが制作を担当。見積りから納品までオンラインで管理できます。</p></section>}
 <style>{`
 .cswTopHero{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,3fr);gap:28px;align-items:start;padding:32px;border:1px solid #dce7f7;border-radius:20px;background:linear-gradient(135deg,#fff,#f1f7ff)}
 .cswTopHeroCopy{min-width:0;padding:26px 2px}.cswTopHeadline{font-size:clamp(30px,3.1vw,46px);line-height:1.3;color:#122544;margin:18px 0}.cswTopHeadline span{color:#2363e8;display:block}
@@ -1972,6 +1984,9 @@ async function handleFormalQuoteRequest() {
 .cswTopMainVisual{margin:25px 0 18px;padding:0;display:flex;flex-direction:column;align-items:center}
 .cswTopMainVisual img{display:block;width:100%;max-width:560px;height:auto;object-fit:contain;filter:drop-shadow(0 18px 22px rgba(24,63,109,.14))}
 .cswTopMainVisual figcaption{font-size:12px;line-height:1.7;color:#6b7f96;text-align:center;margin-top:9px}
+.cswTopHero.cswTopHeroLoggedIn{grid-template-columns:minmax(0,1fr);padding:18px;background:transparent;border:0;box-shadow:none}
+.cswTopHeroLoggedIn .cswTopEstimate{width:100%;box-sizing:border-box}
+.cswTopHeroLoggedIn .cswTopAccountLink{margin-top:0;font-size:13px}
 @media(max-width:1100px){.cswTopHero{grid-template-columns:minmax(0,1fr);gap:16px;padding:24px}.cswTopHeroCopy{padding:4px}.cswTopMainVisual img{max-width:500px}.cswTopEstimate{width:100%;box-sizing:border-box}}
 @media(max-width:700px){.cswTopMainVisual img{max-width:100%}.cswTopMainVisual{margin:12px 0}.cswTopHeadline{font-size:clamp(28px,7vw,40px)}}
 @media(max-width:700px){.cswV5Cards{grid-template-columns:1fr}.cswTopHero{padding:12px}.cswTopEstimate{padding:12px}}

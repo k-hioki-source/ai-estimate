@@ -36,22 +36,9 @@ export default function AiAssistant({
     <section className="aiAssistCompact">
       <div className="aiAssistIntro">
         <div className="aiAssistBadge">STEP 1｜AIに依頼内容を伝える</div>
-
-        <div className="aiAssistIntroBody">
-          <div className="aiAssistCopy">
-            <h2>作りたいイラストを文章で入力してください</h2>
-            <p>
-              AIが文章を読み取り、制作方法・用途・イラスト表現を自動で選択します。
-              分かる範囲だけで大丈夫です。
-            </p>
-          </div>
-
-          <img
-            className="aiAssistRobot"
-            src="https://www.create-support.co.jp/wp-content/uploads/2026/06/AI-image2.jpg"
-            alt="AI見積り入力アシスタント"
-          />
-        </div>
+        <p className="aiAssistShortHelp">
+          作りたいイラストを文章で入力してください。分かる範囲だけで大丈夫です。
+        </p>
       </div>
 
       <div className="aiAssistInputPanel">
@@ -134,9 +121,9 @@ export default function AiAssistant({
       <style jsx>{`
         .aiAssistCompact {
           display: grid;
-          grid-template-columns: minmax(230px, 0.78fr) minmax(0, 1.35fr);
-          gap: 18px;
-          padding: 20px;
+          grid-template-columns: minmax(0, 1fr);
+          gap: 12px;
+          padding: 16px;
           border: 1px solid #cfe0f4;
           border-radius: 18px;
           background: linear-gradient(135deg, #f4f9ff 0%, #ffffff 68%);
@@ -145,6 +132,12 @@ export default function AiAssistant({
 
         .aiAssistIntro {
           min-width: 0;
+        }
+        .aiAssistShortHelp {
+          margin: 8px 0 0;
+          font-size: 13px;
+          line-height: 1.65;
+          color: #53677e;
         }
 
         .aiAssistBadge {
@@ -157,38 +150,6 @@ export default function AiAssistant({
           color: #1760b5;
           font-size: 12px;
           font-weight: 800;
-        }
-
-        .aiAssistIntroBody {
-          display: flex;
-          flex-direction: column;
-          height: calc(100% - 38px);
-        }
-
-        .aiAssistCopy h2 {
-          margin: 14px 0 8px;
-          color: #102d50;
-          font-size: clamp(20px, 2.2vw, 27px);
-          line-height: 1.45;
-          letter-spacing: 0.01em;
-        }
-
-        .aiAssistCopy p {
-          margin: 0;
-          color: #5d6f85;
-          font-size: 13px;
-          line-height: 1.85;
-        }
-
-        .aiAssistRobot {
-          display: block;
-          width: 100%;
-          max-width: 350px;
-          
-          margin: auto auto 0;
-          object-fit: contain;
-          object-position: center bottom;
-          mix-blend-mode: multiply;
         }
 
         .aiAssistInputPanel {
@@ -393,19 +354,6 @@ export default function AiAssistant({
             grid-template-columns: 1fr;
           }
 
-          .aiAssistIntroBody {
-            display: grid;
-            grid-template-columns: 1fr 130px;
-            gap: 12px;
-            align-items: end;
-            height: auto;
-          }
-
-          .aiAssistRobot {
-            max-width: 130px;
-            max-height: 105px;
-            margin: 0;
-          }
         }
 
         @media (max-width: 560px) {
@@ -413,19 +361,6 @@ export default function AiAssistant({
             padding: 15px;
             gap: 13px;
             border-radius: 15px;
-          }
-
-          .aiAssistIntroBody {
-            grid-template-columns: 1fr 92px;
-          }
-
-          .aiAssistCopy h2 {
-            font-size: 20px;
-          }
-
-          .aiAssistRobot {
-            max-width: 92px;
-            max-height: 85px;
           }
 
           .aiAssistInputPanel {
