@@ -1883,8 +1883,8 @@ async function handleFormalQuoteRequest() {
                   この見積りは一時的に保持されています。無料会員登録またはログイン後、この画面に戻ってMy Pageへ保存できます。
                 </p>
                 <div className="csWorksResultActions">
-                  <Link href="/signup?returnTo=/" className="primaryButton csWorksInlineButton">この見積りを保存して無料会員登録</Link>
-                  <Link href="/login?returnTo=/" className="csWorksSecondaryCta">ログインして保存</Link>
+                  <Link href="/signup?returnTo=%2Festimate" className="primaryButton csWorksInlineButton">この見積りを保存して無料会員登録</Link>
+                  <Link href="/login?returnTo=%2Festimate" className="csWorksSecondaryCta">ログインして保存</Link>
                 </div>
               </div>
             </div>
