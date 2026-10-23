@@ -1981,7 +1981,37 @@ async function handleFormalQuoteRequest() {
 <article><div className="cswV5Art"><img src="/images/exploded-view.jpg" alt="制作実績：機械部品の分解図・パーツカタログ用線画" /></div><b>分解図・パーツカタログ</b><p>部品構成や組付け関係をわかりやすく伝える分解図を制作。</p></article>
 <article><div className="cswV5Art"><img src="/images/power-tool.jpg" alt="制作実績：電動工具のカラー技術イラスト" /></div><b>3DCG・リアルイラスト</b><p>形状や質感をわかりやすく伝えるカラーイラストを制作。</p></article>
 </div></section>}
-{authChecked && !user && <section className="cswV5Section"><h2>AIの速さと、制作会社の品質を。</h2><p>専門スタッフが制作を担当。見積りから納品までオンラインで管理できます。</p></section>}
+{authChecked && !user && <>
+  <section className="cswSampleResult" aria-label="AI概算見積り結果の表示例">
+    <div className="cswSampleCopy">
+      <div className="cswSampleEyebrow">SEE THE RESULT</div>
+      <h2>見積りの目安が、<br />すぐに分かる。</h2>
+      <p>制作方法、難易度、想定工数をAIが分析。概算を確認してから、正式見積りに進めます。複雑な3DCGや動画は個別相談にも対応します。</p>
+      <a href="#ai-estimate" className="cswSampleButton">無料で試してみる →</a>
+    </div>
+    <div className="cswSampleResultCard">
+      <div className="cswSampleResultHead"><strong>AI概算見積り結果</strong><span>表示例</span></div>
+      <div className="cswSampleLine"><span>制作内容</span><strong>取扱説明書用の白黒線画</strong></div>
+      <div className="cswSampleLine"><span>制作点数</span><strong>2点</strong></div>
+      <div className="cswSampleLine"><span>想定工数</span><strong>5時間</strong></div>
+      <div className="cswSampleLine cswSamplePrice"><span>概算金額</span><strong>15,000円</strong></div>
+      <p className="cswSampleDisclaimer">※ 架空の表示例です。実際の見積り結果を保証するものではありません。</p>
+    </div>
+  </section>
+  <section className="cswWhy" aria-label="CS Worksの強み">
+    <div className="cswWhyInner">
+      <div className="cswSampleEyebrow">WHY CS WORKS</div>
+      <h2>AIの速さと、制作会社の品質を。</h2>
+      <p className="cswWhyLead">自動見積りだけでは終わりません。経験ある制作チームが、実務に使える成果物を届けます。</p>
+      <div className="cswWhyCards">
+        <article><div className="cswWhyIcon">⚙</div><h3>専門性</h3><p>取説・パーツカタログなど製造業の技術資料に対応。</p></article>
+        <article><div className="cswWhyIcon">▤</div><h3>一元管理</h3><p>見積り履歴、メッセージ、制作資料、納品までまとめて確認。</p></article>
+        <article><div className="cswWhyIcon">♢</div><h3>機密情報に配慮</h3><p>資料の取り扱いに配慮し、必要に応じて秘密保持契約もご相談いただけます。</p></article>
+      </div>
+    </div>
+  </section>
+  <section className="cswFinalCta"><div><h2>まずは、制作費の目安を確認。</h2><p>登録不要。作りたいイラストを文章で伝えるだけ。</p></div><a href="#ai-estimate">AI概算見積りを試す →</a></section>
+</>}
 <style>{`
 
 .cswSimpleAssistant{display:flex;flex-direction:column;gap:14px;padding:12px 2px 4px}
@@ -2017,10 +2047,27 @@ async function handleFormalQuoteRequest() {
 @media(max-width:1100px){.cswTopHero{grid-template-columns:minmax(0,1fr);gap:16px;padding:24px}.cswTopHeroCopy{padding:4px}.cswTopMainVisual img{max-width:500px}.cswTopEstimate{width:100%;box-sizing:border-box}}
 @media(max-width:700px){.cswTopMainVisual img{max-width:100%}.cswTopMainVisual{margin:12px 0}.cswTopHeadline{font-size:clamp(28px,7vw,40px)}}
 @media(max-width:700px){.cswV5Cards{grid-template-columns:1fr}.cswTopHero{padding:12px}.cswTopEstimate{padding:12px}}
+
+/* v12: サンプルHTMLの3セクションを再現 */
+.csWorksBridge.card{border:1px solid #cfe0f4!important;border-radius:20px!important;box-shadow:0 10px 30px rgba(20,49,89,.07)!important;background:linear-gradient(135deg,#f8fbff 0%,#fff 72%)!important;padding:28px 30px!important}
+.cswSampleResult{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:56px;align-items:center;padding:86px 16px 78px;color:#101c34}
+.cswSampleEyebrow{font-size:12px;font-weight:850;letter-spacing:.15em;color:#2363e8}
+.cswSampleCopy h2{font-size:clamp(30px,3.3vw,44px);line-height:1.4;margin:18px 0;color:#101c34}
+.cswSampleCopy p{font-size:16px;line-height:1.9;color:#62738d;margin:0 0 24px}
+.cswSampleButton{display:inline-block;background:#2363e8;color:#fff!important;text-decoration:none;border-radius:12px;padding:15px 24px;font-weight:800;box-shadow:0 10px 24px rgba(35,99,232,.15)}
+.cswSampleResultCard{background:#fff;border:1px solid #dce5f2;border-radius:20px;padding:26px;color:#101c34}
+.cswSampleResultHead{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:8px}.cswSampleResultHead strong{font-size:16px}.cswSampleResultHead span{font-size:11px;color:#078a62;background:#e5f8f1;border-radius:30px;padding:7px 12px;font-weight:800}
+.cswSampleLine{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 0;border-bottom:1px solid #e1e9f4;font-size:13px}.cswSampleLine strong{text-align:right}.cswSamplePrice{padding:20px 0}.cswSamplePrice strong{font-size:32px;color:#2363e8}.cswSampleDisclaimer{font-size:11px;line-height:1.6;color:#8795aa;margin:14px 0 0}
+.cswWhy{background:#10203e;color:#fff;margin:0 calc(-1 * max(0px, (100vw - 100%) / 2));padding:72px max(24px,calc((100vw - 1220px) / 2));text-align:center}
+.cswWhy .cswSampleEyebrow{color:#8cb7ff}.cswWhy h2{color:#fff;font-size:clamp(28px,3vw,38px);margin:16px 0}.cswWhyLead{color:#bcd3f5;line-height:1.85;font-size:16px;max-width:760px;margin:0 auto 36px}
+.cswWhyCards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;text-align:left}.cswWhyCards article{background:#1b3154;border:1px solid #30486d;border-radius:18px;padding:28px;min-height:180px;box-sizing:border-box}.cswWhyIcon{font-size:27px;color:#fff;margin-bottom:20px}.cswWhyCards h3{font-size:17px;margin:0 0 12px;color:#fff}.cswWhyCards p{font-size:13px;line-height:1.8;color:#c1d8f6;margin:0}
+.cswFinalCta{display:flex;justify-content:space-between;align-items:center;gap:24px;background:linear-gradient(110deg,#2363e8,#388af1);color:#fff;border-radius:22px;padding:40px 44px;margin:78px auto 64px;max-width:1140px;box-sizing:border-box}.cswFinalCta h2{font-size:clamp(22px,2.6vw,30px);color:#fff;margin:0 0 8px}.cswFinalCta p{margin:0;color:#fff}.cswFinalCta a{display:inline-block;flex:none;background:#fff;color:#2363e8!important;text-decoration:none;padding:16px 24px;border-radius:12px;font-weight:800}
+@media(max-width:800px){.cswSampleResult{grid-template-columns:1fr;gap:28px;padding:52px 10px}.cswWhy{padding:54px 20px}.cswWhyCards{grid-template-columns:1fr}.cswFinalCta{flex-direction:column;align-items:flex-start;padding:30px 24px;margin:46px 0}.cswFinalCta a{width:100%;box-sizing:border-box;text-align:center}.csWorksBridge.card{padding:22px 20px!important}}
+
 /* v10: 余白と背景で区切り、すべてを同じ枠で囲まない */
 .cswPrivacyAfterHero{padding:10px 3px;background:transparent;border:0;box-shadow:none}
 .cswPrivacyAfterHero .privacyCollectionNotice{border:0!important;background:transparent!important;box-shadow:none!important;padding:8px 12px!important;border-left:3px solid #86b8ef!important;border-radius:0!important}
-.csWorksBridge.card{border:0!important;border-radius:0!important;box-shadow:none!important;background:transparent!important;padding:34px 16px!important}
+
 .csWorksBridgeFlow{background:#eaf3ff;border-radius:8px}
 .cswV5Section{padding-top:54px;padding-bottom:40px}
 .cswV5Cards article{box-shadow:0 8px 28px rgba(26,66,115,.06)}
