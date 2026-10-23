@@ -859,6 +859,7 @@ const integratedEstimate = calculateIntegratedEstimate({
   masterHours: masterEstimate.hours,
   masterMatchScore: masterEstimate.matchScore,
   verifiedComplexFloorHours: masterEstimate.categoryKey === 'manual_shape_complex' ? 4 : undefined,
+  verifiedSimpleCeilingHours: masterEstimate.categoryKey === 'manual_simple' ? 2.5 : undefined,
 });
 
 // -----------------------------
@@ -1076,7 +1077,7 @@ estimatedHoursMax: analysis.estimatedHoursMax,
           ? e.message
           : '解析中にエラーが発生しました',
     },
-    { status: 500 }
+    { status: e instanceof Error && e.message.startsWith('AI画像解析の') ? 502 : 500 }
   );
 }
 }

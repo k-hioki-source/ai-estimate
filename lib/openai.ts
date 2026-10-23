@@ -640,11 +640,27 @@ summaryは日本語で簡潔に書いてください。
     ],
   });
 
-  let parsed: any = {};
+  // JSONの欠落・破損を正常な画像判定として扱わない。
+  // 従来は全スコア50・AI工数0hの疑似結果が生成され、過大見積りの原因となっていた。
+  let parsed: any;
   try {
-    parsed = JSON.parse(response.output_text || '{}');
+    parsed = JSON.parse(response.output_text || '');
   } catch {
-    parsed = {};
+    throw new Error('AI画像解析の応答を読み取れませんでした。時間をおいて再試行してください。');
+  }
+  const requiredScores = ['difficultyScore', 'partDensity', 'lineDifficulty', 'structureComplexity'];
+  const validScores = requiredScores.every((key) =>
+    typeof parsed?.[key] === 'number' && Number.isFinite(parsed[key]) && parsed[key] >= 0 && parsed[key] <= 100
+  );
+  const validHours = ['estimatedHoursMin', 'estimatedHours', 'estimatedHoursMax'].every((key) =>
+    typeof parsed?.[key] === 'number' && Number.isFinite(parsed[key]) && parsed[key] > 0
+  );
+  if (!validScores || !validHours ||
+      parsed.estimatedHoursMin > parsed.estimatedHours ||
+      parsed.estimatedHours > parsed.estimatedHoursMax ||
+      typeof parsed.summary !== 'string' || parsed.summary.trim().length < 10 ||
+      typeof parsed.workType !== 'string') {
+    throw new Error('AI画像解析の結果が不完全でした。再度お試しください。');
   }
 
   return {

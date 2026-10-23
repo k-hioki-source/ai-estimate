@@ -206,23 +206,30 @@ function chooseCategory(input: MasterEstimateInput, userText: string, aiText: st
   // AIの否定表現や「部品点数は多くない」だけでは複雑と判定しない。
   if (input.usage === 'manual' && sourceType === 'reference_drawing' && style === 'line') {
     const scores = [input.partDensity || 0, input.lineDifficulty || 0, input.structureComplexity || 0];
-    const moderateVisualFactors = scores.filter((score) => score >= 45).length;
+    // AI応答が欠落した場合の既定値50や、単なる「曲面がある」では4hにしない。
+    const strongVisualFactors = scores.filter((score) => score >= 55).length;
     const explicitGeometry = includesAny(userText, [
       '曲面が多い', '複雑な曲面', '細部が多い', '細かな部品', '部品の重なり', '通気口', 'ギアケース', '保護カバー'
     ]);
     const aiGeometry = includesAny(aiText, [
       '曲面が多い', '複雑な曲面', '曲面形状', '細部が多い', '細かな部品',
-      '部品の重なり', '通気口', 'ギアケース', '保護カバー', '複数の曲面'
+      '部品の重なり', 'パーツの重なり', '曲面やパーツの重なり',
+      '通気口', 'ギアケース', '保護カバー', '複数の曲面'
     ]);
-    const clearSimple = includesAny(aiText, ['比較的単純', '形状は単純', '単純な外形', '細部が少ない']);
-    const isShapeComplex =
-      (difficulty >= 50 && moderateVisualFactors >= 2 && !clearSimple) ||
-      (difficulty >= 50 && (explicitGeometry || (aiGeometry && moderateVisualFactors >= 1)));
+    const clearSimple = includesAny(aiText, [
+      '比較的単純', '形状は単純', '単純な外形', '細部が少ない', '形状が単純'
+    ]);
+    // 画像解析が正常に返した複数の形状根拠を重視。難易度50だけでは引き上げない。
+    const isShapeComplex = !clearSimple && (
+      (difficulty >= 55 && strongVisualFactors >= 2) ||
+      (difficulty >= 55 && aiGeometry && strongVisualFactors >= 1) ||
+      (difficulty >= 50 && explicitGeometry && (aiGeometry || strongVisualFactors >= 1))
+    );
     if (isShapeComplex) {
       return { key: 'manual_shape_complex', label: '取説イラスト・曲面／細部が多い', baseHours: 4,
         reason: '新規作図で曲面・細部・重なりなどの複数根拠を確認した4時間基準' };
     }
-    if (difficulty <= 35 && moderateVisualFactors <= 1 && !explicitGeometry && !aiGeometry) {
+    if ((difficulty <= 35 || (difficulty <= 45 && clearSimple)) && strongVisualFactors <= 1 && !explicitGeometry && !aiGeometry) {
       return { key: 'manual_simple', label: '取説イラスト・簡易作図', baseHours: 2,
         reason: '新規作図だが形状が単純で細部が少ない2時間基準' };
     }
@@ -379,6 +386,7 @@ export function calculateIntegratedEstimate(input: {
   masterHours: number;
   masterMatchScore: number;
   verifiedComplexFloorHours?: number;
+  verifiedSimpleCeilingHours?: number;
 }) {
   const values = [input.systemHours, input.aiHours || 0, input.masterHours].filter((v) => v > 0);
   if (values.length < 2) {
@@ -413,7 +421,10 @@ export function calculateIntegratedEstimate(input: {
   const verifiedFloor = input.verifiedComplexFloorHours && input.verifiedComplexFloorHours > 0
     ? Math.min(input.verifiedComplexFloorHours, input.masterHours)
     : 0;
-  const hours = ceilHalf(Math.max(1, weightedHours, antiLowFloor, verifiedFloor));
+  const provisionalHours = ceilHalf(Math.max(1, weightedHours, antiLowFloor, verifiedFloor));
+  const hours = input.verifiedSimpleCeilingHours && input.verifiedSimpleCeilingHours > 0
+    ? Math.min(provisionalHours, input.verifiedSimpleCeilingHours)
+    : provisionalHours;
 
   let agreementScore = Math.round(100 - spreadRate * 70);
   agreementScore = Math.round((agreementScore * 0.7) + (input.masterMatchScore * 0.3));

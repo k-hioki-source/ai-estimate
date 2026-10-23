@@ -755,45 +755,67 @@ async function handleFormalQuoteRequest() {
 </div>
   
 
-    {/* ログイン後は見積り画面として案内。ログイン前は従来の紹介文を表示 */}
-    <section className="hero card">
-      <div className="heroContent">
-        <div className="heroText">
-          {authChecked && user ? (
-            <>
-              <div className="eyebrow">CS WORKS｜AI ESTIMATE</div>
-              <h1 className="heroTitle">AI概算見積り</h1>
-              <p className="heroLead">
-                制作したいイラストの資料をアップロードして、概算費用と制作時間を確認できます。
-                見積り結果はマイページに保存でき、正式見積りや制作依頼へ進められます。
-              </p>
-              <div className="heroPoints">
-                <div className="miniPoint">画像・図面から概算見積り</div>
-                <div className="miniPoint">制作時間・概算金額を確認</div>
-                <div className="miniPoint">見積り結果を保存して依頼へ</div>
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="eyebrow">CS WORKS｜CREATE SUPPORT</div>
-              <h1 className="heroTitle">イラスト制作を、もっと簡単に。<br />見積りから納品までオンラインで。</h1>
-              <p className="heroLead">
-                CS Worksは、クリエイトサポートへのイラスト・CG制作依頼を、
-                概算見積りから正式見積り、発注、制作確認、納品までオンラインで進められるサービスです。
-              </p>
-              <div className="heroPoints">
-                <div className="miniPoint">その場で概算金額を確認</div>
-                <div className="miniPoint">正式見積り・発注までオンライン</div>
-                <div className="miniPoint">制作確認・納品まで一元管理</div>
-              </div>
-            </>
-          )}
+    {/* CS Works v5: 最初に実際のAI概算見積り窓口を表示 */}
+    <section className="cswTopHero" aria-label="CS Works AI概算見積り">
+      <div className="cswTopHeroCopy">
+        <div className="eyebrow">CS WORKS｜CREATE SUPPORT</div>
+        {authChecked && user ? (
+          <h1 className="cswTopHeadline">AI概算見積り</h1>
+        ) : (
+          <h1 className="cswTopHeadline">そのイラスト、<span>いくらで作れる？</span></h1>
+        )}
+        <p className="cswTopLead">
+          写真・図面・文章からAIが制作内容を分析。
+          概算見積りから正式発注、制作確認、納品まで。
+          技術イラストの依頼を、もっとシンプルに。
+        </p>
+        <div className="cswTopChips">
+          <span>登録なしで概算見積り</span>
+          <span>法人対応</span>
+          <span>技術イラスト制作30年以上</span>
         </div>
-        <div className="heroImageWrap">
-          <img src="https://www.create-support.co.jp/public/hydraulic.png" alt="油圧シリンダーのテクニカルイラスト" className="heroImage" />
+        <p className="cswTopCredit">制作・品質管理：株式会社クリエイトサポート</p>
+        {user ? <Link href="/mypage" className="cswTopAccountLink">マイページへ →</Link> : null}
+      </div>
+      <div className="cswTopEstimate" id="ai-estimate">
+        <div className="cswTopEstimateTitle">
+          <strong>まずは無料でAI概算見積り</strong>
+          <span>登録不要</span>
         </div>
+        <div id="ai-assistant-section">
+        <AiAssistant
+          assistText={assistText}
+          assistLoading={assistLoading}
+          suggestCompleted={suggestCompleted}
+          showEstimateForm={showEstimateForm}
+          onAssistTextChange={setAssistText}
+          onSuggest={handleSuggestForm}
+          onManualInput={() => {
+            setSuggestCompleted(false);
+            setShowEstimateForm(true);
+            setTimeout(() => {
+              document.getElementById('estimate-form-details')?.scrollIntoView({
+                behavior: 'smooth',
+                block: 'start',
+              });
+            }, 100);
+          }}
+        />
+        </div>
+
       </div>
     </section>
+
+    <section className="updateBox" id="csw-announcements">
+      <div className="updateBadge">AI概算見積り</div>
+      <div>
+        <h2 className="updateTitle">画像がなくても、その場で概算を確認できます</h2>
+        <p className="updateText">
+          参考画像をアップロードするか、9種類のサンプルから近いイメージを選択。AIが制作内容を解析して概算金額を算出します。
+        </p>
+      </div>
+    </section>
+
 
     {/* NDA案内は未ログイン時のみ、メインビジュアルの下に表示 */}
     {authChecked && !user ? (
@@ -840,15 +862,6 @@ async function handleFormalQuoteRequest() {
       </section>
     ) : null}
 
-    <section className="updateBox" id="ai-estimate">
-      <div className="updateBadge">AI概算見積り</div>
-      <div>
-        <h2 className="updateTitle">画像がなくても、その場で概算を確認できます</h2>
-        <p className="updateText">
-          参考画像をアップロードするか、9種類のサンプルから近いイメージを選択。AIが制作内容を解析して概算金額を算出します。
-        </p>
-      </div>
-    </section>
 
       <section className="card stackLarge">
         {authChecked && !user && (
@@ -858,26 +871,6 @@ async function handleFormalQuoteRequest() {
           </div>
         )}
 
-        <div id="ai-assistant-section">
-        <AiAssistant
-          assistText={assistText}
-          assistLoading={assistLoading}
-          suggestCompleted={suggestCompleted}
-          showEstimateForm={showEstimateForm}
-          onAssistTextChange={setAssistText}
-          onSuggest={handleSuggestForm}
-          onManualInput={() => {
-            setSuggestCompleted(false);
-            setShowEstimateForm(true);
-            setTimeout(() => {
-              document.getElementById('estimate-form-details')?.scrollIntoView({
-                behavior: 'smooth',
-                block: 'start',
-              });
-            }, 100);
-          }}
-        />
-        </div>
 
         {showEstimateForm ? (
           <div id="estimate-form-details" className="estimateFormReveal">
@@ -1953,7 +1946,32 @@ async function handleFormalQuoteRequest() {
         }
       `}</style>
 
-      <footer className="footer">
+      {/* 制作内容とサービス紹介 */}
+<section className="cswV5Section" id="csw-flow">
+<h2>見積りから納品まで、ひとつの場所で。</h2>
+<div className="cswV5Cards"><article><b>01 AI概算見積り</b><p>登録なしで概算金額を確認。</p></article><article><b>02 正式見積り・発注</b><p>担当者が確認し、正式見積りをご案内。</p></article><article><b>03 制作・確認・納品</b><p>マイページでやり取りや納品を管理。</p></article></div>
+</section>
+<section className="cswV5Section" id="csw-works"><h2>技術資料から販促ビジュアルまで。</h2>
+<div className="cswV5Cards">
+<article><div className="cswV5Placeholder">取扱説明書・技術線画</div><b>取扱説明書・技術線画</b><p>製品写真やCAD資料をもとに線画を制作。</p></article>
+<article><div className="cswV5Placeholder">分解図・パーツカタログ</div><b>分解図・パーツカタログ</b><p>部品構成を伝える技術図を制作。</p></article>
+<article><div className="cswV5Art"><img src="/images/hydraulic.png" alt="制作実績：油圧シリンダーのカットモデルイラスト" /></div><b>3DCG・リアルイラスト</b><p>製品の内部構造まで、わかりやすく表現。</p></article>
+</div></section>
+<section className="cswV5Section"><h2>AIの速さと、制作会社の品質を。</h2><p>専門スタッフが制作を担当。見積りから納品までオンラインで管理できます。</p></section>
+<style>{`
+.cswTopHero{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:28px;align-items:start;padding:32px;border:1px solid #dce7f7;border-radius:20px;background:linear-gradient(135deg,#fff,#f1f7ff)}
+.cswTopHeroCopy{min-width:0;padding:26px 2px}.cswTopHeadline{font-size:clamp(31px,3.5vw,50px);line-height:1.3;color:#122544;margin:18px 0}.cswTopHeadline span{color:#2363e8;display:block}
+.cswTopLead{color:#52647c;font-size:15px;line-height:1.9}.cswTopChips{display:flex;flex-wrap:wrap;gap:8px;margin:24px 0}.cswTopChips span{border-radius:99px;background:#e6f0ff;color:#315b90;padding:7px 10px;font-size:12px;font-weight:700}
+.cswTopCredit{color:#76879a;font-size:12px}.cswTopAccountLink{display:inline-block;color:#175fcb;font-weight:800;margin-top:14px}
+.cswTopEstimate{min-width:0;background:#fff;border:1px solid #d6e4f6;border-radius:18px;padding:18px;box-shadow:0 18px 40px #21457512}
+.cswTopEstimateTitle{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:14px}.cswTopEstimateTitle strong{font-size:17px;color:#183456}.cswTopEstimateTitle span{background:#e5f8f1;color:#078a62;border-radius:99px;padding:4px 9px;font-size:11px;font-weight:800;flex:none}
+.cswV5Section{padding:55px 0;text-align:center}.cswV5Section h2{font-size:clamp(24px,2.7vw,33px);color:#17385d;margin:0 0 25px}.cswV5Section>p{color:#667990}
+.cswV5Cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;text-align:left}.cswV5Cards article{padding:22px;background:#fff;border:1px solid #dfe8f4;border-radius:16px;min-width:0}.cswV5Cards b{color:#17385d}.cswV5Cards p{color:#667990;font-size:13px;line-height:1.8}
+.cswV5Art,.cswV5Placeholder{height:170px;border-radius:12px;background:#e7f0fc;display:flex;align-items:center;justify-content:center;margin-bottom:14px}.cswV5Art img{max-width:100%;max-height:100%;object-fit:contain}.cswV5Placeholder{color:#6685a7;font-size:13px}
+@media(max-width:950px){.cswTopHero{grid-template-columns:1fr;gap:16px;padding:20px}.cswTopHeroCopy{padding:4px}}
+@media(max-width:700px){.cswV5Cards{grid-template-columns:1fr}.cswTopHero{padding:12px}.cswTopEstimate{padding:12px}}
+`}</style>
+<footer className="footer">
         <div className="footerInner">
           <div className="footerBrand">
             <a href="https://www.create-support.co.jp/" className="footerLogo">
