@@ -5,7 +5,6 @@ import Link from 'next/link';
 import type { User } from '@supabase/supabase-js';
 import { getSupabaseBrowserClient } from '../lib/supabase/client';
 import HeaderLinks from "./HeaderLinks";
-import AiAssistant from "./estimate/AiAssistant";
 import EstimateSave from "./estimate/EstimateSave";
 type ApiResponse = {
   estimateId: string;
@@ -798,40 +797,68 @@ async function handleFormalQuoteRequest() {
           <strong>{authChecked && user ? 'AI概算見積りを作成' : 'まずは無料でAI概算見積り'}</strong>
           {authChecked && user ? <Link href="/mypage" className="cswTopAccountLink">マイページへ →</Link> : <span>登録不要</span>}
         </div>
-        <div id="ai-assistant-section">
-        <AiAssistant
-          assistText={assistText}
-          assistLoading={assistLoading}
-          suggestCompleted={suggestCompleted}
-          showEstimateForm={showEstimateForm}
-          onAssistTextChange={setAssistText}
-          onSuggest={handleSuggestForm}
-          onManualInput={() => {
+        <div id="ai-assistant-section" className="cswSimpleAssistant">
+          <label htmlFor="csw-request" className="cswSimpleLabel">どんなイラストを作りたいですか？</label>
+          <textarea
+            id="csw-request"
+            className="cswSimpleTextarea"
+            value={assistText}
+            onChange={(e) => setAssistText(e.target.value)}
+            placeholder="例：製品写真から、取扱説明書用の白黒線画を1点作成したい。"
+            rows={4}
+          />
+          <div className="cswSimpleExamples" aria-label="入力例">
+            {[
+              ['取説用の線画', '製品写真から、取扱説明書用の白黒線画を1点作成したい。'],
+              ['カラー説明図', '製品の仕組みを説明するカラーイラストを1点作成したい。'],
+              ['販促用リアル', '製品の写真をもとに販促用リアルイラストを1点作成したい。'],
+            ].map(([label, value]) => (
+              <button key={label} type="button" onClick={() => setAssistText(value)}>{label}</button>
+            ))}
+          </div>
+          <button type="button" className="cswSimplePrimary" disabled={assistLoading} onClick={handleSuggestForm}>
+            {assistLoading ? 'AIが条件を整理しています…' : '✦ 無料でAI見積りを始める →'}
+          </button>
+          <button type="button" className="cswSimpleManual" onClick={() => {
             setSuggestCompleted(false);
             setShowEstimateForm(true);
-            setTimeout(() => {
-              document.getElementById('estimate-form-details')?.scrollIntoView({
-                behavior: 'smooth',
-                block: 'start',
-              });
-            }, 100);
-          }}
-        />
+            setTimeout(() => document.getElementById('estimate-form-details')?.scrollIntoView({behavior:'smooth',block:'start'}),100);
+          }}>参考画像を追加・手動で条件を入力する</button>
+          {!user && <p className="cswSimpleFootnote">会員登録なしで概算見積りをお試しいただけます</p>}
         </div>
-
       </div>
     </section>
 
-    {authChecked && !user && <section className="updateBox" id="csw-announcements">
-      <div className="updateBadge">AI概算見積り</div>
-      <div>
-        <h2 className="updateTitle">画像がなくても、その場で概算を確認できます</h2>
-        <p className="updateText">
-          参考画像をアップロードするか、9種類のサンプルから近いイメージを選択。AIが制作内容を解析して概算金額を算出します。
-        </p>
-      </div>
-    </section>}
 
+    {authChecked && !user && <div className="cswPrivacyAfterHero">
+          <div className="privacyCollectionNotice">
+            <strong>個人情報の入力なしで、すぐに概算見積りを試せます。</strong>
+            <span>見積り条件・参考画像・AI算出結果は、サービス改善と正式見積り対応のため運営者が収集・確認します。</span>
+          </div>
+    </div>}
+
+
+    {authChecked && !user ? (
+      <section className="csWorksBridge card">
+        <div className="csWorksBridgeTop">
+          <div>
+            <div className="eyebrow">CS WORKS</div>
+            <h2 className="csWorksBridgeTitle">見積りから納品まで、ひとつの場所で。</h2>
+            <p className="csWorksBridgeLead">
+              CS Worksは、クリエイトサポートへの制作依頼をオンラインで進められるサービスです。
+              AI概算見積りは登録なしですぐに利用できます。無料会員登録すると、その見積りを保存して、正式見積り・発注・案件確認・納品まで続けて管理できます。
+            </p>
+          </div>
+          <div className="csWorksBridgeActions">
+            <Link href="/signup" className="csWorksPrimaryCta">無料会員登録</Link>
+            <Link href="/login" className="csWorksSecondaryCta">ログイン</Link>
+          </div>
+        </div>
+        <div className="csWorksBridgeFlow" aria-label="CS Worksの利用の流れ">
+          <span>AI概算見積り</span><b>→</b><span>保存</span><b>→</b><span>正式見積り</span><b>→</b><span>発注</span><b>→</b><span>案件管理</span><b>→</b><span>納品</span>
+        </div>
+      </section>
+    ) : null}
 
     {/* NDA案内は未ログイン時のみ、メインビジュアルの下に表示 */}
     {authChecked && !user ? (
@@ -856,36 +883,10 @@ async function handleFormalQuoteRequest() {
       </section>
     ) : null}
 
-    {authChecked && !user ? (
-      <section className="csWorksBridge card">
-        <div className="csWorksBridgeTop">
-          <div>
-            <div className="eyebrow">CS WORKS</div>
-            <h2 className="csWorksBridgeTitle">見積りから納品まで、ひとつの場所で。</h2>
-            <p className="csWorksBridgeLead">
-              CS Worksは、クリエイトサポートへの制作依頼をオンラインで進められるサービスです。
-              AI概算見積りは登録なしですぐに利用できます。無料会員登録すると、その見積りを保存して、正式見積り・発注・案件確認・納品まで続けて管理できます。
-            </p>
-          </div>
-          <div className="csWorksBridgeActions">
-            <Link href="/signup" className="csWorksPrimaryCta">無料会員登録</Link>
-            <Link href="/login" className="csWorksSecondaryCta">ログイン</Link>
-          </div>
-        </div>
-        <div className="csWorksBridgeFlow" aria-label="CS Worksの利用の流れ">
-          <span>AI概算見積り</span><b>→</b><span>保存</span><b>→</b><span>正式見積り</span><b>→</b><span>発注</span><b>→</b><span>案件管理</span><b>→</b><span>納品</span>
-        </div>
-      </section>
-    ) : null}
 
 
       <section className="card stackLarge">
-        {authChecked && !user && (
-          <div className="privacyCollectionNotice">
-            <strong>個人情報の入力なしで、すぐに概算見積りを試せます。</strong>
-            <span>見積り条件・参考画像・AI算出結果は、サービス改善と正式見積り対応のため運営者が収集・確認します。</span>
-          </div>
-        )}
+
 
 
         {showEstimateForm ? (
@@ -1971,6 +1972,21 @@ async function handleFormalQuoteRequest() {
 </div></section>}
 {authChecked && !user && <section className="cswV5Section"><h2>AIの速さと、制作会社の品質を。</h2><p>専門スタッフが制作を担当。見積りから納品までオンラインで管理できます。</p></section>}
 <style>{`
+
+.cswSimpleAssistant{display:flex;flex-direction:column;gap:14px;padding:12px 2px 4px}
+.cswSimpleLabel{font-size:17px;font-weight:850;color:#172f51;line-height:1.5}
+.cswSimpleTextarea{width:100%;min-height:142px;box-sizing:border-box;border:1.5px solid #b7cdec;border-radius:12px;padding:17px 18px;background:#fff;color:#173253;font:inherit;font-size:16px;line-height:1.75;resize:vertical}
+.cswSimpleTextarea::placeholder{color:#8797aa}.cswSimpleTextarea:focus{outline:3px solid #dbeafe;border-color:#2464e9}
+.cswSimpleExamples{display:flex;gap:9px;flex-wrap:wrap}.cswSimpleExamples button{border:1px solid #d4e2f6;background:#f3f7ff;border-radius:99px;padding:10px 14px;color:#28558e;font-size:13px;font-weight:750;cursor:pointer}
+.cswSimpleExamples button:hover{background:#e4eeff}
+.cswSimplePrimary{width:100%;min-height:58px;border:0;border-radius:12px;background:#2563eb;color:white;font-size:17px;font-weight:850;cursor:pointer;box-shadow:0 8px 20px #2563eb22}
+.cswSimplePrimary:disabled{opacity:.6;cursor:wait}.cswSimpleManual{align-self:center;background:transparent;border:0;color:#245da9;text-decoration:underline;font-size:14px;font-weight:700;cursor:pointer;padding:6px}
+.cswSimpleFootnote{margin:0;text-align:center;color:#8292a9;font-size:12px}
+.cswPrivacyAfterHero .privacyCollectionNotice{margin:0;padding:14px 18px;font-size:13px}
+.cswPrivacyAfterHero .privacyCollectionNotice strong{font-size:14px}
+.cswTopEstimateTitle strong{font-size:20px!important}
+@media(max-width:700px){.cswSimpleLabel{font-size:16px}.cswSimpleTextarea{font-size:16px}.cswSimplePrimary{font-size:15px}.cswSimpleExamples button{font-size:12px}}
+
 .cswTopHero{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,3fr);gap:28px;align-items:start;padding:32px;border:1px solid #dce7f7;border-radius:20px;background:linear-gradient(135deg,#fff,#f1f7ff)}
 .cswTopHeroCopy{min-width:0;padding:26px 2px}.cswTopHeadline{font-size:clamp(30px,3.1vw,46px);line-height:1.3;color:#122544;margin:18px 0}.cswTopHeadline span{color:#2363e8;display:block}
 .cswTopLead{color:#52647c;font-size:15px;line-height:1.9}.cswTopChips{display:flex;flex-wrap:wrap;gap:8px;margin:24px 0}.cswTopChips span{border-radius:99px;background:#e6f0ff;color:#315b90;padding:7px 10px;font-size:12px;font-weight:700}
