@@ -776,9 +776,9 @@ async function handleFormalQuoteRequest() {
           <h1 className="cswTopHeadline">そのイラスト、<span>いくらで作れる？</span></h1>
         )}
         <p className="cswTopLead">
-          写真・図面・文章からAIが制作内容を分析。
-          概算見積りから正式発注、制作確認、納品まで。
-          技術イラストの依頼を、もっとシンプルに。
+          写真・図面・文章から制作内容を整理。
+          概算見積りを入口に、正式見積り・発注・制作確認・納品まで。
+          技術イラストの制作依頼を、ひとつの場所で。
         </p>
         <div className="cswTopChips">
           <span>登録なしで概算見積り</span>
@@ -843,12 +843,6 @@ async function handleFormalQuoteRequest() {
 
     )}
 
-    {authChecked && !user && <div className="cswPrivacyAfterHero">
-          <div className="privacyCollectionNotice">
-            <strong>個人情報の入力なしで、すぐに概算見積りを試せます。</strong>
-            <span>見積り条件・参考画像・AI算出結果は、サービス改善と正式見積り対応のため運営者が収集・確認します。</span>
-          </div>
-    </div>}
 
 
     {authChecked && !user ? (
@@ -873,6 +867,18 @@ async function handleFormalQuoteRequest() {
       </section>
     ) : null}
 
+    {/* お客様への安心案内：プライバシーとNDAを同じ段にまとめる */}
+    <div className="cswTrustGrid">
+      <div className="cswTrustPrivacy">
+    {authChecked && !user && <div className="cswPrivacyAfterHero">
+          <div className="privacyCollectionNotice">
+            <strong>個人情報の入力なしで、すぐに概算見積りを試せます。</strong>
+            <span>見積り条件・参考画像・AI算出結果は、サービス改善と正式見積り対応のため運営者が収集・確認します。</span>
+          </div>
+    </div>}
+
+      </div>
+      <div className="cswTrustNda">
     {/* NDA案内は未ログイン時のみ、メインビジュアルの下に表示 */}
     {authChecked && !user ? (
       <section aria-labelledby="csw-nda-title" style={{
@@ -895,6 +901,11 @@ async function handleFormalQuoteRequest() {
         </div>
       </section>
     ) : null}
+      </div>
+    </div>
+
+
+
 
 
 
@@ -2072,7 +2083,28 @@ async function handleFormalQuoteRequest() {
 .cswV5Section{padding-top:54px;padding-bottom:40px}
 .cswV5Cards article{box-shadow:0 8px 28px rgba(26,66,115,.06)}
 
-`}</style>
+`}
+/* v13: hero vertical balance and platform positioning */
+.cswTopHero{align-items:stretch!important;gap:36px!important}
+.cswTopHeroCopy{display:flex;flex-direction:column;padding:14px 2px!important}
+.cswTopMainVisual{margin:12px 0 8px!important;flex:0 1 auto}
+.cswTopMainVisual img{width:82%!important;max-width:435px!important;max-height:300px!important;object-fit:contain!important}
+.cswTopCredit{margin-top:auto;padding-top:8px}
+.cswTopEstimate{align-self:start}
+.cswTrustGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:26px;margin:46px 0 54px;align-items:stretch}
+.cswTrustPrivacy,.cswTrustNda{min-width:0;padding:18px 22px;border-left:3px solid #94bdf5;background:#f5f9ff;border-radius:0 10px 10px 0}
+.cswTrustPrivacy .cswPrivacyAfterHero{padding:0!important}
+.cswTrustPrivacy .privacyCollectionNotice{border:0!important;padding:0!important;background:transparent!important}
+.cswTrustNda section{padding:0!important;border:0!important;background:transparent!important}
+.cswTrustNda h2{font-size:17px!important}
+.cswTrustGrid:has(> .cswTrustPrivacy:empty){display:none}
+/* Give the content sections distinct breathing room */
+.csWorksBridge.card{margin-top:44px!important}
+.cswSampleResult{margin-top:72px!important;margin-bottom:72px!important}
+.cswV5Section{padding-top:78px!important;padding-bottom:72px!important}
+@media(max-width:1100px){.cswTopMainVisual img{width:78%!important;max-width:410px!important}}
+@media(max-width:760px){.cswTrustGrid{grid-template-columns:1fr;gap:16px;margin:30px 0 42px}.cswTopMainVisual img{width:90%!important;max-height:none!important}.cswTopHero{gap:18px!important}}
+</style>
 <footer className="footer">
         <div className="footerInner">
           <div className="footerBrand">
