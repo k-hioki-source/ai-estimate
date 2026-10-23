@@ -2083,7 +2083,6 @@ async function handleFormalQuoteRequest() {
 .cswV5Section{padding-top:54px;padding-bottom:40px}
 .cswV5Cards article{box-shadow:0 8px 28px rgba(26,66,115,.06)}
 
-`}
 /* v13: hero vertical balance and platform positioning */
 .cswTopHero{align-items:stretch!important;gap:36px!important}
 .cswTopHeroCopy{display:flex;flex-direction:column;padding:14px 2px!important}
@@ -2104,7 +2103,7 @@ async function handleFormalQuoteRequest() {
 .cswV5Section{padding-top:78px!important;padding-bottom:72px!important}
 @media(max-width:1100px){.cswTopMainVisual img{width:78%!important;max-width:410px!important}}
 @media(max-width:760px){.cswTrustGrid{grid-template-columns:1fr;gap:16px;margin:30px 0 42px}.cswTopMainVisual img{width:90%!important;max-height:none!important}.cswTopHero{gap:18px!important}}
-</style>
+`}</style>
 <footer className="footer">
         <div className="footerInner">
           <div className="footerBrand">
