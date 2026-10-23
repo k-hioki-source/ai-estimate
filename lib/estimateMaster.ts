@@ -245,19 +245,22 @@ export function calculateMasterEstimate(input: MasterEstimateInput) {
     '写真にない', '描き起こし', '新規作図', '新規に作図',
     'オリジナル', '写真を参考に', '図面を参考に',
     '断面', '分解図', '内部構造', '構造変更',
+    'パース変更', '構図変更', '複数ビュー', '複数カット', '別構図',
+    '図面から', '寸法図', '新しい角度',
   ]);
   const simplePhotoTrace =
     input.sourceType === 'reference_drawing' &&
     photoTraceRequest && !newDrawingRequest &&
     input.usage === 'manual' && input.style === 'line' &&
-    input.workType === 'simple_trace' &&
+    ['simple_trace', 'standard_trace'].includes(input.workType || '') &&
     (input.difficultyScore ?? 100) <= 45 &&
     (input.partDensity ?? 100) <= 55 &&
     (input.lineDifficulty ?? 100) <= 55 &&
     (input.structureComplexity ?? 100) <= 55 &&
-    !input.isExplodedView && !input.hasLeaderLines && !input.hasPartNumbers;
+    !input.isExplodedView && !input.hasLeaderLines && !input.hasPartNumbers &&
+    !includesAny(userText, ['高密度', '細かな部品', '多数の部品', '細かい部品', '配線', 'ハーネス']);
   const normalizedInput = simplePhotoTrace
-    ? { ...input, sourceType: 'photo_trace' }
+    ? { ...input, sourceType: 'photo_trace', workType: 'simple_trace' }
     : input;
   const category = chooseCategory(normalizedInput, userText, aiText, text);
   const adjustments: Adjustment[] = [];
