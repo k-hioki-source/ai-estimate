@@ -787,6 +787,11 @@ async function handleFormalQuoteRequest() {
         <img src="https://www.create-support.co.jp/public/titlelogo.png" alt="クリエイトサポート" />
       </a>
   <HeaderLinks />
+      {!isLanding && authChecked && !user && (
+        <Link href="/" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 14, fontWeight: 600, textDecoration: 'none', color: '#1d4ed8', marginLeft: 'auto' }}>
+          ← CS Works トップへ戻る
+        </Link>
+      )}
     </div>
 <div className="trustBar">
   テクニカルイラスト制作30年以上｜法人対応｜正式見積対応
