@@ -1951,15 +1951,11 @@ async function handleFormalQuoteRequest() {
       `}</style>
 
       {/* 制作内容とサービス紹介 */}
-<section className="cswV5Section" id="csw-flow">
-<h2>見積りから納品まで、ひとつの場所で。</h2>
-<div className="cswV5Cards"><article><b>01 AI概算見積り</b><p>登録なしで概算金額を確認。</p></article><article><b>02 正式見積り・発注</b><p>担当者が確認し、正式見積りをご案内。</p></article><article><b>03 制作・確認・納品</b><p>マイページでやり取りや納品を管理。</p></article></div>
-</section>
 <section className="cswV5Section" id="csw-works"><h2>技術資料から販促ビジュアルまで。</h2>
 <div className="cswV5Cards">
-<article><div className="cswV5Placeholder">取扱説明書・技術線画</div><b>取扱説明書・技術線画</b><p>製品写真やCAD資料をもとに線画を制作。</p></article>
-<article><div className="cswV5Placeholder">分解図・パーツカタログ</div><b>分解図・パーツカタログ</b><p>部品構成を伝える技術図を制作。</p></article>
-<article><div className="cswV5Placeholder">3DCG・リアルイラスト</div><b>3DCG・リアルイラスト</b><p>製品の内部構造や質感まで、わかりやすく表現。</p></article>
+<article><div className="cswV5Art"><img src="/images/suspension.jpg" alt="制作実績：自動車サスペンションの技術線画" /></div><b>取扱説明書・技術線画</b><p>製品写真やCAD資料をもとに、細部まで伝わる技術線画を制作。</p></article>
+<article><div className="cswV5Art"><img src="/images/exploded-view.jpg" alt="制作実績：機械部品の分解図・パーツカタログ用線画" /></div><b>分解図・パーツカタログ</b><p>部品構成や組付け関係をわかりやすく伝える分解図を制作。</p></article>
+<article><div className="cswV5Art"><img src="/images/power-tool.jpg" alt="制作実績：電動工具のカラー技術イラスト" /></div><b>3DCG・リアルイラスト</b><p>形状や質感をわかりやすく伝えるカラーイラストを制作。</p></article>
 </div></section>
 <section className="cswV5Section"><h2>AIの速さと、制作会社の品質を。</h2><p>専門スタッフが制作を担当。見積りから納品までオンラインで管理できます。</p></section>
 <style>{`
@@ -1971,7 +1967,7 @@ async function handleFormalQuoteRequest() {
 .cswTopEstimateTitle{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:14px}.cswTopEstimateTitle strong{font-size:17px;color:#183456}.cswTopEstimateTitle span{background:#e5f8f1;color:#078a62;border-radius:99px;padding:4px 9px;font-size:11px;font-weight:800;flex:none}
 .cswV5Section{padding:55px 0;text-align:center}.cswV5Section h2{font-size:clamp(24px,2.7vw,33px);color:#17385d;margin:0 0 25px}.cswV5Section>p{color:#667990}
 .cswV5Cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;text-align:left}.cswV5Cards article{padding:22px;background:#fff;border:1px solid #dfe8f4;border-radius:16px;min-width:0}.cswV5Cards b{color:#17385d}.cswV5Cards p{color:#667990;font-size:13px;line-height:1.8}
-.cswV5Art,.cswV5Placeholder{height:170px;border-radius:12px;background:#e7f0fc;display:flex;align-items:center;justify-content:center;margin-bottom:14px}.cswV5Art img{max-width:100%;max-height:100%;object-fit:contain}.cswV5Placeholder{color:#6685a7;font-size:13px}
+.cswV5Art,.cswV5Placeholder{height:170px;border-radius:12px;background:#e7f0fc;display:flex;align-items:center;justify-content:center;margin-bottom:14px}.cswV5Art img{width:100%;height:100%;object-fit:contain}.cswV5Placeholder{color:#6685a7;font-size:13px}
 /* The AiAssistant itself contains two columns: do not squeeze it inside a narrow hero column. */
 .cswTopMainVisual{margin:25px 0 18px;padding:0;display:flex;flex-direction:column;align-items:center}
 .cswTopMainVisual img{display:block;width:100%;max-width:560px;height:auto;object-fit:contain;filter:drop-shadow(0 18px 22px rgba(24,63,109,.14))}
