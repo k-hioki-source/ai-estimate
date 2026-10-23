@@ -830,6 +830,19 @@ async function handleFormalQuoteRequest() {
     </section>
 
 
+    {authChecked && !user && (
+    <section className="updateBox" id="csw-announcements">
+      <div className="updateBadge">AI概算見積り</div>
+      <div>
+        <h2 className="updateTitle">画像がなくても、その場で概算を確認できます</h2>
+        <p className="updateText">
+          参考画像をアップロードするか、9種類のサンプルから近いイメージを選択。AIが制作内容を解析して概算金額を算出します。
+        </p>
+      </div>
+    </section>
+
+    )}
+
     {authChecked && !user && <div className="cswPrivacyAfterHero">
           <div className="privacyCollectionNotice">
             <strong>個人情報の入力なしで、すぐに概算見積りを試せます。</strong>
@@ -864,8 +877,8 @@ async function handleFormalQuoteRequest() {
     {authChecked && !user ? (
       <section aria-labelledby="csw-nda-title" style={{
         display: 'flex', alignItems: 'flex-start', gap: 16,
-        padding: '20px 24px', border: '1px solid #cbdcf7',
-        borderRadius: 16, background: '#f3f7ff', color: '#17345f',
+        padding: '20px 24px', borderLeft: '4px solid #93b8e9',
+        borderRadius: 0, background: 'transparent', color: '#17345f',
       }}>
         <span aria-hidden="true" style={{ fontSize: 26, lineHeight: 1.3 }}>🛡️</span>
         <div>
@@ -885,9 +898,7 @@ async function handleFormalQuoteRequest() {
 
 
 
-      <section className="card stackLarge">
-
-
+      <section className="card stackLarge" style={{ display: showEstimateForm ? undefined : 'none' }}>
 
         {showEstimateForm ? (
           <div id="estimate-form-details" className="estimateFormReveal">
@@ -1987,7 +1998,7 @@ async function handleFormalQuoteRequest() {
 .cswTopEstimateTitle strong{font-size:20px!important}
 @media(max-width:700px){.cswSimpleLabel{font-size:16px}.cswSimpleTextarea{font-size:16px}.cswSimplePrimary{font-size:15px}.cswSimpleExamples button{font-size:12px}}
 
-.cswTopHero{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,3fr);gap:28px;align-items:start;padding:32px;border:1px solid #dce7f7;border-radius:20px;background:linear-gradient(135deg,#fff,#f1f7ff)}
+.cswTopHero{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-items:start;padding:32px;border:1px solid #dce7f7;border-radius:20px;background:linear-gradient(135deg,#fff,#f1f7ff)}
 .cswTopHeroCopy{min-width:0;padding:26px 2px}.cswTopHeadline{font-size:clamp(30px,3.1vw,46px);line-height:1.3;color:#122544;margin:18px 0}.cswTopHeadline span{color:#2363e8;display:block}
 .cswTopLead{color:#52647c;font-size:15px;line-height:1.9}.cswTopChips{display:flex;flex-wrap:wrap;gap:8px;margin:24px 0}.cswTopChips span{border-radius:99px;background:#e6f0ff;color:#315b90;padding:7px 10px;font-size:12px;font-weight:700}
 .cswTopCredit{color:#76879a;font-size:12px}.cswTopAccountLink{display:inline-block;color:#175fcb;font-weight:800;margin-top:14px}
@@ -2006,6 +2017,14 @@ async function handleFormalQuoteRequest() {
 @media(max-width:1100px){.cswTopHero{grid-template-columns:minmax(0,1fr);gap:16px;padding:24px}.cswTopHeroCopy{padding:4px}.cswTopMainVisual img{max-width:500px}.cswTopEstimate{width:100%;box-sizing:border-box}}
 @media(max-width:700px){.cswTopMainVisual img{max-width:100%}.cswTopMainVisual{margin:12px 0}.cswTopHeadline{font-size:clamp(28px,7vw,40px)}}
 @media(max-width:700px){.cswV5Cards{grid-template-columns:1fr}.cswTopHero{padding:12px}.cswTopEstimate{padding:12px}}
+/* v10: 余白と背景で区切り、すべてを同じ枠で囲まない */
+.cswPrivacyAfterHero{padding:10px 3px;background:transparent;border:0;box-shadow:none}
+.cswPrivacyAfterHero .privacyCollectionNotice{border:0!important;background:transparent!important;box-shadow:none!important;padding:8px 12px!important;border-left:3px solid #86b8ef!important;border-radius:0!important}
+.csWorksBridge.card{border:0!important;border-radius:0!important;box-shadow:none!important;background:transparent!important;padding:34px 16px!important}
+.csWorksBridgeFlow{background:#eaf3ff;border-radius:8px}
+.cswV5Section{padding-top:54px;padding-bottom:40px}
+.cswV5Cards article{box-shadow:0 8px 28px rgba(26,66,115,.06)}
+
 `}</style>
 <footer className="footer">
         <div className="footerInner">
