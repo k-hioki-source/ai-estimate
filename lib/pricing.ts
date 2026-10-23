@@ -57,41 +57,10 @@ export function calculateEstimate({
 
   const text = `${description} ${notes}`.toLowerCase();
 
-  // フォームの制作方法と依頼文が食い違う場合の補正。
-  // 写真と同じ角度・内容を線画化する案件は photo_trace として計算する。
-  // 別角度や見えない部分の描き起こしは reference_drawing のまま扱う。
-  const isPhotoBasedTrace =
-    text.includes('支給資料：写真') ||
-    text.includes('支給資料:写真') ||
-    text.includes('製品写真から') ||
-    text.includes('写真から');
-
-  const requiresDrawingFromReference =
-    text.includes('別角度') ||
-    text.includes('角度変更') ||
-    text.includes('見えない部分') ||
-    text.includes('推測して') ||
-    text.includes('描き起こし') ||
-    text.includes('オリジナル') ||
-    text.includes('新規作図') ||
-    text.includes('新規に作図') ||
-    text.includes('新たに作図') ||
-    text.includes('新しく作図') ||
-    text.includes('写真を参考に') ||
-    text.includes('写真と図面を参考に') ||
-    text.includes('図面を参考に') ||
-    text.includes('資料を参考に') ||
-    text.includes('断面図') ||
-    text.includes('断面を作成') ||
-    text.includes('断面を作図');
-
-  if (
-    sourceType === 'reference_drawing' &&
-    isPhotoBasedTrace &&
-    !requiresDrawingFromReference
-  ) {
-    sourceType = 'photo_trace';
-  }
+  // 制作方法はフォームでお客様が明示的に選択した sourceType を優先する。
+  // 「支給資料：写真」「製品写真から」などは資料の説明であり、
+  // reference_drawing を photo_trace に自動変更する根拠にしない。
+  // それ以外の既存の難易度・工数補正ロジックは変更しない。
 
   const hasVectorKeyword =
     text.includes('パス') ||
