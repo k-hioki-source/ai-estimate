@@ -774,6 +774,10 @@ async function handleFormalQuoteRequest() {
           <span>法人対応</span>
           <span>技術イラスト制作30年以上</span>
         </div>
+        <figure className="cswTopMainVisual">
+          <img src="/images/hydraulic.png" alt="クリエイトサポート制作の油圧シリンダー・カットモデルイラスト" />
+          <figcaption>複雑な製品構造も、わかりやすい技術イラストに。</figcaption>
+        </figure>
         <p className="cswTopCredit">制作・品質管理：株式会社クリエイトサポート</p>
         {user ? <Link href="/mypage" className="cswTopAccountLink">マイページへ →</Link> : null}
       </div>
@@ -1955,11 +1959,11 @@ async function handleFormalQuoteRequest() {
 <div className="cswV5Cards">
 <article><div className="cswV5Placeholder">取扱説明書・技術線画</div><b>取扱説明書・技術線画</b><p>製品写真やCAD資料をもとに線画を制作。</p></article>
 <article><div className="cswV5Placeholder">分解図・パーツカタログ</div><b>分解図・パーツカタログ</b><p>部品構成を伝える技術図を制作。</p></article>
-<article><div className="cswV5Art"><img src="/images/hydraulic.png" alt="制作実績：油圧シリンダーのカットモデルイラスト" /></div><b>3DCG・リアルイラスト</b><p>製品の内部構造まで、わかりやすく表現。</p></article>
+<article><div className="cswV5Placeholder">3DCG・リアルイラスト</div><b>3DCG・リアルイラスト</b><p>製品の内部構造や質感まで、わかりやすく表現。</p></article>
 </div></section>
 <section className="cswV5Section"><h2>AIの速さと、制作会社の品質を。</h2><p>専門スタッフが制作を担当。見積りから納品までオンラインで管理できます。</p></section>
 <style>{`
-.cswTopHero{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:28px;align-items:start;padding:32px;border:1px solid #dce7f7;border-radius:20px;background:linear-gradient(135deg,#fff,#f1f7ff)}
+.cswTopHero{display:grid;grid-template-columns:minmax(0,.82fr) minmax(660px,1.18fr);gap:28px;align-items:start;padding:32px;border:1px solid #dce7f7;border-radius:20px;background:linear-gradient(135deg,#fff,#f1f7ff)}
 .cswTopHeroCopy{min-width:0;padding:26px 2px}.cswTopHeadline{font-size:clamp(31px,3.5vw,50px);line-height:1.3;color:#122544;margin:18px 0}.cswTopHeadline span{color:#2363e8;display:block}
 .cswTopLead{color:#52647c;font-size:15px;line-height:1.9}.cswTopChips{display:flex;flex-wrap:wrap;gap:8px;margin:24px 0}.cswTopChips span{border-radius:99px;background:#e6f0ff;color:#315b90;padding:7px 10px;font-size:12px;font-weight:700}
 .cswTopCredit{color:#76879a;font-size:12px}.cswTopAccountLink{display:inline-block;color:#175fcb;font-weight:800;margin-top:14px}
@@ -1968,7 +1972,12 @@ async function handleFormalQuoteRequest() {
 .cswV5Section{padding:55px 0;text-align:center}.cswV5Section h2{font-size:clamp(24px,2.7vw,33px);color:#17385d;margin:0 0 25px}.cswV5Section>p{color:#667990}
 .cswV5Cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;text-align:left}.cswV5Cards article{padding:22px;background:#fff;border:1px solid #dfe8f4;border-radius:16px;min-width:0}.cswV5Cards b{color:#17385d}.cswV5Cards p{color:#667990;font-size:13px;line-height:1.8}
 .cswV5Art,.cswV5Placeholder{height:170px;border-radius:12px;background:#e7f0fc;display:flex;align-items:center;justify-content:center;margin-bottom:14px}.cswV5Art img{max-width:100%;max-height:100%;object-fit:contain}.cswV5Placeholder{color:#6685a7;font-size:13px}
-@media(max-width:950px){.cswTopHero{grid-template-columns:1fr;gap:16px;padding:20px}.cswTopHeroCopy{padding:4px}}
+/* The AiAssistant itself contains two columns: do not squeeze it inside a narrow hero column. */
+.cswTopMainVisual{margin:25px 0 18px;padding:0;display:flex;flex-direction:column;align-items:center}
+.cswTopMainVisual img{display:block;width:100%;max-width:520px;height:auto;object-fit:contain;filter:drop-shadow(0 18px 22px rgba(24,63,109,.14))}
+.cswTopMainVisual figcaption{font-size:12px;line-height:1.7;color:#6b7f96;text-align:center;margin-top:9px}
+@media(max-width:1350px){.cswTopHero{grid-template-columns:minmax(0,1fr);gap:16px;padding:24px}.cswTopHeroCopy{padding:4px}.cswTopMainVisual img{max-width:500px}.cswTopEstimate{width:100%;box-sizing:border-box}}
+@media(max-width:700px){.cswTopMainVisual img{max-width:100%}.cswTopMainVisual{margin:12px 0}.cswTopHeadline{font-size:clamp(28px,7vw,40px)}}
 @media(max-width:700px){.cswV5Cards{grid-template-columns:1fr}.cswTopHero{padding:12px}.cswTopEstimate{padding:12px}}
 `}</style>
 <footer className="footer">
