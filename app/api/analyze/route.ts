@@ -858,6 +858,7 @@ const integratedEstimate = calculateIntegratedEstimate({
   aiHours: analysis.estimatedHours,
   masterHours: masterEstimate.hours,
   masterMatchScore: masterEstimate.matchScore,
+  verifiedComplexFloorHours: masterEstimate.categoryKey === 'manual_shape_complex' ? 4 : undefined,
 });
 
 // -----------------------------

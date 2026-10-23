@@ -202,6 +202,31 @@ function chooseCategory(input: MasterEstimateInput, userText: string, aiText: st
   ) {
     return { key: 'manual_dense', label: '取説イラスト・高密度', baseHours: 6, reason: '複数部品・細部・線量の多い取説用線画を新規作図する基準' };
   }
+  // 新規作図の外形・曲面・部品重なりを評価。単一スコアだけでは4hにしない。
+  // AIの否定表現や「部品点数は多くない」だけでは複雑と判定しない。
+  if (input.usage === 'manual' && sourceType === 'reference_drawing' && style === 'line') {
+    const scores = [input.partDensity || 0, input.lineDifficulty || 0, input.structureComplexity || 0];
+    const moderateVisualFactors = scores.filter((score) => score >= 45).length;
+    const explicitGeometry = includesAny(userText, [
+      '曲面が多い', '複雑な曲面', '細部が多い', '細かな部品', '部品の重なり', '通気口', 'ギアケース', '保護カバー'
+    ]);
+    const aiGeometry = includesAny(aiText, [
+      '曲面が多い', '複雑な曲面', '曲面形状', '細部が多い', '細かな部品',
+      '部品の重なり', '通気口', 'ギアケース', '保護カバー', '複数の曲面'
+    ]);
+    const clearSimple = includesAny(aiText, ['比較的単純', '形状は単純', '単純な外形', '細部が少ない']);
+    const isShapeComplex =
+      (difficulty >= 50 && moderateVisualFactors >= 2 && !clearSimple) ||
+      (difficulty >= 50 && (explicitGeometry || (aiGeometry && moderateVisualFactors >= 1)));
+    if (isShapeComplex) {
+      return { key: 'manual_shape_complex', label: '取説イラスト・曲面／細部が多い', baseHours: 4,
+        reason: '新規作図で曲面・細部・重なりなどの複数根拠を確認した4時間基準' };
+    }
+    if (difficulty <= 35 && moderateVisualFactors <= 1 && !explicitGeometry && !aiGeometry) {
+      return { key: 'manual_simple', label: '取説イラスト・簡易作図', baseHours: 2,
+        reason: '新規作図だが形状が単純で細部が少ない2時間基準' };
+    }
+  }
   if (input.usage === 'manual' && (includesAny(text, ['手', '操作', '作業者', '人物']) || sourceType === 'reference_drawing')) {
     return { key: 'manual', label: '取説イラスト', baseHours: 2.5, reason: '写真・既存資料から手・製品・操作状態を作図する基準' };
   }
@@ -243,7 +268,7 @@ export function calculateMasterEstimate(input: MasterEstimateInput) {
   const categoryIncludesPerson = ['manual', 'rough_drawing'].includes(category.key);
   const categoryIncludesStructure = ['structure', 'vehicle_structure', '3dcg_structure', 'new_state'].includes(category.key);
   const categoryIncludesComplexity = [
-    'photo_complex', 'exploded_complex', 'manual_dense', '3dcg_modeling',
+    'photo_complex', 'exploded_complex', 'manual_dense', 'manual_shape_complex', '3dcg_modeling',
     'color_complex', 'real_photo_complex', 'real_photo_standard'
   ].includes(category.key);
 
@@ -265,12 +290,30 @@ export function calculateMasterEstimate(input: MasterEstimateInput) {
     includesAny(userText, ['立ち絵', 'キャラクター', 'アニメ塗り', '人物イラスト']) ||
     (includesAny(aiText, ['立ち絵', 'キャラクター', 'アニメ塗り']) &&
       !input.isIndustrialProduct);
-  const machineEvidence = normalize(`${userText} ${positiveAiText}`);
+  // 「複雑な構造や断面はなし」などの否定文は複雑さの根拠にしない。
+  // AIコメントだけで+5hを付ける場合は、視覚スコアによる裏付けも必須。
+  const hasAffirmativeMachineStructure = (value: string) => {
+    const keywords = ['内部機構', '内部部品', '多数部品', '30部品', '40部品', '50部品', '複雑な機械', '複雑な構造'];
+    return keywords.some((keyword) => {
+      let index = value.indexOf(keyword);
+      while (index !== -1) {
+        const after = value.slice(index + keyword.length).split(/[。\n！!？?]/, 1)[0].slice(0, 35);
+        // 「複雑な構造や断面はなし」「内部部品は少ない」等も否定として扱う。
+        const negative = /^(?:(?:や|と|、|，|･|・)[^。\n！!？?]{0,18})?(?:が|は|も|を|の|では|で)?(?:ほとんど|あまり)?(?:ない|なし|なく|少な|不要|見られない|認められない|必要ない|ではない|ではなく)/.test(after);
+        if (!negative) return true;
+        index = value.indexOf(keyword, index + keyword.length);
+      }
+      return false;
+    });
+  };
+  const userMachineComplexity = hasAffirmativeMachineStructure(userText);
+  const aiMachineComplexity = hasAffirmativeMachineStructure(positiveAiText);
+  const strongVisualComplexity =
+    (input.difficultyScore || 0) >= 65 &&
+    ((input.partDensity || 0) >= 65 || (input.structureComplexity || 0) >= 65);
   const trulyComplexStructure =
     !isCharacterIllustration &&
-    (includesAny(machineEvidence, ['内部機構', '内部部品', '多数部品', '30部品', '40部品', '50部品']) ||
-      (includesAny(machineEvidence, ['複雑な機械', '複雑な構造']) &&
-        !includesAny(machineEvidence, ['複雑な構造解析は不要', '構造解析は不要'])));
+    (userMachineComplexity || (aiMachineComplexity && strongVisualComplexity));
   add('complex_machine', '複雑な機械構造', 5,
     !categoryIncludesComplexity &&
     !['real', 'equipment_concept', 'science_concept', 'isometric_composition'].includes(category.key) &&
@@ -335,6 +378,7 @@ export function calculateIntegratedEstimate(input: {
   aiHours?: number;
   masterHours: number;
   masterMatchScore: number;
+  verifiedComplexFloorHours?: number;
 }) {
   const values = [input.systemHours, input.aiHours || 0, input.masterHours].filter((v) => v > 0);
   if (values.length < 2) {
@@ -364,7 +408,12 @@ export function calculateIntegratedEstimate(input: {
 
   // マスター適合度は分類の一致度であり、工数の正確性を保証しない。
   // 3方式の加重平均を基本とし、従来の過小見積り防止下限は維持する。
-  const hours = ceilHalf(Math.max(1, weightedHours, antiLowFloor));
+  // 検証済みの形状複雑カテゴリのみ、工数マスターの下限を保護。
+  // 未検証のカテゴリや誤加算（断面/複雑構造）には適用しない。
+  const verifiedFloor = input.verifiedComplexFloorHours && input.verifiedComplexFloorHours > 0
+    ? Math.min(input.verifiedComplexFloorHours, input.masterHours)
+    : 0;
+  const hours = ceilHalf(Math.max(1, weightedHours, antiLowFloor, verifiedFloor));
 
   let agreementScore = Math.round(100 - spreadRate * 70);
   agreementScore = Math.round((agreementScore * 0.7) + (input.masterMatchScore * 0.3));
