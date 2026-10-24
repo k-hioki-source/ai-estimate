@@ -62,6 +62,8 @@ export default function FileRetentionAdminPage() {
   const [selectedCandidates, setSelectedCandidates] = useState<string[]>([]);
   const [reviewOpen, setReviewOpen] = useState(false);
   const [mockPlan, setMockPlan] = useState(false);
+  const [preflightBusy, setPreflightBusy] = useState(false);
+  const [preflightResults, setPreflightResults] = useState<Record<string, { eligible: boolean; reasons: string[]; error?: string }>>({});
   const [sendingTestEmail, setSendingTestEmail] = useState(false);
   const [emailResult, setEmailResult] = useState('');
   const [testResult, setTestResult] = useState<TestResult | null>(null);
@@ -309,7 +311,7 @@ export default function FileRetentionAdminPage() {
     finally { setFixtureRunning(false); }
   }
   async function runDeletionPlan() {
-    setPlanning(true); setError(''); setDeletionPlan(null); setSelectedCandidates([]); setReviewOpen(false); setMockPlan(false);
+    setPlanning(true); setError(''); setDeletionPlan(null); setSelectedCandidates([]); setReviewOpen(false); setMockPlan(false); setPreflightResults({});
     try {
       const access = await token();
       if (!access) throw new Error('ログインし直してください。');
@@ -321,6 +323,37 @@ export default function FileRetentionAdminPage() {
       setDeletionPlan(data as DeletionPlan);
     } catch (e) { setError(e instanceof Error ? e.message : '削除対象の照合に失敗しました。'); }
     finally { setPlanning(false); }
+  }
+  async function checkSelectedCandidates() {
+    setReviewOpen(true);
+    setPreflightResults({});
+    if (mockPlan) return;
+    setPreflightBusy(true);
+    try {
+      const access = await token();
+      if (!access) throw new Error('ログインし直してください。');
+      const results: Record<string, { eligible: boolean; reasons: string[]; error?: string }> = {};
+      for (const fileId of selectedCandidates) {
+        try {
+          const response = await fetch('/api/cs-works/file-retention/manual-preflight', {
+            method: 'POST',
+            headers: { Authorization: 'Bearer ' + access, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ fileId }),
+            cache: 'no-store',
+          });
+          const data = await response.json();
+          results[fileId] = response.ok ? { eligible: data.eligible === true, reasons: data.reasons ?? [] } :
+            { eligible: false, reasons: [data.error ?? '事前確認に失敗しました。'] };
+        } catch {
+          results[fileId] = { eligible: false, reasons: ['通信エラーのため確認できません。'] };
+        }
+      }
+      setPreflightResults(results);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '事前確認に失敗しました。');
+    } finally {
+      setPreflightBusy(false);
+    }
   }
   async function sendTestEmail() {
     if (!window.confirm('管理者宛てに保管期限のテストメールを1通送信します。よろしいですか？')) return;
@@ -432,7 +465,7 @@ export default function FileRetentionAdminPage() {
     </button>
     </>}
     {isTestPage && <button type="button" onClick={() => {
-      setError(''); setSelectedCandidates([]); setReviewOpen(false); setMockPlan(true);
+      setError(''); setSelectedCandidates([]); setReviewOpen(false); setPreflightResults({}); setMockPlan(true);
       setDeletionPlan({ ok: true, dryRun: true, deletionEnabled: false, inspectedProjects: 1, readyFiles: 2, blockedFiles: 0, heldProjects: 0, truncated: false,
         projects: [{ projectId: 'mock-project', projectCode: '【画面テスト】架空案件', state: '画面確認用（DB照合なし）', readyFiles: 2, blockedFiles: 0, details: [],
           candidates: [{ id: 'mock-file-1', name: 'sample_delivery_01.pdf', type: 'delivery' },
@@ -566,17 +599,22 @@ export default function FileRetentionAdminPage() {
           <p><strong>{project.projectCode}</strong></p>
           {(project.candidates ?? []).map(file => <label key={file.id} style={{ display: 'block', margin: '8px 0' }}>
             <input type="checkbox" checked={selectedCandidates.includes(file.id)} onChange={event => {
-              setReviewOpen(false);
+              setReviewOpen(false); setPreflightResults({});
               setSelectedCandidates(prev => event.target.checked ? [...prev, file.id] : prev.filter(id => id !== file.id));
             }} /> {file.name}（{file.type}）
           </label>)}
         </div>)}
-        <button type="button" disabled={selectedCandidates.length === 0} onClick={() => setReviewOpen(true)}>
+        <button type="button" disabled={selectedCandidates.length === 0 || preflightBusy} onClick={() => void checkSelectedCandidates()}>
           選択した{selectedCandidates.length}件を確認
         </button>
         {reviewOpen && <div style={{ marginTop: 12, padding: 12, border: '1px solid #fcd34d', borderRadius: 8 }}>
           <strong>削除前の確認（実行機能は未実装）</strong>
-          <ul>{deletionPlan.projects.flatMap(p => (p.candidates ?? []).filter(f => selectedCandidates.includes(f.id)).map(f => <li key={f.id}>{p.projectCode}：{f.name}</li>))}</ul>
+          <ul>{deletionPlan.projects.flatMap(p => (p.candidates ?? []).filter(f => selectedCandidates.includes(f.id)).map(f => <li key={f.id}>
+            {p.projectCode}：{f.name}
+            {mockPlan ? ' — 模擬データ（API照合なし）' : preflightBusy ? ' — サーバー確認中…' :
+              preflightResults[f.id] ? (preflightResults[f.id].eligible ? ' — 事前確認OK（削除は未許可）' :
+                ' — 要確認：' + preflightResults[f.id].reasons.join('／')) : ' — 未確認'}
+          </li>))}</ul>
           <p>現在は確認のみです。削除操作は行われません。</p>
         </div>}
       </div>}
