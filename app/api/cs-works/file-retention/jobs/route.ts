@@ -30,7 +30,39 @@ export async function GET(request: NextRequest) {
     if (error) return respond({ error: 'ジョブ管理テーブルを取得できません。SQLの適用を確認してください。' }, 500);
     const rows = jobs ?? [];
     const recoveryNeeded = rows.filter(row => row.status === 'storage_removed' || row.status === 'failed');
+    const recoveryChecks = [];
+    for (const job of recoveryNeeded.slice(0, 20)) {
+      const { data: file, error: fileError } = await db.from('project_files')
+        .select('id,project_id,storage_path').eq('id', job.file_id).maybeSingle();
+      let storageState = 'not_checked';
+      let recordMatches = false;
+      if (fileError) {
+        storageState = 'db_lookup_failed';
+      } else if (!file) {
+        storageState = 'db_record_missing';
+      } else {
+        recordMatches = file.project_id === job.project_id;
+        const path = typeof file.storage_path === 'string' ? file.storage_path : '';
+        if (!recordMatches || !path.startsWith(job.project_id + '/') || path.includes('..')) {
+          storageState = 'invalid_reference';
+        } else {
+          const { data: objects, error: storageError } = await db.storage.from('project-files')
+            .list(path.slice(0, path.lastIndexOf('/')), {
+              search: path.slice(path.lastIndexOf('/') + 1), limit: 1000,
+            });
+          storageState = storageError ? 'storage_lookup_failed'
+            : objects?.some(obj => obj.name === path.slice(path.lastIndexOf('/') + 1))
+              ? 'present' : 'not_found_in_listing';
+        }
+      }
+      recoveryChecks.push({
+        projectId: job.project_id, fileId: job.file_id, jobStatus: job.status,
+        recordMatches, storageState, safeToAutoRecover: false,
+      });
+    }
     return respond({
+      recoveryChecks, inspectedRecoveryJobs: recoveryChecks.length,
+      recoveryChecksLimited: recoveryNeeded.length > 20,
       ok: true, readOnly: true, deletionEnabled: false,
       totalDisplayed: rows.length, truncated: rows.length === 100,
       claimed: rows.filter(row => row.status === 'claimed').length,
