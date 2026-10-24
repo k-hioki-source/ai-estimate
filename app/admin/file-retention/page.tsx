@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { getSupabaseBrowserClient } from '../../../lib/supabase/client';
 
 type DeletionLog = { id: string; project_id: string; file_id: string; outcome: 'deleted' | 'failed' | 'skipped'; detail: string | null; created_at: string };
-type LifecycleResult = { ok: boolean; shareRevoked: boolean; storageRemoved: boolean; fileRowDeleted: boolean; shareCascadeVerified: boolean; existingFilesTouched: number };
+type LifecycleResult = { ok: boolean; shareRevoked: boolean; storageRemoved: boolean; fileRowDeleted: boolean; shareCascadeVerified: boolean; auditLogged: boolean; existingFilesTouched: number };
 type LinkageResult = { checkedShares: number; linkedShares: number; invalidShares: number; activeShares: number; truncated: boolean; issues: string[]; deletedFiles: number; changedRows: number };
 type StorageTestResult = { ok: boolean; uploaded: boolean; verified: boolean; deleted: boolean; confirmedAbsent: boolean; realProjectsChanged: number; databaseRowsChanged: number };
 type FixtureResult = { passed: boolean; fixtureOnly: boolean; realFilesChecked: number; deletedFiles: number; cases: { caseName: string; eligible: number; expected: number; passed: boolean }[] };
@@ -106,6 +106,7 @@ export default function FileRetentionAdminPage() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || '連動削除テストに失敗しました。');
       setLifecycleResult(data as LifecycleResult);
+      await loadDeletionLogs();
     } catch (e) { setError(e instanceof Error ? e.message : '連動削除テストに失敗しました。'); }
     finally { setLifecycleTesting(false); }
   }
@@ -244,7 +245,7 @@ export default function FileRetentionAdminPage() {
           <tbody>{deletionLogs.map(log => <tr key={log.id}>
             <td style={{ padding: 8, borderTop: '1px solid #e2e8f0' }}>{new Date(log.created_at).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' })}</td>
             <td style={{ padding: 8, borderTop: '1px solid #e2e8f0' }}><Link href={'/admin/projects/' + log.project_id}>{log.project_id.slice(0, 8)}…</Link></td>
-            <td style={{ padding: 8, borderTop: '1px solid #e2e8f0' }}>{log.outcome === 'deleted' ? '削除済み' : log.outcome === 'failed' ? '失敗' : '対象外'}</td>
+            <td style={{ padding: 8, borderTop: '1px solid #e2e8f0' }}>{log.detail?.startsWith('[TEST ONLY]') ? (log.outcome === 'deleted' ? 'テスト成功' : 'テスト失敗') : log.outcome === 'deleted' ? '削除済み' : log.outcome === 'failed' ? '失敗' : '対象外'}</td>
             <td style={{ padding: 8, borderTop: '1px solid #e2e8f0' }}>{log.detail || '—'}</td>
           </tr>)}</tbody>
         </table></div>}
@@ -252,7 +253,7 @@ export default function FileRetentionAdminPage() {
     </section>}
     {lifecycleResult && <section role="status" style={{ marginTop: 16, padding: 16, borderRadius: 12, background: '#f0fdf4', border: '1px solid #86efac' }}>
       <strong>連動削除テスト成功（新規作成した専用データのみ）</strong>
-      <p>共有リンク無効化：{lifecycleResult.shareRevoked ? '成功' : '失敗'} ／ Storage削除：{lifecycleResult.storageRemoved ? '成功' : '失敗'} ／ DB記録削除：{lifecycleResult.fileRowDeleted ? '成功' : '失敗'} ／ 共有履歴の連動削除：{lifecycleResult.shareCascadeVerified ? '成功' : '失敗'}</p>
+      <p>共有リンク無効化：{lifecycleResult.shareRevoked ? '成功' : '失敗'} ／ Storage削除：{lifecycleResult.storageRemoved ? '成功' : '失敗'} ／ DB記録削除：{lifecycleResult.fileRowDeleted ? '成功' : '失敗'} ／ 共有履歴の連動削除：{lifecycleResult.shareCascadeVerified ? '成功' : '失敗'} ／ 削除履歴記録：{lifecycleResult.auditLogged ? '成功' : '失敗'}</p>
       <p>既存ファイルの操作：{lifecycleResult.existingFilesTouched}件 ／ 本番自動削除：無効</p>
     </section>}
     {linkageResult && <section role="status" style={{ marginTop: 16, padding: 16, borderRadius: 12, background: '#f0f9ff', border: '1px solid #7dd3fc' }}>
