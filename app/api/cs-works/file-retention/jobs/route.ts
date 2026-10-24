@@ -28,6 +28,43 @@ export async function GET(request: NextRequest) {
       .select('file_id,project_id,status,attempt_count,claimed_at,updated_at,last_error')
       .order('updated_at', { ascending: false }).limit(100);
     if (error) return respond({ error: 'ジョブ管理テーブルを取得できません。SQLの適用を確認してください。' }, 500);
+    const targetFileId = '2b3abd29-fd48-416c-8a9d-64882e4798d4';
+    const targetProjectId = 'c5723ed4-bdbe-439d-88a1-f1d7213f654f';
+    const targetPath = targetProjectId + '/csw_recovery_stage_edb579f7-fc50-4406-a161-d5b810e1ffc4.txt';
+    const { data: targetFile, error: targetFileError } = await db.from('project_files')
+      .select('id,project_id,file_name,storage_path').eq('id', targetFileId).maybeSingle();
+    const { data: targetJob, error: targetJobError } = await db.from('project_file_retention_jobs')
+      .select('file_id,project_id,status,claim_token').eq('file_id', targetFileId).maybeSingle();
+    const { data: targetReferences, error: targetReferencesError } = await db.from('project_files')
+      .select('id').eq('storage_path', targetPath).limit(3);
+    const targetIdentityMatches = !!targetFile && targetFile.project_id === targetProjectId &&
+      targetFile.storage_path === targetPath &&
+      targetFile.file_name === targetPath.split('/').pop();
+    const targetJobMatches = !!targetJob && targetJob.project_id === targetProjectId &&
+      targetJob.status === 'claimed' && !!targetJob.claim_token;
+    const targetUniqueReference = !!targetReferences &&
+      targetReferences.length === 1 && targetReferences[0].id === targetFileId;
+    let targetStorageState = 'not_checked';
+    let targetContentMatches = false;
+    if (targetIdentityMatches && targetJobMatches && targetUniqueReference) {
+      const { data: blob, error: downloadError } = await db.storage.from('project-files').download(targetPath);
+      targetStorageState = downloadError || !blob ? 'unavailable' : 'present';
+      if (blob && !downloadError) {
+        targetContentMatches = (await blob.text()) ===
+          'CSW_RECOVERY_STAGE_ONLY:' + targetPath.split('/').pop();
+      }
+    }
+    const stagedRecoveryCheck = {
+      fileId: targetFileId, projectId: targetProjectId, path: targetPath,
+      dbReadOk: !targetFileError && !targetJobError && !targetReferencesError,
+      fileMatches: targetIdentityMatches, jobMatches: targetJobMatches,
+      uniqueReference: targetUniqueReference, storageState: targetStorageState,
+      contentMatches: targetContentMatches,
+      allChecksPassed: !targetFileError && !targetJobError && !targetReferencesError &&
+        targetIdentityMatches && targetJobMatches && targetUniqueReference &&
+        targetStorageState === 'present' && targetContentMatches,
+      readOnly: true,
+    };
     const rows = jobs ?? [];
     const recoveryNeeded = rows.filter(row => row.status === 'storage_removed' || row.status === 'failed');
     const recoveryChecks = [];
@@ -61,6 +98,7 @@ export async function GET(request: NextRequest) {
       });
     }
     return respond({
+      stagedRecoveryCheck,
       recoveryChecks, inspectedRecoveryJobs: recoveryChecks.length,
       recoveryChecksLimited: recoveryNeeded.length > 20,
       ok: true, readOnly: true, deletionEnabled: false,
