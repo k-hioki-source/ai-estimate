@@ -1,3 +1,4 @@
+import ProjectFilePreview from '../../../../components/cs-works/ProjectFilePreview';
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -1775,6 +1776,7 @@ export default function AdminPage() {
                 {formatDate(file.created_at)}
               </span>
             </div>
+            <ProjectFilePreview url={file.signed_url} fileName={file.file_name} mimeType={file.mime_type} />
             {file.signed_url ? (
               <a href={file.signed_url} target="_blank" rel="noreferrer">
                 ファイルを開く →
