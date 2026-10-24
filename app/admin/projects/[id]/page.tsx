@@ -1,6 +1,7 @@
 'use client';
 
 import ProjectFilePreview from '../../../../components/cs-works/ProjectFilePreview';
+import ProjectFileShare from '../../../../components/cs-works/ProjectFileShare';
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
@@ -1778,6 +1779,7 @@ export default function AdminPage() {
               </span>
             </div>
             <ProjectFilePreview url={file.signed_url} fileName={file.file_name} mimeType={file.mime_type} />
+            <ProjectFileShare fileId={file.id} projectId={file.project_id} fileType={file.file_type} />
             {file.signed_url ? (
               <a href={file.signed_url} target="_blank" rel="noreferrer">
                 ファイルを開く →
