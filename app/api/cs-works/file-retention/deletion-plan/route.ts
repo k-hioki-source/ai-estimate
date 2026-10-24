@@ -64,6 +64,17 @@ export async function POST(request: NextRequest) {
         if (storageError || !objects?.some(object => object.name === basename && object.id)) {
           blocked++; details.push(file.file_name + '：要確認（Storage照合不可）'); continue;
         }
+        const { data: duplicatePaths, error: duplicateError } = await db.from('project_files')
+          .select('id').eq('storage_path', path).limit(2);
+        if (duplicateError || duplicatePaths?.length !== 1 || duplicatePaths[0].id !== file.id) {
+          blocked++; details.push(file.file_name + '：要確認（Storageパスの重複参照）'); continue;
+        }
+        const { data: shares, error: sharesError } = await db.from('project_file_shares')
+          .select('id,revoked_at,expires_at').eq('file_id', file.id).limit(101);
+        if (sharesError || !shares || shares.length > 100 ||
+            shares.some(share => !share.revoked_at && Date.parse(share.expires_at) > now)) {
+          blocked++; details.push(file.file_name + '：要確認（共有リンク）'); continue;
+        }
         ready++;
       }
       readyFiles += ready; blockedFiles += blocked;
