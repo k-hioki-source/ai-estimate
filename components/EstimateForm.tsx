@@ -908,6 +908,7 @@ async function handleFormalQuoteRequest() {
       <section className="cswRevisionBenefit" aria-labelledby="csw-revision-title">
         <div className="cswRevisionBenefitMain">
           <span className="cswRevisionBenefitEyebrow">CS WORKS 会員発注特典</span>
+          <p className="cswRevisionBenefitHighlight">メール発注よりお得で安心。<br className="cswRevisionBenefitHighlightBreak" /> CS Works限定「修正無料サポート」付き。</p>
           <h2 id="csw-revision-title">見積りだけじゃない。<br />修正まで安心。</h2>
           <p className="cswRevisionBenefitLead">CS Worksからの正式発注なら、制作内容を変えない範囲の軽微な修正は追加料金なしで対応します。</p>
           <div className="cswRevisionBenefitTags"><span>文字・数字の修正</span><span>線・矢印・注記の調整</span><span>軽微な色・配置変更</span></div>
@@ -2090,6 +2091,9 @@ async function handleFormalQuoteRequest() {
 
 .cswRevisionBenefit{display:grid;grid-template-columns:minmax(0,1fr) 240px;gap:28px;align-items:center;margin:22px 0;padding:30px 34px;border:1px solid #bfd8f4;border-radius:18px;background:linear-gradient(115deg,#f0f7ff,#fff 68%);box-shadow:0 8px 28px rgba(32,79,132,.05)}
 .cswRevisionBenefitEyebrow{font-size:11px;font-weight:900;letter-spacing:.11em;color:#2563a6}
+.cswRevisionBenefitHighlight{display:table;max-width:100%;margin:12px 0 10px;padding:12px 17px;border-radius:11px;background:linear-gradient(105deg,#e65100,#f97316);color:#fff;font-size:clamp(15px,1.7vw,20px);font-weight:900;line-height:1.55;box-shadow:0 5px 16px rgba(234,88,12,.19)}
+.cswRevisionBenefitHighlightBreak{display:none}
+@media(max-width:520px){.cswRevisionBenefitHighlight{display:block;padding:12px 13px;font-size:16px}.cswRevisionBenefitHighlightBreak{display:block}}
 .cswRevisionBenefit h2{margin:8px 0 12px;font-size:clamp(23px,2.7vw,32px);line-height:1.42;color:#12345a}
 .cswRevisionBenefitLead{margin:0;color:#334e69;font-size:15px;line-height:1.8;font-weight:650}
 .cswRevisionBenefitTags{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 12px}
