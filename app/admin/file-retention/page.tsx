@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { getSupabaseBrowserClient } from '../../../lib/supabase/client';
 
+type JobSummary = { totalDisplayed: number; claimed: number; storageRemoved: number; failed: number; recoveryNeeded: number; truncated: boolean; recoveryCandidates: { projectId: string; fileId: string; status: string; lastError: string | null }[] };
 type RecoveryTest = { claimed: boolean; markedFailed: boolean; retryBlocked: boolean; storageRemovedState: boolean; recordDeleted: boolean; cleaned: boolean; storageOperations: number; existingFilesTouched: number };
 type ClaimTest = { concurrentAttempts: number; successfulClaims: number; oneClaimOnly: boolean; cleanupOk: boolean; existingFilesTouched: number; storageFilesDeleted: number };
 type ReferenceCheck = { scannedRows: number; missingPaths: number; duplicatePathCount: number; duplicateReferences: number; capped: boolean };
@@ -31,6 +32,8 @@ export default function FileRetentionAdminPage() {
   const [storageTesting, setStorageTesting] = useState(false);
   const [linkageTesting, setLinkageTesting] = useState(false);
   const [lifecycleTesting, setLifecycleTesting] = useState(false);
+  const [jobLoading, setJobLoading] = useState(false);
+  const [jobSummary, setJobSummary] = useState<JobSummary | null>(null);
   const [recoveryTesting, setRecoveryTesting] = useState(false);
   const [recoveryResult, setRecoveryResult] = useState<RecoveryTest | null>(null);
   const [claimTesting, setClaimTesting] = useState(false);
@@ -87,6 +90,20 @@ export default function FileRetentionAdminPage() {
       await load();
     } catch (e) { setError(e instanceof Error ? e.message : '保存できませんでした。'); }
     finally { setSaving(null); }
+  }
+  async function inspectJobs() {
+    setJobLoading(true); setJobSummary(null); setError('');
+    try {
+      const access = await token();
+      if (!access) throw new Error('ログインし直してください。');
+      const response = await fetch('/api/cs-works/file-retention/jobs', {
+        headers: { Authorization: 'Bearer ' + access }, cache: 'no-store',
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'ジョブ状態を確認できませんでした。');
+      setJobSummary(data as JobSummary);
+    } catch (e) { setError(e instanceof Error ? e.message : 'ジョブ状態を確認できませんでした。'); }
+    finally { setJobLoading(false); }
   }
   async function runRecoveryTest() {
     if (!window.confirm('テスト案件内に一時的なDB記録を作り、失敗・復旧の状態遷移を検証します。Storageには一切アクセスしません。実行しますか？')) return;
@@ -302,6 +319,21 @@ export default function FileRetentionAdminPage() {
       style={{ width: 'auto', marginLeft: 10, marginTop: 8, padding: '8px 14px', border: '1px solid #c4b5fd', background: '#f5f3ff', borderRadius: 8, fontWeight: 700 }}>
       {recoveryTesting ? '復旧状態テスト中…' : '削除失敗・復旧の状態遷移をテスト'}
     </button>
+    <button type="button" onClick={() => void inspectJobs()} disabled={jobLoading}
+      style={{ width: 'auto', marginLeft: 10, marginTop: 8, padding: '8px 14px', border: '1px solid #94a3b8', background: '#f8fafc', borderRadius: 8, fontWeight: 700 }}>
+      {jobLoading ? 'ジョブ状態を確認中…' : '削除ジョブ・復旧待ちを確認（変更なし）'}
+    </button>
+    {jobSummary && <section role="status" style={{ marginTop: 16, padding: 16, borderRadius: 12, background: '#fff', border: '1px solid #cbd5e1' }}>
+      <strong>削除ジョブの状態（読み取り専用）</strong>
+      <p>表示件数：{jobSummary.totalDisplayed}件 ／ 処理取得中：{jobSummary.claimed}件 ／ Storage削除済み：{jobSummary.storageRemoved}件 ／ 失敗：{jobSummary.failed}件 ／ 復旧確認が必要：{jobSummary.recoveryNeeded}件</p>
+      {jobSummary.truncated && <p>※最大100件まで表示しています。全件ではありません。</p>}
+      {jobSummary.recoveryCandidates.map(item => <p key={item.fileId}>
+        <Link href={'/admin/projects/' + item.projectId}>{item.projectId.slice(0, 8)}…</Link>
+        {' / ファイルID：' + item.fileId.slice(0, 8) + '… / ' + item.status}
+        {item.lastError ? ' / ' + item.lastError : ''}
+      </p>)}
+      <p>※この画面では復旧処理やファイル削除は行いません。</p>
+    </section>}
     {recoveryResult && <section role="status" style={{ marginTop: 16, padding: 16, borderRadius: 12, background: '#f5f3ff', border: '1px solid #c4b5fd' }}>
       <strong>削除失敗・復旧の状態遷移テスト成功</strong>
       <p>ジョブ取得：{recoveryResult.claimed ? '成功' : '失敗'} ／ 失敗状態の記録：{recoveryResult.markedFailed ? '成功' : '失敗'} ／ 二重取得の防止：{recoveryResult.retryBlocked ? '成功' : '失敗'}</p>
