@@ -1,5 +1,6 @@
-import ProjectFilePreview from '../../../../components/cs-works/ProjectFilePreview';
 'use client';
+
+import ProjectFilePreview from '../../../../components/cs-works/ProjectFilePreview';
 
 import Link from 'next/link';
 import { FormEvent, useEffect, useState } from 'react';
