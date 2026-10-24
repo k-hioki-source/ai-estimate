@@ -33,6 +33,8 @@ export default function FileRetentionAdminPage() {
   const [storageTesting, setStorageTesting] = useState(false);
   const [linkageTesting, setLinkageTesting] = useState(false);
   const [lifecycleTesting, setLifecycleTesting] = useState(false);
+  const [probeCleanupBusy, setProbeCleanupBusy] = useState(false);
+  const [probeCleanupResult, setProbeCleanupResult] = useState('');
   const [storageProbeBusy, setStorageProbeBusy] = useState(false);
   const [storageProbeResult, setStorageProbeResult] = useState<{ storagePath: string; uploaded: boolean; readable: boolean } | null>(null);
   const [fixtureBusy, setFixtureBusy] = useState(false);
@@ -95,6 +97,26 @@ export default function FileRetentionAdminPage() {
       await load();
     } catch (e) { setError(e instanceof Error ? e.message : '保存できませんでした。'); }
     finally { setSaving(null); }
+  }
+  async function cleanupProbe() {
+    if (!window.confirm('確認済みの専用Storageテストファイル1件を削除します。続行しますか？')) return;
+    setProbeCleanupBusy(true);
+    setProbeCleanupResult('');
+    setError('');
+    try {
+      const access = await token();
+      if (!access) throw new Error('ログインし直してください。');
+      const response = await fetch('/api/cs-works/file-retention/storage-probe-cleanup', {
+        method: 'POST', headers: { Authorization: 'Bearer ' + access }, cache: 'no-store',
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'テストファイルの削除確認に失敗しました。');
+      setProbeCleanupResult(data.absent ? '専用テストファイルの削除・不存在確認：成功' : '削除結果を確認してください。');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '削除確認に失敗しました。');
+    } finally {
+      setProbeCleanupBusy(false);
+    }
   }
   async function createStorageProbe() {
     if (!window.confirm('専用テスト案件にStorageテストファイルを1件作成します。今回は削除しません。実行しますか？')) return;
@@ -375,6 +397,11 @@ export default function FileRetentionAdminPage() {
       style={{ width: 'auto', marginLeft: 10, marginTop: 8, padding: '8px 14px', border: '1px solid #86efac', background: '#f0fdf4', borderRadius: 8, fontWeight: 700 }}>
       {storageProbeBusy ? 'Storageファイル作成中…' : 'Storage復旧テスト用ファイルを作成'}
     </button>
+    <button type="button" onClick={() => void cleanupProbe()} disabled={probeCleanupBusy}
+      style={{ width: 'auto', marginLeft: 10, marginTop: 8, padding: '8px 14px', border: '1px solid #fca5a5', background: '#fff7f7', borderRadius: 8, fontWeight: 700 }}>
+      {probeCleanupBusy ? '後片付け中…' : 'Storageテストファイルを後片付け'}
+    </button>
+    {probeCleanupResult && <p role="status">{probeCleanupResult}</p>}
     {storageProbeResult && <section role="status" style={{ marginTop: 16, padding: 16, borderRadius: 12, border: '1px solid #86efac', background: '#f0fdf4' }}>
       <strong>Storageテストファイルの作成結果</strong>
       <p>作成：{storageProbeResult.uploaded ? '成功' : '失敗'} ／ 読み取り：{storageProbeResult.readable ? '成功' : '失敗'}</p>
