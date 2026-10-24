@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
         const { data: shares, error: sharesError } = await db.from('project_file_shares')
           .select('id,revoked_at,expires_at').eq('file_id', file.id).limit(101);
         if (sharesError || !shares || shares.length > 100 ||
-            shares.some(share => !share.revoked_at && Date.parse(share.expires_at) > now)) {
+            shares.some(share => !share.revoked_at && (!Number.isFinite(Date.parse(share.expires_at)) || Date.parse(share.expires_at) > now))) {
           blocked++; details.push(file.file_name + '：要確認（共有リンク）'); continue;
         }
         candidates.push({ id: file.id, name: file.file_name, type: file.file_type });
