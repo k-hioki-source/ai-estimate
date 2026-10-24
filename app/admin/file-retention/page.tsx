@@ -35,6 +35,8 @@ export default function FileRetentionAdminPage() {
   const [lifecycleTesting, setLifecycleTesting] = useState(false);
   const [probeCleanupBusy, setProbeCleanupBusy] = useState(false);
   const [probeCleanupResult, setProbeCleanupResult] = useState('');
+  const [stageBusy, setStageBusy] = useState(false);
+  const [stageResult, setStageResult] = useState<{ fileId: string; storagePath: string; storageCreated: boolean; dbRecordCreated: boolean; jobClaimed: boolean } | null>(null);
   const [storageProbeBusy, setStorageProbeBusy] = useState(false);
   const [storageProbeResult, setStorageProbeResult] = useState<{ storagePath: string; uploaded: boolean; readable: boolean } | null>(null);
   const [fixtureBusy, setFixtureBusy] = useState(false);
@@ -97,6 +99,22 @@ export default function FileRetentionAdminPage() {
       await load();
     } catch (e) { setError(e instanceof Error ? e.message : '保存できませんでした。'); }
     finally { setSaving(null); }
+  }
+  async function prepareRecoveryStage() {
+    if (!window.confirm('専用テスト案件にStorageファイル・DB記録・ジョブを各1件作成します。今回は削除しません。実行しますか？')) return;
+    setStageBusy(true); setStageResult(null); setError('');
+    try {
+      const access = await token();
+      if (!access) throw new Error('ログインし直してください。');
+      const response = await fetch('/api/cs-works/file-retention/recovery-stage', {
+        method: 'POST', headers: { Authorization: 'Bearer ' + access }, cache: 'no-store',
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || '復旧テストの準備に失敗しました。');
+      setStageResult(data);
+      await inspectJobs();
+    } catch (e) { setError(e instanceof Error ? e.message : '復旧テストの準備に失敗しました。'); }
+    finally { setStageBusy(false); }
   }
   async function cleanupProbe() {
     if (!window.confirm('確認済みの専用Storageテストファイル1件を削除します。続行しますか？')) return;
@@ -401,6 +419,17 @@ export default function FileRetentionAdminPage() {
       style={{ width: 'auto', marginLeft: 10, marginTop: 8, padding: '8px 14px', border: '1px solid #fca5a5', background: '#fff7f7', borderRadius: 8, fontWeight: 700 }}>
       {probeCleanupBusy ? '後片付け中…' : 'Storageテストファイルを後片付け'}
     </button>
+    <button type="button" onClick={() => void prepareRecoveryStage()} disabled={stageBusy || !!stageResult}
+      style={{ width: 'auto', marginLeft: 10, marginTop: 8, padding: '8px 14px', border: '1px solid #93c5fd', background: '#eff6ff', borderRadius: 8, fontWeight: 700 }}>
+      {stageBusy ? '復旧テスト準備中…' : 'Storage・DB・ジョブ復旧テストを準備'}
+    </button>
+    {stageResult && <section role="status" style={{ marginTop: 16, padding: 16, borderRadius: '12px', border: '1px solid #93c5fd', background: '#eff6ff' }}>
+      <strong>復旧テストの準備完了（削除なし）</strong>
+      <p>Storage作成：{stageResult.storageCreated ? '成功' : '失敗'} ／ DB記録作成：{stageResult.dbRecordCreated ? '成功' : '失敗'} ／ ジョブ取得：{stageResult.jobClaimed ? '成功' : '失敗'}</p>
+      <p style={{ overflowWrap: 'anywhere' }}>ファイルID：{stageResult.fileId}</p>
+      <p style={{ overflowWrap: 'anywhere' }}>Storageパス：{stageResult.storagePath}</p>
+      <p>※この段階ではファイルを削除しません。次の検証までテスト記録が残ります。</p>
+    </section>}
     {probeCleanupResult && <p role="status">{probeCleanupResult}</p>}
     {storageProbeResult && <section role="status" style={{ marginTop: 16, padding: 16, borderRadius: 12, border: '1px solid #86efac', background: '#f0fdf4' }}>
       <strong>Storageテストファイルの作成結果</strong>
