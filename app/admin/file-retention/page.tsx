@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { getSupabaseBrowserClient } from '../../../lib/supabase/client';
 
+type ClaimTest = { concurrentAttempts: number; successfulClaims: number; oneClaimOnly: boolean; cleanupOk: boolean; existingFilesTouched: number; storageFilesDeleted: number };
 type ReferenceCheck = { scannedRows: number; missingPaths: number; duplicatePathCount: number; duplicateReferences: number; capped: boolean };
 type DeletionLog = { id: string; project_id: string; file_id: string; outcome: 'deleted' | 'failed' | 'skipped'; detail: string | null; created_at: string };
 type LifecycleResult = { ok: boolean; shareRevoked: boolean; storageRemoved: boolean; fileRowDeleted: boolean; shareCascadeVerified: boolean; auditLogged: boolean; existingFilesTouched: number };
@@ -29,6 +30,8 @@ export default function FileRetentionAdminPage() {
   const [storageTesting, setStorageTesting] = useState(false);
   const [linkageTesting, setLinkageTesting] = useState(false);
   const [lifecycleTesting, setLifecycleTesting] = useState(false);
+  const [claimTesting, setClaimTesting] = useState(false);
+  const [claimResult, setClaimResult] = useState<ClaimTest | null>(null);
   const [referenceChecking, setReferenceChecking] = useState(false);
   const [referenceResult, setReferenceResult] = useState<ReferenceCheck | null>(null);
   const [logsLoading, setLogsLoading] = useState(false);
@@ -81,6 +84,21 @@ export default function FileRetentionAdminPage() {
       await load();
     } catch (e) { setError(e instanceof Error ? e.message : '保存できませんでした。'); }
     finally { setSaving(null); }
+  }
+  async function runClaimTest() {
+    if (!window.confirm('専用テスト案件に一時的なDB記録を作り、2つのジョブ取得を同時実行します。実ファイルは削除しません。よろしいですか？')) return;
+    setClaimTesting(true); setClaimResult(null); setError('');
+    try {
+      const access = await token();
+      if (!access) throw new Error('ログインし直してください。');
+      const response = await fetch('/api/cs-works/file-retention/claim-test', {
+        method: 'POST', headers: { Authorization: 'Bearer ' + access }, cache: 'no-store',
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'ジョブ重複防止テストに失敗しました。');
+      setClaimResult(data as ClaimTest);
+    } catch (e) { setError(e instanceof Error ? e.message : 'ジョブ重複防止テストに失敗しました。'); }
+    finally { setClaimTesting(false); }
   }
   async function checkReferences() {
     setReferenceChecking(true); setReferenceResult(null); setError('');
@@ -258,6 +276,15 @@ export default function FileRetentionAdminPage() {
       style={{ width: 'auto', marginLeft: 10, marginTop: 8, padding: '8px 14px', border: '1px solid #93c5fd', background: '#eff6ff', borderRadius: 8, fontWeight: 700 }}>
       {referenceChecking ? '参照重複を確認中…' : 'Storageパスの重複参照を確認（変更なし）'}
     </button>
+    <button type="button" onClick={() => void runClaimTest()} disabled={claimTesting}
+      style={{ width: 'auto', marginLeft: 10, marginTop: 8, padding: '8px 14px', border: '1px solid #a5b4fc', background: '#eef2ff', borderRadius: 8, fontWeight: 700 }}>
+      {claimTesting ? '重複防止テスト中…' : '削除ジョブの二重取得防止をテスト'}
+    </button>
+    {claimResult && <section role="status" style={{ marginTop: 16, padding: 16, borderRadius: 12, background: '#eef2ff', border: '1px solid #a5b4fc' }}>
+      <strong>ジョブ重複防止テスト成功</strong>
+      <p>同時取得試行：{claimResult.concurrentAttempts}回 ／ 取得成功：{claimResult.successfulClaims}回 ／ 一意性確認：{claimResult.oneClaimOnly ? '成功' : '失敗'} ／ テストデータ後片付け：{claimResult.cleanupOk ? '成功' : '失敗'}</p>
+      <p>既存ファイル操作：{claimResult.existingFilesTouched}件 ／ Storage削除：{claimResult.storageFilesDeleted}件 ／ 自動削除：無効</p>
+    </section>}
     {referenceResult && <section role="status" style={{ marginTop: 16, padding: 16, borderRadius: 12, background: '#eff6ff', border: '1px solid #93c5fd' }}>
       <strong>Storageパスの参照チェック完了</strong>
       <p>確認したDB記録：{referenceResult.scannedRows}件 ／ 重複パス：{referenceResult.duplicatePathCount}件 ／ 重複に関係する記録：{referenceResult.duplicateReferences}件 ／ パス未設定：{referenceResult.missingPaths}件</p>
