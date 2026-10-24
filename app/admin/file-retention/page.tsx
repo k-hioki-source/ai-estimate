@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { getSupabaseBrowserClient } from '../../../lib/supabase/client';
 
+type FixtureResult = { passed: boolean; fixtureOnly: boolean; realFilesChecked: number; deletedFiles: number; cases: { caseName: string; eligible: number; expected: number; passed: boolean }[] };
 type DeletionPlan = { ok: boolean; dryRun: boolean; deletionEnabled: boolean; inspectedProjects: number; readyFiles: number; blockedFiles: number; heldProjects: number; truncated: boolean; projects: { projectCode: string; state: string; readyFiles: number; blockedFiles: number; details: string[] }[] };
 type TestResult = { ok: boolean; dryRun: boolean; checkedProjects: number; warningProjects: number; overdueProjects: number; heldProjects: number; emailSent: number; deletedFiles: number; details: { projectCode: string; fileCount: number; dueAt: string; state: string }[] };
 type Row = {
@@ -19,6 +20,8 @@ export default function FileRetentionAdminPage() {
   const [loading, setLoading] = useState(true);
   const [testing, setTesting] = useState(false);
   const [planning, setPlanning] = useState(false);
+  const [fixtureRunning, setFixtureRunning] = useState(false);
+  const [fixtureResult, setFixtureResult] = useState<FixtureResult | null>(null);
   const [deletionPlan, setDeletionPlan] = useState<DeletionPlan | null>(null);
   const [sendingTestEmail, setSendingTestEmail] = useState(false);
   const [emailResult, setEmailResult] = useState('');
@@ -62,6 +65,20 @@ export default function FileRetentionAdminPage() {
       await load();
     } catch (e) { setError(e instanceof Error ? e.message : '保存できませんでした。'); }
     finally { setSaving(null); }
+  }
+  async function runFixtureTest() {
+    setFixtureRunning(true); setError(''); setFixtureResult(null);
+    try {
+      const access = await token();
+      if (!access) throw new Error('ログインし直してください。');
+      const response = await fetch('/api/cs-works/file-retention/fixture-test', {
+        method: 'POST', headers: { Authorization: 'Bearer ' + access }, cache: 'no-store',
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || '模擬テストに失敗しました。');
+      setFixtureResult(data as FixtureResult);
+    } catch (e) { setError(e instanceof Error ? e.message : '模擬テストに失敗しました。'); }
+    finally { setFixtureRunning(false); }
   }
   async function runDeletionPlan() {
     setPlanning(true); setError(''); setDeletionPlan(null);
@@ -127,6 +144,18 @@ export default function FileRetentionAdminPage() {
       style={{ width: 'auto', marginLeft: 10, marginTop: 8, padding: '8px 14px', border: '1px solid #fcd34d', background: '#fef3c7', borderRadius: 8, fontWeight: 700 }}>
       {planning ? '照合中…' : '30日経過ファイルの削除対象を照合（削除なし）'}
     </button>
+    <button type="button" onClick={() => void runFixtureTest()} disabled={fixtureRunning}
+      style={{ width: 'auto', marginLeft: 10, marginTop: 8, padding: '8px 14px', border: '1px solid #c4b5fd', background: '#ede9fe', borderRadius: 8, fontWeight: 700 }}>
+      {fixtureRunning ? '模擬テスト中…' : '削除条件を5パターンで模擬テスト'}
+    </button>
+    {fixtureResult && <section role="status" style={{ marginTop: 16, padding: 16, borderRadius: 12, background: '#f5f3ff', border: '1px solid #c4b5fd' }}>
+      <strong>{fixtureResult.passed ? '模擬テスト全件成功' : '模擬テストに失敗しました'}</strong>
+      <p>架空データのみ使用／実案件への変更なし／削除ファイル：{fixtureResult.deletedFiles}件</p>
+      <ul>{fixtureResult.cases.map((item, index) =>
+        <li key={index}>{item.passed ? '✓' : '×'} {item.caseName}：候補 {item.eligible}件（期待値 {item.expected}件）</li>
+      )}</ul>
+      <p>※これは判定ルール単体の模擬テストです。実際のStorage照合・削除処理の検証ではありません。</p>
+    </section>}
     {deletionPlan && <section role="status" style={{ marginTop: 16, padding: 16, borderRadius: 12, border: '1px solid #fcd34d', background: '#fffbeb' }}>
       <strong>削除対象の照合完了（実際の削除はしていません）</strong>
       <p>調査案件：{deletionPlan.inspectedProjects}件 ／ Storage照合済み：{deletionPlan.readyFiles}ファイル ／ 要確認：{deletionPlan.blockedFiles}ファイル ／ 保留案件：{deletionPlan.heldProjects}件</p>
