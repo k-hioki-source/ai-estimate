@@ -1,6 +1,7 @@
 'use client';
 
 import ProjectFilePreview from '../../../../components/cs-works/ProjectFilePreview';
+import ProjectFileShare from '../../../../components/cs-works/ProjectFileShare';
 
 import Link from 'next/link';
 import { FormEvent, useEffect, useState } from 'react';
@@ -1336,6 +1337,7 @@ async function submitProjectReview(project: Project, action: 'approval' | 'revis
                               </div>
                               <div className="fileActions">
                                 <ProjectFilePreview url={file.signed_url} fileName={file.file_name} mimeType={file.mime_type} />
+            <ProjectFileShare fileId={file.id} projectId={file.project_id} fileType={file.file_type} />
             {file.signed_url ? (
                                   <a href={file.signed_url} target="_blank" rel="noreferrer">
                                     ファイルを開く →
@@ -1402,6 +1404,7 @@ async function submitProjectReview(project: Project, action: 'approval' | 'revis
                               <span>{formatDate(file.created_at)}</span>
                             </div>
                             <ProjectFilePreview url={file.signed_url} fileName={file.file_name} mimeType={file.mime_type} />
+            <ProjectFileShare fileId={file.id} projectId={file.project_id} fileType={file.file_type} />
             {file.signed_url ? (
                               <a
                                 href={file.signed_url}
@@ -1577,6 +1580,7 @@ async function submitProjectReview(project: Project, action: 'approval' | 'revis
                           <span>{formatDate(file.created_at)}</span>
                         </div>
                         <ProjectFilePreview url={file.signed_url} fileName={file.file_name} mimeType={file.mime_type} />
+            <ProjectFileShare fileId={file.id} projectId={file.project_id} fileType={file.file_type} />
             {file.signed_url ? (
                           <a
                             href={file.signed_url}
