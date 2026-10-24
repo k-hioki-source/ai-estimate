@@ -1,3 +1,4 @@
+import ProjectFilePreview from '../../../../components/cs-works/ProjectFilePreview';
 'use client';
 
 import Link from 'next/link';
@@ -1333,7 +1334,8 @@ async function submitProjectReview(project: Project, action: 'approval' | 'revis
                                 </span>
                               </div>
                               <div className="fileActions">
-                                {file.signed_url ? (
+                                <ProjectFilePreview url={file.signed_url} fileName={file.file_name} mimeType={file.mime_type} />
+            {file.signed_url ? (
                                   <a href={file.signed_url} target="_blank" rel="noreferrer">
                                     ファイルを開く →
                                   </a>
@@ -1398,7 +1400,8 @@ async function submitProjectReview(project: Project, action: 'approval' | 'revis
                               <strong>{file.file_name}</strong>
                               <span>{formatDate(file.created_at)}</span>
                             </div>
-                            {file.signed_url ? (
+                            <ProjectFilePreview url={file.signed_url} fileName={file.file_name} mimeType={file.mime_type} />
+            {file.signed_url ? (
                               <a
                                 href={file.signed_url}
                                 target="_blank"
@@ -1572,7 +1575,8 @@ async function submitProjectReview(project: Project, action: 'approval' | 'revis
                           <strong>{file.file_name}</strong>
                           <span>{formatDate(file.created_at)}</span>
                         </div>
-                        {file.signed_url ? (
+                        <ProjectFilePreview url={file.signed_url} fileName={file.file_name} mimeType={file.mime_type} />
+            {file.signed_url ? (
                           <a
                             href={file.signed_url}
                             target="_blank"
