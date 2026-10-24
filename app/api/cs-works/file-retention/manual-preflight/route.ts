@@ -55,8 +55,14 @@ export async function POST(request: NextRequest) {
       const { data: refs, error: refsError } = await db.from('project_files')
         .select('id').eq('storage_path', path).limit(2);
       if (refsError || refs?.length !== 1 || refs[0].id !== file.id) reasons.push('Storageパスの参照が一意ではありません。');
-      const { data: blob, error: storageError } = await db.storage.from('project-files').download(path);
-      if (storageError || !blob) reasons.push('Storageファイルの存在を確認できません。');
+      const slash = path.lastIndexOf('/');
+      const folder = path.slice(0, slash);
+      const basename = path.slice(slash + 1);
+      const { data: objects, error: storageError } = await db.storage.from('project-files')
+        .list(folder, { limit: 1000, search: basename });
+      if (storageError || !objects?.some(object => object.name === basename && object.id)) {
+        reasons.push('Storageファイルの存在を確認できません。');
+      }
     }
     const { data: shares, error: sharesError } = await db.from('project_file_shares')
       .select('id,revoked_at,expires_at').eq('file_id', file.id).limit(101);
