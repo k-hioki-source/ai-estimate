@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { getSupabaseBrowserClient } from '../../../lib/supabase/client';
 
 type RecoveryCheck = { projectId: string; fileId: string; jobStatus: string; recordMatches: boolean; storageState: string; safeToAutoRecover: boolean };
@@ -26,6 +26,7 @@ type Row = {
 const date = (s: string) => new Date(s).toLocaleDateString('ja-JP', { timeZone: 'Asia/Tokyo' });
 export default function FileRetentionAdminPage() {
   const router = useRouter();
+  const isTestPage = usePathname().endsWith('/tests');
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [testing, setTesting] = useState(false);
@@ -349,24 +350,20 @@ export default function FileRetentionAdminPage() {
   }
   return <main style={{ maxWidth: 1080, margin: '32px auto', padding: '0 20px', color: '#172554' }}>
     <Link href="/admin">← 管理者トップへ戻る</Link>
-    <h1 style={{ marginTop: 24 }}>ファイル保管期限の確認</h1>
-    <p>案件完了から30日後を削除予定日とし、7日前から対象を表示します。</p>
+    <h1 style={{ marginTop: 24 }}>{isTestPage ? "ファイル保管・開発テスト" : "ファイル保管期限の確認"}</h1>
+    <p>{isTestPage ? "検証機能をまとめた管理者専用ページです。" : "案件完了から30日後を削除予定日とし、7日前から対象を表示します。"}</p>
     <div style={{ background: '#eff6ff', padding: 16, borderRadius: 12, margin: '16px 0' }}>
       <strong>現在は確認専用です。自動削除・定期通知は無効です。</strong>
       <p style={{ marginBottom: 0 }}>「保留」に設定した案件は、将来の自動削除処理から除外する予定です。現時点ではファイルの削除は行いません。</p>
     </div>
     <button type="button" onClick={() => void load()} disabled={loading} style={{ width: 'auto', padding: '8px 14px', border: '1px solid #bfdbfe', background: '#fff', borderRadius: 8 }}>一覧を更新</button>
-    <button type="button" onClick={() => void runTest()} disabled={testing}
+    {isTestPage ? <><p>開発・検証用の操作です。実案件では実行しないでください。</p>    <button type="button" onClick={() => void runTest()} disabled={testing}
       style={{ width: 'auto', marginLeft: 10, padding: '8px 14px', border: '1px solid #93c5fd', background: '#dbeafe', borderRadius: 8, fontWeight: 700 }}>
       {testing ? 'テスト中…' : '保管期限チェックをテスト実行'}
     </button>
     <button type="button" onClick={() => void sendTestEmail()} disabled={sendingTestEmail}
       style={{ width: 'auto', marginLeft: 10, marginTop: 8, padding: '8px 14px', border: '1px solid #86efac', background: '#dcfce7', borderRadius: 8, fontWeight: 700 }}>
       {sendingTestEmail ? '送信中…' : '管理者へテストメール送信'}
-    </button>
-    <button type="button" onClick={() => void runDeletionPlan()} disabled={planning}
-      style={{ width: 'auto', marginLeft: 10, marginTop: 8, padding: '8px 14px', border: '1px solid #fcd34d', background: '#fef3c7', borderRadius: 8, fontWeight: 700 }}>
-      {planning ? '照合中…' : '30日経過ファイルの削除対象を照合（削除なし）'}
     </button>
     <button type="button" onClick={() => void runFixtureTest()} disabled={fixtureRunning}
       style={{ width: 'auto', marginLeft: 10, marginTop: 8, padding: '8px 14px', border: '1px solid #c4b5fd', background: '#ede9fe', borderRadius: 8, fontWeight: 700 }}>
@@ -383,10 +380,6 @@ export default function FileRetentionAdminPage() {
     <button type="button" onClick={() => void runLifecycleTest()} disabled={lifecycleTesting}
       style={{ width: 'auto', marginLeft: 10, marginTop: 8, padding: '8px 14px', border: '1px solid #fca5a5', background: '#fee2e2', borderRadius: 8, fontWeight: 700 }}>
       {lifecycleTesting ? '連動テスト中…' : '専用データで共有・Storage・DB連動削除をテスト'}
-    </button>
-    <button type="button" onClick={() => void loadDeletionLogs()} disabled={logsLoading}
-      style={{ width: 'auto', marginLeft: 10, marginTop: 8, padding: '8px 14px', border: '1px solid #94a3b8', background: '#f8fafc', borderRadius: 8, fontWeight: 700 }}>
-      {logsLoading ? '履歴を取得中…' : '削除履歴を確認'}
     </button>
     <button type="button" onClick={() => void checkReferences()} disabled={referenceChecking}
       style={{ width: 'auto', marginLeft: 10, marginTop: 8, padding: '8px 14px', border: '1px solid #93c5fd', background: '#eff6ff', borderRadius: 8, fontWeight: 700 }}>
@@ -424,6 +417,17 @@ export default function FileRetentionAdminPage() {
       style={{ width: 'auto', marginLeft: 10, marginTop: 8, padding: '8px 14px', border: '1px solid #93c5fd', background: '#eff6ff', borderRadius: 8, fontWeight: 700 }}>
       {stageBusy ? '復旧テスト準備中…' : 'Storage・DB・ジョブ復旧テストを準備'}
     </button>
+    </> : <>
+      <p><Link href="/admin/file-retention/tests">開発・検証用ツールはこちら →</Link></p>
+    <button type="button" onClick={() => void runDeletionPlan()} disabled={planning}
+      style={{ width: 'auto', marginLeft: 10, marginTop: 8, padding: '8px 14px', border: '1px solid #fcd34d', background: '#fef3c7', borderRadius: 8, fontWeight: 700 }}>
+      {planning ? '照合中…' : '30日経過ファイルの削除対象を照合（削除なし）'}
+    </button>
+    <button type="button" onClick={() => void loadDeletionLogs()} disabled={logsLoading}
+      style={{ width: 'auto', marginLeft: 10, marginTop: 8, padding: '8px 14px', border: '1px solid #94a3b8', background: '#f8fafc', borderRadius: 8, fontWeight: 700 }}>
+      {logsLoading ? '履歴を取得中…' : '削除履歴を確認'}
+    </button>
+    </>}
     {stageResult && <section role="status" style={{ marginTop: 16, padding: 16, borderRadius: '12px', border: '1px solid #93c5fd', background: '#eff6ff' }}>
       <strong>復旧テストの準備完了（削除なし）</strong>
       <p>Storage作成：{stageResult.storageCreated ? '成功' : '失敗'} ／ DB記録作成：{stageResult.dbRecordCreated ? '成功' : '失敗'} ／ ジョブ取得：{stageResult.jobClaimed ? '成功' : '失敗'}</p>
