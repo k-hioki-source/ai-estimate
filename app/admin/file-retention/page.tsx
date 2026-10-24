@@ -33,6 +33,8 @@ export default function FileRetentionAdminPage() {
   const [storageTesting, setStorageTesting] = useState(false);
   const [linkageTesting, setLinkageTesting] = useState(false);
   const [lifecycleTesting, setLifecycleTesting] = useState(false);
+  const [fixtureBusy, setFixtureBusy] = useState(false);
+  const [fixtureMessage, setFixtureMessage] = useState('');
   const [jobLoading, setJobLoading] = useState(false);
   const [jobSummary, setJobSummary] = useState<JobSummary | null>(null);
   const [recoveryTesting, setRecoveryTesting] = useState(false);
@@ -91,6 +93,26 @@ export default function FileRetentionAdminPage() {
       await load();
     } catch (e) { setError(e instanceof Error ? e.message : '保存できませんでした。'); }
     finally { setSaving(null); }
+  }
+  async function manageRecoveryFixture(cleanup: boolean) {
+    if (!window.confirm(cleanup
+      ? 'テスト専用のDB記録とジョブを後片付けします。Storageは削除しません。'
+      : 'Storageファイルを作成せず、復旧待ち状態のテスト用DB記録を1件作成します。実行しますか？')) return;
+    setFixtureBusy(true); setFixtureMessage(''); setError('');
+    try {
+      const access = await token();
+      if (!access) throw new Error('ログインし直してください。');
+      const response = await fetch(cleanup
+        ? '/api/cs-works/file-retention/recovery-fixture-cleanup'
+        : '/api/cs-works/file-retention/recovery-fixture', {
+        method: 'POST', headers: { Authorization: 'Bearer ' + access }, cache: 'no-store',
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'テストデータの操作に失敗しました。');
+      setFixtureMessage(cleanup ? 'テスト用DB記録の後片付け：' + data.removed + '件' : '復旧待ちテストデータを1件作成しました。');
+      await inspectJobs();
+    } catch (e) { setError(e instanceof Error ? e.message : 'テストデータの操作に失敗しました。'); }
+    finally { setFixtureBusy(false); }
   }
   async function inspectJobs() {
     setJobLoading(true); setJobSummary(null); setError('');
@@ -324,6 +346,15 @@ export default function FileRetentionAdminPage() {
       style={{ width: 'auto', marginLeft: 10, marginTop: 8, padding: '8px 14px', border: '1px solid #94a3b8', background: '#f8fafc', borderRadius: 8, fontWeight: 700 }}>
       {jobLoading ? 'ジョブ状態を確認中…' : '削除ジョブ・復旧待ちを確認（変更なし）'}
     </button>
+    <button type="button" onClick={() => void manageRecoveryFixture(false)} disabled={fixtureBusy}
+      style={{ width: 'auto', marginLeft: 10, marginTop: 8, padding: '8px 14px', border: '1px solid #c4b5fd', background: '#f5f3ff', borderRadius: 8, fontWeight: 700 }}>
+      復旧待ちの模擬データを作成（DBのみ）
+    </button>
+    <button type="button" onClick={() => void manageRecoveryFixture(true)} disabled={fixtureBusy}
+      style={{ width: 'auto', marginLeft: 10, marginTop: 8, padding: '8px 14px', border: '1px solid #cbd5e1', background: '#fff', borderRadius: 8, fontWeight: 700 }}>
+      復旧待ち模擬データを後片付け
+    </button>
+    {fixtureMessage && <p role="status">{fixtureMessage}</p>}
     {jobSummary && <section role="status" style={{ marginTop: 16, padding: 16, borderRadius: 12, background: '#fff', border: '1px solid #cbd5e1' }}>
       <strong>削除ジョブの状態（読み取り専用）</strong>
       <p>表示件数：{jobSummary.totalDisplayed}件 ／ 処理取得中：{jobSummary.claimed}件 ／ Storage削除済み：{jobSummary.storageRemoved}件 ／ 失敗：{jobSummary.failed}件 ／ 復旧確認が必要：{jobSummary.recoveryNeeded}件</p>
