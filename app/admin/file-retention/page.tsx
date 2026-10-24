@@ -5,7 +5,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { getSupabaseBrowserClient } from '../../../lib/supabase/client';
 
-type JobSummary = { totalDisplayed: number; claimed: number; storageRemoved: number; failed: number; recoveryNeeded: number; truncated: boolean; recoveryCandidates: { projectId: string; fileId: string; status: string; lastError: string | null }[] };
+type RecoveryCheck = { projectId: string; fileId: string; jobStatus: string; recordMatches: boolean; storageState: string; safeToAutoRecover: boolean };
+type JobSummary = { recoveryChecks?: RecoveryCheck[]; inspectedRecoveryJobs?: number; recoveryChecksLimited?: boolean; totalDisplayed: number; claimed: number; storageRemoved: number; failed: number; recoveryNeeded: number; truncated: boolean; recoveryCandidates: { projectId: string; fileId: string; status: string; lastError: string | null }[] };
 type RecoveryTest = { claimed: boolean; markedFailed: boolean; retryBlocked: boolean; storageRemovedState: boolean; recordDeleted: boolean; cleaned: boolean; storageOperations: number; existingFilesTouched: number };
 type ClaimTest = { concurrentAttempts: number; successfulClaims: number; oneClaimOnly: boolean; cleanupOk: boolean; existingFilesTouched: number; storageFilesDeleted: number };
 type ReferenceCheck = { scannedRows: number; missingPaths: number; duplicatePathCount: number; duplicateReferences: number; capped: boolean };
@@ -327,6 +328,25 @@ export default function FileRetentionAdminPage() {
       <strong>削除ジョブの状態（読み取り専用）</strong>
       <p>表示件数：{jobSummary.totalDisplayed}件 ／ 処理取得中：{jobSummary.claimed}件 ／ Storage削除済み：{jobSummary.storageRemoved}件 ／ 失敗：{jobSummary.failed}件 ／ 復旧確認が必要：{jobSummary.recoveryNeeded}件</p>
       {jobSummary.truncated && <p>※最大100件まで表示しています。全件ではありません。</p>}
+      {(jobSummary.recoveryChecks ?? []).length > 0 && <div style={{ overflowX: 'auto', marginTop: 12 }}>
+        <strong>復旧候補のDB・Storage照合結果（閲覧専用）</strong>
+        <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: 8 }}>
+          <thead><tr><th style={{ textAlign: 'left' }}>ファイルID</th><th style={{ textAlign: 'left' }}>ジョブ状態</th><th style={{ textAlign: 'left' }}>案件一致</th><th style={{ textAlign: 'left' }}>Storage照合</th></tr></thead>
+          <tbody>{(jobSummary.recoveryChecks ?? []).map(item => <tr key={item.fileId}>
+            <td style={{ padding: 8, borderTop: '1px solid #e2e8f0' }}>{item.fileId.slice(0, 8)}…</td>
+            <td style={{ padding: 8, borderTop: '1px solid #e2e8f0' }}>{item.jobStatus}</td>
+            <td style={{ padding: 8, borderTop: '1px solid #e2e8f0' }}>{item.recordMatches ? '一致' : '要確認'}</td>
+            <td style={{ padding: 8, borderTop: '1px solid #e2e8f0' }}>{({
+              present: '存在', not_found_in_listing: '一覧で未検出（要再確認）',
+              db_record_missing: 'DB記録なし', invalid_reference: '参照不整合',
+              db_lookup_failed: 'DB照合失敗', storage_lookup_failed: 'Storage照合失敗',
+              not_checked: '未確認',
+            } as Record<string, string>)[item.storageState] ?? item.storageState}</td>
+          </tr>)}</tbody>
+        </table>
+        {jobSummary.recoveryChecksLimited && <p>※照合結果は先頭20件までです。</p>}
+        <p>※Storage一覧で未検出でも、削除済みと確定したわけではありません。自動復旧は実行しません。</p>
+      </div>}
       {jobSummary.recoveryCandidates.map(item => <p key={item.fileId}>
         <Link href={'/admin/projects/' + item.projectId}>{item.projectId.slice(0, 8)}…</Link>
         {' / ファイルID：' + item.fileId.slice(0, 8) + '… / ' + item.status}
