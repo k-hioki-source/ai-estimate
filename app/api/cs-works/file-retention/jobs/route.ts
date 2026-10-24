@@ -54,6 +54,33 @@ export async function GET(request: NextRequest) {
           'CSW_RECOVERY_STAGE_ONLY:' + targetPath.split('/').pop();
       }
     }
+    const { data: stagedShares, error: stagedSharesError } = await db.from('project_file_shares')
+      .select('id,revoked_at,expires_at').eq('file_id', targetFileId).limit(100);
+    const { data: stagedProject, error: stagedProjectError } = await db.from('projects')
+      .select('id,status,completed_at').eq('id', targetProjectId).maybeSingle();
+    const { data: stagedHold, error: stagedHoldError } = await db.from('project_file_retention_holds')
+      .select('is_held').eq('project_id', targetProjectId).maybeSingle();
+    const cleanupReadiness = {
+      readOnly: true,
+      targetFileId,
+      sharesChecked: !stagedSharesError,
+      shareCount: stagedShares?.length ?? 0,
+      sharesTruncated: (stagedShares?.length ?? 0) === 100,
+      activeShares: (stagedShares ?? []).filter(share =>
+        !share.revoked_at && Date.parse(share.expires_at) > Date.now()).length,
+      projectChecked: !stagedProjectError && !!stagedProject,
+      projectStatus: stagedProject?.status ?? null,
+      retentionHoldChecked: !stagedHoldError,
+      retentionHeld: stagedHold?.is_held === true,
+      targetPreflightPassed: !targetFileError && !targetJobError && !targetReferencesError &&
+        targetIdentityMatches && targetJobMatches && targetUniqueReference &&
+        targetStorageState === 'present' && targetContentMatches,
+      readyForManualReview: !stagedSharesError && !stagedProjectError && !stagedHoldError &&
+        (stagedShares?.length ?? 0) === 0 && targetIdentityMatches &&
+        targetJobMatches && targetUniqueReference && targetStorageState === 'present' &&
+        targetContentMatches,
+      note: 'これは読み取り専用の後片付け事前確認です。削除の許可・実行ではありません。',
+    };
     const stagedRecoveryCheck = {
       fileId: targetFileId, projectId: targetProjectId, path: targetPath,
       dbReadOk: !targetFileError && !targetJobError && !targetReferencesError,
@@ -99,6 +126,7 @@ export async function GET(request: NextRequest) {
     }
     return respond({
       stagedRecoveryCheck,
+      cleanupReadiness,
       recoveryChecks, inspectedRecoveryJobs: recoveryChecks.length,
       recoveryChecksLimited: recoveryNeeded.length > 20,
       ok: true, readOnly: true, deletionEnabled: false,
