@@ -6,7 +6,8 @@ import { useRouter } from 'next/navigation';
 import { getSupabaseBrowserClient } from '../../../lib/supabase/client';
 
 type RecoveryCheck = { projectId: string; fileId: string; jobStatus: string; recordMatches: boolean; storageState: string; safeToAutoRecover: boolean };
-type JobSummary = { recoveryChecks?: RecoveryCheck[]; inspectedRecoveryJobs?: number; recoveryChecksLimited?: boolean; totalDisplayed: number; claimed: number; storageRemoved: number; failed: number; recoveryNeeded: number; truncated: boolean; recoveryCandidates: { projectId: string; fileId: string; status: string; lastError: string | null }[] };
+type StagedRecoveryCheck = { fileId: string; dbReadOk: boolean; fileMatches: boolean; jobMatches: boolean; uniqueReference: boolean; storageState: string; contentMatches: boolean; allChecksPassed: boolean };
+type JobSummary = { stagedRecoveryCheck?: StagedRecoveryCheck; recoveryChecks?: RecoveryCheck[]; inspectedRecoveryJobs?: number; recoveryChecksLimited?: boolean; totalDisplayed: number; claimed: number; storageRemoved: number; failed: number; recoveryNeeded: number; truncated: boolean; recoveryCandidates: { projectId: string; fileId: string; status: string; lastError: string | null }[] };
 type RecoveryTest = { claimed: boolean; markedFailed: boolean; retryBlocked: boolean; storageRemovedState: boolean; recordDeleted: boolean; cleaned: boolean; storageOperations: number; existingFilesTouched: number };
 type ClaimTest = { concurrentAttempts: number; successfulClaims: number; oneClaimOnly: boolean; cleanupOk: boolean; existingFilesTouched: number; storageFilesDeleted: number };
 type ReferenceCheck = { scannedRows: number; missingPaths: number; duplicatePathCount: number; duplicateReferences: number; capped: boolean };
@@ -442,6 +443,13 @@ export default function FileRetentionAdminPage() {
       <strong>削除ジョブの状態（読み取り専用）</strong>
       <p>表示件数：{jobSummary.totalDisplayed}件 ／ 処理取得中：{jobSummary.claimed}件 ／ Storage削除済み：{jobSummary.storageRemoved}件 ／ 失敗：{jobSummary.failed}件 ／ 復旧確認が必要：{jobSummary.recoveryNeeded}件</p>
       {jobSummary.truncated && <p>※最大100件まで表示しています。全件ではありません。</p>}
+      {jobSummary.stagedRecoveryCheck && <div style={{ marginTop: 12, padding: 12, border: '1px solid #93c5fd', borderRadius: 8, background: '#eff6ff' }}>
+        <strong>準備済み復旧テストの事前照合（変更なし）</strong>
+        <p>DB照合：{jobSummary.stagedRecoveryCheck.dbReadOk ? '成功' : '要確認'} ／ ファイル識別：{jobSummary.stagedRecoveryCheck.fileMatches ? '一致' : '不一致'} ／ ジョブ状態：{jobSummary.stagedRecoveryCheck.jobMatches ? '一致' : '不一致'}</p>
+        <p>Storageパス参照：{jobSummary.stagedRecoveryCheck.uniqueReference ? '一意' : '要確認'} ／ Storage：{jobSummary.stagedRecoveryCheck.storageState === 'present' ? '存在' : '要確認'} ／ テスト内容：{jobSummary.stagedRecoveryCheck.contentMatches ? '一致' : '不一致'}</p>
+        <p><strong>総合判定：{jobSummary.stagedRecoveryCheck.allChecksPassed ? '事前照合成功' : '要確認（次の操作は行わないでください）'}</strong></p>
+        <p>※読み取り専用です。ファイルやジョブは変更しません。</p>
+      </div>}
       {(jobSummary.recoveryChecks ?? []).length > 0 && <div style={{ overflowX: 'auto', marginTop: 12 }}>
         <strong>復旧候補のDB・Storage照合結果（閲覧専用）</strong>
         <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: 8 }}>
