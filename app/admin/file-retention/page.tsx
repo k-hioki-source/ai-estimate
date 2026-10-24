@@ -62,6 +62,8 @@ export default function FileRetentionAdminPage() {
   const [selectedCandidates, setSelectedCandidates] = useState<string[]>([]);
   const [reviewOpen, setReviewOpen] = useState(false);
   const [mockPlan, setMockPlan] = useState(false);
+  const [fixturePreflightBusy, setFixturePreflightBusy] = useState(false);
+  const [fixturePreflight, setFixturePreflight] = useState<{ eligible: boolean; reasons: string[] } | null>(null);
   const [preflightBusy, setPreflightBusy] = useState(false);
   const [preflightResults, setPreflightResults] = useState<Record<string, { eligible: boolean; reasons: string[]; error?: string }>>({});
   const [sendingTestEmail, setSendingTestEmail] = useState(false);
@@ -324,6 +326,26 @@ export default function FileRetentionAdminPage() {
     } catch (e) { setError(e instanceof Error ? e.message : '削除対象の照合に失敗しました。'); }
     finally { setPlanning(false); }
   }
+  async function checkRecoveryFixturePreflight(fileId: string) {
+    setFixturePreflightBusy(true); setFixturePreflight(null); setError('');
+    try {
+      const access = await token();
+      if (!access) throw new Error('ログインし直してください。');
+      const response = await fetch('/api/cs-works/file-retention/manual-preflight', {
+        method: 'POST',
+        headers: { Authorization: 'Bearer ' + access, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fileId }),
+        cache: 'no-store',
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || '事前確認に失敗しました。');
+      setFixturePreflight({ eligible: result.eligible === true, reasons: result.reasons ?? [] });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '事前確認に失敗しました。');
+    } finally {
+      setFixturePreflightBusy(false);
+    }
+  }
   async function checkSelectedCandidates() {
     setReviewOpen(true);
     setPreflightResults({});
@@ -473,6 +495,17 @@ export default function FileRetentionAdminPage() {
     }} style={{ width: 'auto', marginTop: 12, padding: '8px 14px', border: '1px solid #a78bfa', background: '#f5f3ff', borderRadius: 8 }}>
       削除候補の選択画面を模擬表示（DB変更なし）
     </button>}
+    {isTestPage && jobSummary?.stagedRecoveryCheck?.fileId && <section style={{ marginTop: 12, padding: 12, border: '1px solid #cbd5e1', borderRadius: 8 }}>
+      <strong>復旧テスト用ファイルの手動削除・事前照合（読み取り専用）</strong>
+      <p>先に「削除ジョブ・復旧待ちを確認」を実行してください。復旧テスト用ファイルに対する削除条件の判定だけを行います。</p>
+      <button type="button" disabled={fixturePreflightBusy} onClick={() => void checkRecoveryFixturePreflight(jobSummary.stagedRecoveryCheck!.fileId)}>
+        {fixturePreflightBusy ? '照合中…' : '復旧テスト用ファイルを事前照合（削除なし）'}
+      </button>
+      {fixturePreflight && <div role="status" style={{ marginTop: 8 }}>
+        <strong>{fixturePreflight.eligible ? '事前照合OK（削除は未許可）' : '要確認（削除不可）'}</strong>
+        {fixturePreflight.reasons.length > 0 && <ul>{fixturePreflight.reasons.map((reason, index) => <li key={index}>{reason}</li>)}</ul>}
+      </div>}
+    </section>}
     {stageResult && <section role="status" style={{ marginTop: 16, padding: 16, borderRadius: '12px', border: '1px solid #93c5fd', background: '#eff6ff' }}>
       <strong>復旧テストの準備完了（削除なし）</strong>
       <p>Storage作成：{stageResult.storageCreated ? '成功' : '失敗'} ／ DB記録作成：{stageResult.dbRecordCreated ? '成功' : '失敗'} ／ ジョブ取得：{stageResult.jobClaimed ? '成功' : '失敗'}</p>
