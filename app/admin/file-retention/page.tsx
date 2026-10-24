@@ -33,6 +33,8 @@ export default function FileRetentionAdminPage() {
   const [storageTesting, setStorageTesting] = useState(false);
   const [linkageTesting, setLinkageTesting] = useState(false);
   const [lifecycleTesting, setLifecycleTesting] = useState(false);
+  const [storageProbeBusy, setStorageProbeBusy] = useState(false);
+  const [storageProbeResult, setStorageProbeResult] = useState<{ storagePath: string; uploaded: boolean; readable: boolean } | null>(null);
   const [fixtureBusy, setFixtureBusy] = useState(false);
   const [fixtureMessage, setFixtureMessage] = useState('');
   const [jobLoading, setJobLoading] = useState(false);
@@ -93,6 +95,21 @@ export default function FileRetentionAdminPage() {
       await load();
     } catch (e) { setError(e instanceof Error ? e.message : '保存できませんでした。'); }
     finally { setSaving(null); }
+  }
+  async function createStorageProbe() {
+    if (!window.confirm('専用テスト案件にStorageテストファイルを1件作成します。今回は削除しません。実行しますか？')) return;
+    setStorageProbeBusy(true); setStorageProbeResult(null); setError('');
+    try {
+      const access = await token();
+      if (!access) throw new Error('ログインし直してください。');
+      const response = await fetch('/api/cs-works/file-retention/storage-probe', {
+        method: 'POST', headers: { Authorization: 'Bearer ' + access }, cache: 'no-store',
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'テストファイルの作成に失敗しました。');
+      setStorageProbeResult(data);
+    } catch (e) { setError(e instanceof Error ? e.message : 'テストファイルの作成に失敗しました。'); }
+    finally { setStorageProbeBusy(false); }
   }
   async function manageRecoveryFixture(cleanup: boolean) {
     if (!window.confirm(cleanup
@@ -354,6 +371,16 @@ export default function FileRetentionAdminPage() {
       style={{ width: 'auto', marginLeft: 10, marginTop: 8, padding: '8px 14px', border: '1px solid #cbd5e1', background: '#fff', borderRadius: 8, fontWeight: 700 }}>
       復旧待ち模擬データを後片付け
     </button>
+    <button type="button" onClick={() => void createStorageProbe()} disabled={storageProbeBusy}
+      style={{ width: 'auto', marginLeft: 10, marginTop: 8, padding: '8px 14px', border: '1px solid #86efac', background: '#f0fdf4', borderRadius: 8, fontWeight: 700 }}>
+      {storageProbeBusy ? 'Storageファイル作成中…' : 'Storage復旧テスト用ファイルを作成'}
+    </button>
+    {storageProbeResult && <section role="status" style={{ marginTop: 16, padding: 16, borderRadius: 12, border: '1px solid #86efac', background: '#f0fdf4' }}>
+      <strong>Storageテストファイルの作成結果</strong>
+      <p>作成：{storageProbeResult.uploaded ? '成功' : '失敗'} ／ 読み取り：{storageProbeResult.readable ? '成功' : '失敗'}</p>
+      <p style={{ overflowWrap: 'anywhere' }}>テストファイル：{storageProbeResult.storagePath}</p>
+      <p>※この操作では削除しません。作成したファイルはStorageに残ります。後片付け機能は次の段階で追加します。</p>
+    </section>}
     {fixtureMessage && <p role="status">{fixtureMessage}</p>}
     {jobSummary && <section role="status" style={{ marginTop: 16, padding: 16, borderRadius: 12, background: '#fff', border: '1px solid #cbd5e1' }}>
       <strong>削除ジョブの状態（読み取り専用）</strong>
