@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { getSupabaseBrowserClient } from '../../../lib/supabase/client';
 
+type DeletionLog = { id: string; project_id: string; file_id: string; outcome: 'deleted' | 'failed' | 'skipped'; detail: string | null; created_at: string };
 type LifecycleResult = { ok: boolean; shareRevoked: boolean; storageRemoved: boolean; fileRowDeleted: boolean; shareCascadeVerified: boolean; existingFilesTouched: number };
 type LinkageResult = { checkedShares: number; linkedShares: number; invalidShares: number; activeShares: number; truncated: boolean; issues: string[]; deletedFiles: number; changedRows: number };
 type StorageTestResult = { ok: boolean; uploaded: boolean; verified: boolean; deleted: boolean; confirmedAbsent: boolean; realProjectsChanged: number; databaseRowsChanged: number };
@@ -27,6 +28,9 @@ export default function FileRetentionAdminPage() {
   const [storageTesting, setStorageTesting] = useState(false);
   const [linkageTesting, setLinkageTesting] = useState(false);
   const [lifecycleTesting, setLifecycleTesting] = useState(false);
+  const [logsLoading, setLogsLoading] = useState(false);
+  const [logsLoaded, setLogsLoaded] = useState(false);
+  const [deletionLogs, setDeletionLogs] = useState<DeletionLog[]>([]);
   const [lifecycleResult, setLifecycleResult] = useState<LifecycleResult | null>(null);
   const [linkageResult, setLinkageResult] = useState<LinkageResult | null>(null);
   const [storageResult, setStorageResult] = useState<StorageTestResult | null>(null);
@@ -74,6 +78,21 @@ export default function FileRetentionAdminPage() {
       await load();
     } catch (e) { setError(e instanceof Error ? e.message : '保存できませんでした。'); }
     finally { setSaving(null); }
+  }
+  async function loadDeletionLogs() {
+    setLogsLoading(true); setError('');
+    try {
+      const access = await token();
+      if (!access) throw new Error('ログインし直してください。');
+      const response = await fetch('/api/cs-works/file-retention/deletion-logs', {
+        headers: { Authorization: 'Bearer ' + access }, cache: 'no-store',
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || '削除履歴の取得に失敗しました。');
+      setDeletionLogs((data.rows ?? []) as DeletionLog[]);
+      setLogsLoaded(true);
+    } catch (e) { setLogsLoaded(false); setError(e instanceof Error ? e.message : '削除履歴の取得に失敗しました。'); }
+    finally { setLogsLoading(false); }
   }
   async function runLifecycleTest() {
     if (!window.confirm('指定テスト案件に一時的な専用ファイルと共有記録を作り、それらだけを削除します。既存ファイルは削除しません。実行しますか？')) return;
@@ -213,6 +232,24 @@ export default function FileRetentionAdminPage() {
       style={{ width: 'auto', marginLeft: 10, marginTop: 8, padding: '8px 14px', border: '1px solid #fca5a5', background: '#fee2e2', borderRadius: 8, fontWeight: 700 }}>
       {lifecycleTesting ? '連動テスト中…' : '専用データで共有・Storage・DB連動削除をテスト'}
     </button>
+    <button type="button" onClick={() => void loadDeletionLogs()} disabled={logsLoading}
+      style={{ width: 'auto', marginLeft: 10, marginTop: 8, padding: '8px 14px', border: '1px solid #94a3b8', background: '#f8fafc', borderRadius: 8, fontWeight: 700 }}>
+      {logsLoading ? '履歴を取得中…' : '削除履歴を確認'}
+    </button>
+    {logsLoaded && <section style={{ marginTop: 16, padding: 16, borderRadius: 12, background: '#fff', border: '1px solid #cbd5e1' }}>
+      <strong>ファイル削除履歴（新しい順・最大50件）</strong>
+      {deletionLogs.length === 0 ? <p>削除履歴はまだありません。自動削除は無効です。</p> :
+        <div style={{ overflowX: 'auto' }}><table style={{ width: '100%', borderCollapse: 'collapse', marginTop: 12 }}>
+          <thead><tr><th style={{ textAlign: 'left' }}>日時</th><th style={{ textAlign: 'left' }}>案件</th><th style={{ textAlign: 'left' }}>結果</th><th style={{ textAlign: 'left' }}>詳細</th></tr></thead>
+          <tbody>{deletionLogs.map(log => <tr key={log.id}>
+            <td style={{ padding: 8, borderTop: '1px solid #e2e8f0' }}>{new Date(log.created_at).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' })}</td>
+            <td style={{ padding: 8, borderTop: '1px solid #e2e8f0' }}><Link href={'/admin/projects/' + log.project_id}>{log.project_id.slice(0, 8)}…</Link></td>
+            <td style={{ padding: 8, borderTop: '1px solid #e2e8f0' }}>{log.outcome === 'deleted' ? '削除済み' : log.outcome === 'failed' ? '失敗' : '対象外'}</td>
+            <td style={{ padding: 8, borderTop: '1px solid #e2e8f0' }}>{log.detail || '—'}</td>
+          </tr>)}</tbody>
+        </table></div>}
+      <p style={{ fontSize: 13 }}>※この画面は履歴の閲覧専用です。削除は実行しません。</p>
+    </section>}
     {lifecycleResult && <section role="status" style={{ marginTop: 16, padding: 16, borderRadius: 12, background: '#f0fdf4', border: '1px solid #86efac' }}>
       <strong>連動削除テスト成功（新規作成した専用データのみ）</strong>
       <p>共有リンク無効化：{lifecycleResult.shareRevoked ? '成功' : '失敗'} ／ Storage削除：{lifecycleResult.storageRemoved ? '成功' : '失敗'} ／ DB記録削除：{lifecycleResult.fileRowDeleted ? '成功' : '失敗'} ／ 共有履歴の連動削除：{lifecycleResult.shareCascadeVerified ? '成功' : '失敗'}</p>
