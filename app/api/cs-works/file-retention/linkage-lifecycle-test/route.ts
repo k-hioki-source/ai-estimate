@@ -43,6 +43,8 @@ export async function POST(request: NextRequest) {
   let fileRowDeleted = false;
   let shareCascadeVerified = false;
   let errorMessage = '';
+  let auditLogged = false;
+  let auditError = '';
 
   try {
     const { error: uploadError } = await bucket.upload(path, new TextEncoder().encode('RETENTION_LINK_TEST_' + unique), {
@@ -109,11 +111,34 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  const ok = storageCreated && shareRevoked && storageRemoved && fileRowDeleted && shareCascadeVerified;
+  const deletionSucceeded = storageCreated && shareRevoked && storageRemoved && fileRowDeleted && shareCascadeVerified;
+  // Persist a durable audit record only for a synthetic file created by this request.
+  // A failed log write is surfaced as a failed test, not a false success.
+  if (fileId) {
+    const { error: logError } = await db.from('project_file_retention_deletion_logs').insert({
+      project_id: TEST_PROJECT_ID,
+      file_id: fileId,
+      storage_path: path,
+      outcome: deletionSucceeded ? 'deleted' : 'failed',
+      detail: deletionSucceeded
+        ? '[TEST ONLY] Synthetic file lifecycle verified; not an automatic deletion.'
+        : '[TEST ONLY] Synthetic lifecycle failed: ' + (errorMessage || 'Unknown error'),
+    });
+    if (logError) {
+      auditError = '削除履歴の保存に失敗しました。SQLテーブルと権限を確認してください。';
+      console.error('Retention lifecycle audit insert failed:', logError);
+    } else {
+      auditLogged = true;
+    }
+  } else {
+    auditError = 'ファイル記録を作成できず、履歴の記録対象がありません。';
+  }
+  const ok = deletionSucceeded && auditLogged;
   return reply({
     ok, testOnly: true, projectId: TEST_PROJECT_ID,
     shareRevoked, storageRemoved, fileRowDeleted, shareCascadeVerified,
     existingFilesTouched: 0, automaticDeletionEnabled: false,
-    ...(ok ? {} : { error: errorMessage }),
+    auditLogged,
+    ...(ok ? {} : { error: auditError || errorMessage || '連動テストに失敗しました。' }),
   }, ok ? 200 : 500);
 }
