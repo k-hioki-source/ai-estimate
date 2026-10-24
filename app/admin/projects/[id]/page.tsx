@@ -1,5 +1,8 @@
 'use client';
 
+import ProjectFilePreview from '../../../../components/cs-works/ProjectFilePreview';
+import ProjectFileShare from '../../../../components/cs-works/ProjectFileShare';
+
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import type { User } from '@supabase/supabase-js';
@@ -1775,6 +1778,8 @@ export default function AdminPage() {
                 {formatDate(file.created_at)}
               </span>
             </div>
+            <ProjectFilePreview url={file.signed_url} fileName={file.file_name} mimeType={file.mime_type} />
+            <ProjectFileShare fileId={file.id} projectId={file.project_id} fileType={file.file_type} />
             {file.signed_url ? (
               <a href={file.signed_url} target="_blank" rel="noreferrer">
                 ファイルを開く →
