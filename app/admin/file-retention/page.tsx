@@ -16,7 +16,7 @@ type LifecycleResult = { ok: boolean; shareRevoked: boolean; storageRemoved: boo
 type LinkageResult = { checkedShares: number; linkedShares: number; invalidShares: number; activeShares: number; truncated: boolean; issues: string[]; deletedFiles: number; changedRows: number };
 type StorageTestResult = { ok: boolean; uploaded: boolean; verified: boolean; deleted: boolean; confirmedAbsent: boolean; realProjectsChanged: number; databaseRowsChanged: number };
 type FixtureResult = { passed: boolean; fixtureOnly: boolean; realFilesChecked: number; deletedFiles: number; cases: { caseName: string; eligible: number; expected: number; passed: boolean }[] };
-type DeletionPlan = { ok: boolean; dryRun: boolean; deletionEnabled: boolean; inspectedProjects: number; readyFiles: number; blockedFiles: number; heldProjects: number; truncated: boolean; projects: { projectCode: string; state: string; readyFiles: number; blockedFiles: number; details: string[] }[] };
+type DeletionPlan = { ok: boolean; dryRun: boolean; deletionEnabled: boolean; inspectedProjects: number; readyFiles: number; blockedFiles: number; heldProjects: number; truncated: boolean; projects: { projectId: string; projectCode: string; state: string; readyFiles: number; blockedFiles: number; details: string[]; candidates: { id: string; name: string; type: string }[] }[] };
 type TestResult = { ok: boolean; dryRun: boolean; checkedProjects: number; warningProjects: number; overdueProjects: number; heldProjects: number; emailSent: number; deletedFiles: number; details: { projectCode: string; fileCount: number; dueAt: string; state: string }[] };
 type Row = {
   projectId: string; projectCode: string; completedAt: string; deletionDueAt: string;
@@ -59,6 +59,8 @@ export default function FileRetentionAdminPage() {
   const [storageResult, setStorageResult] = useState<StorageTestResult | null>(null);
   const [fixtureResult, setFixtureResult] = useState<FixtureResult | null>(null);
   const [deletionPlan, setDeletionPlan] = useState<DeletionPlan | null>(null);
+  const [selectedCandidates, setSelectedCandidates] = useState<string[]>([]);
+  const [reviewOpen, setReviewOpen] = useState(false);
   const [sendingTestEmail, setSendingTestEmail] = useState(false);
   const [emailResult, setEmailResult] = useState('');
   const [testResult, setTestResult] = useState<TestResult | null>(null);
@@ -306,7 +308,7 @@ export default function FileRetentionAdminPage() {
     finally { setFixtureRunning(false); }
   }
   async function runDeletionPlan() {
-    setPlanning(true); setError(''); setDeletionPlan(null);
+    setPlanning(true); setError(''); setDeletionPlan(null); setSelectedCandidates([]); setReviewOpen(false);
     try {
       const access = await token();
       if (!access) throw new Error('ログインし直してください。');
@@ -547,6 +549,27 @@ export default function FileRetentionAdminPage() {
           {item.details.length > 0 && <ul>{item.details.map((d, i) => <li key={i}>{d}</li>)}</ul>}
         </li>
       )}</ul></details>}
+      {deletionPlan.projects.some(p => (p.candidates ?? []).length > 0) && <div style={{ marginTop: 16, padding: 12, background: '#fff', borderRadius: 8 }}>
+        <strong>削除候補ファイルの選択（確認のみ）</strong>
+        <p>対象を選択して内容を確認できます。現在は削除を実行できません。</p>
+        {deletionPlan.projects.map(project => (project.candidates ?? []).length > 0 && <div key={project.projectId}>
+          <p><strong>{project.projectCode}</strong></p>
+          {(project.candidates ?? []).map(file => <label key={file.id} style={{ display: 'block', margin: '8px 0' }}>
+            <input type="checkbox" checked={selectedCandidates.includes(file.id)} onChange={event => {
+              setReviewOpen(false);
+              setSelectedCandidates(prev => event.target.checked ? [...prev, file.id] : prev.filter(id => id !== file.id));
+            }} /> {file.name}（{file.type}）
+          </label>)}
+        </div>)}
+        <button type="button" disabled={selectedCandidates.length === 0} onClick={() => setReviewOpen(true)}>
+          選択した{selectedCandidates.length}件を確認
+        </button>
+        {reviewOpen && <div style={{ marginTop: 12, padding: 12, border: '1px solid #fcd34d', borderRadius: 8 }}>
+          <strong>削除前の確認（実行機能は未実装）</strong>
+          <ul>{deletionPlan.projects.flatMap(p => (p.candidates ?? []).filter(f => selectedCandidates.includes(f.id)).map(f => <li key={f.id}>{p.projectCode}：{f.name}</li>))}</ul>
+          <p>現在は確認のみです。削除操作は行われません。</p>
+        </div>}
+      </div>}
     </section>}
     {emailResult && <p role="status" style={{ color: '#166534', fontWeight: 700 }}>{emailResult}</p>}
     {testResult && <section role="status" style={{ marginTop: 16, padding: 16, borderRadius: 12, background: '#f0fdf4', border: '1px solid #bbf7d0' }}>
