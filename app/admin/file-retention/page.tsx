@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { getSupabaseBrowserClient } from '../../../lib/supabase/client';
 
+type LinkageResult = { checkedShares: number; linkedShares: number; invalidShares: number; activeShares: number; truncated: boolean; issues: string[]; deletedFiles: number; changedRows: number };
 type StorageTestResult = { ok: boolean; uploaded: boolean; verified: boolean; deleted: boolean; confirmedAbsent: boolean; realProjectsChanged: number; databaseRowsChanged: number };
 type FixtureResult = { passed: boolean; fixtureOnly: boolean; realFilesChecked: number; deletedFiles: number; cases: { caseName: string; eligible: number; expected: number; passed: boolean }[] };
 type DeletionPlan = { ok: boolean; dryRun: boolean; deletionEnabled: boolean; inspectedProjects: number; readyFiles: number; blockedFiles: number; heldProjects: number; truncated: boolean; projects: { projectCode: string; state: string; readyFiles: number; blockedFiles: number; details: string[] }[] };
@@ -23,6 +24,8 @@ export default function FileRetentionAdminPage() {
   const [planning, setPlanning] = useState(false);
   const [fixtureRunning, setFixtureRunning] = useState(false);
   const [storageTesting, setStorageTesting] = useState(false);
+  const [linkageTesting, setLinkageTesting] = useState(false);
+  const [linkageResult, setLinkageResult] = useState<LinkageResult | null>(null);
   const [storageResult, setStorageResult] = useState<StorageTestResult | null>(null);
   const [fixtureResult, setFixtureResult] = useState<FixtureResult | null>(null);
   const [deletionPlan, setDeletionPlan] = useState<DeletionPlan | null>(null);
@@ -68,6 +71,20 @@ export default function FileRetentionAdminPage() {
       await load();
     } catch (e) { setError(e instanceof Error ? e.message : '保存できませんでした。'); }
     finally { setSaving(null); }
+  }
+  async function runLinkageTest() {
+    setLinkageTesting(true); setError(''); setLinkageResult(null);
+    try {
+      const access = await token();
+      if (!access) throw new Error('ログインし直してください。');
+      const response = await fetch('/api/cs-works/file-retention/linkage-test', {
+        method: 'POST', headers: { Authorization: 'Bearer ' + access }, cache: 'no-store',
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || '関連付けの確認に失敗しました。');
+      setLinkageResult(data as LinkageResult);
+    } catch (e) { setError(e instanceof Error ? e.message : '関連付けの確認に失敗しました。'); }
+    finally { setLinkageTesting(false); }
   }
   async function runStorageTest() {
     if (!window.confirm('専用のテストファイルをStorageに一時作成し、そのテストファイルだけを削除します。既存案件には触れません。実行しますか？')) return;
@@ -170,6 +187,18 @@ export default function FileRetentionAdminPage() {
       style={{ width: 'auto', marginLeft: 10, marginTop: 8, padding: '8px 14px', border: '1px solid #94a3b8', background: '#e2e8f0', borderRadius: 8, fontWeight: 700 }}>
       {storageTesting ? 'Storageテスト中…' : '専用テストファイルでStorage削除を検証'}
     </button>
+    <button type="button" onClick={() => void runLinkageTest()} disabled={linkageTesting}
+      style={{ width: 'auto', marginLeft: 10, marginTop: 8, padding: '8px 14px', border: '1px solid #7dd3fc', background: '#e0f2fe', borderRadius: 8, fontWeight: 700 }}>
+      {linkageTesting ? '関連付け確認中…' : 'DB・共有リンクの関連付けを照合（変更なし）'}
+    </button>
+    {linkageResult && <section role="status" style={{ marginTop: 16, padding: 16, borderRadius: 12, background: '#f0f9ff', border: '1px solid #7dd3fc' }}>
+      <strong>DB・共有リンクの関連付け照合完了</strong>
+      <p>確認した共有リンク：{linkageResult.checkedShares}件 ／ 正常な関連付け：{linkageResult.linkedShares}件 ／ 要確認：{linkageResult.invalidShares}件 ／ 有効期間内・未失効：{linkageResult.activeShares}件</p>
+      <p>削除ファイル：{linkageResult.deletedFiles}件 ／ DB変更：{linkageResult.changedRows}件</p>
+      {linkageResult.truncated && <p>200件の照合上限に達しました。全件確認には追加対応が必要です。</p>}
+      {linkageResult.issues.length > 0 && <ul>{linkageResult.issues.map((issue, i) => <li key={i}>{issue}</li>)}</ul>}
+      <p>※関連付けの読み取り専用チェックです。共有リンク無効化やDB連動削除の動作確認ではありません。</p>
+    </section>}
     {storageResult && <section role="status" style={{ marginTop: 16, padding: 16, borderRadius: 12, background: '#f0fdf4', border: '1px solid #86efac' }}>
       <strong>Storageテスト成功（専用ファイルのみ）</strong>
       <p>作成：{storageResult.uploaded ? '成功' : '失敗'} ／ 読取：{storageResult.verified ? '成功' : '失敗'} ／ 削除：{storageResult.deleted ? '成功' : '失敗'} ／ 削除後の不存在確認：{storageResult.confirmedAbsent ? '成功' : '失敗'}</p>
