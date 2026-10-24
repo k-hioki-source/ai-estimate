@@ -1,5 +1,6 @@
-import ProjectFilePreview from '../../../../components/cs-works/ProjectFilePreview';
 'use client';
+
+import ProjectFilePreview from '../../../../components/cs-works/ProjectFilePreview';
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
