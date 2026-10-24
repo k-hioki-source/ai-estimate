@@ -903,6 +903,24 @@ async function handleFormalQuoteRequest() {
       </section>
     ) : null}
 
+    {/* CS Works会員特典：軽微な修正サポート */}
+    {isLanding && (
+      <section className="cswRevisionBenefit" aria-labelledby="csw-revision-title">
+        <div className="cswRevisionBenefitMain">
+          <span className="cswRevisionBenefitEyebrow">CS WORKS 会員発注特典</span>
+          <h2 id="csw-revision-title">見積りだけじゃない。<br />修正まで安心。</h2>
+          <p className="cswRevisionBenefitLead">CS Worksからの正式発注なら、制作内容を変えない範囲の軽微な修正は追加料金なしで対応します。</p>
+          <div className="cswRevisionBenefitTags"><span>文字・数字の修正</span><span>線・矢印・注記の調整</span><span>軽微な色・配置変更</span></div>
+          <p className="cswRevisionBenefitNote">※ アングル・構図の変更、全体の描き直し、大幅な仕様変更、追加制作は対象外です。無料対応の範囲・回数等は案件内容に応じて正式見積り時にご案内します。弊社の制作上の不備は別途対応します。</p>
+        </div>
+        <div className="cswRevisionBenefitSide">
+          <div className="cswRevisionBenefitZero"><strong>0<span>円</span></strong><small>対象となる軽微な修正の追加料金</small></div>
+          <Link href="/signup" className="cswRevisionBenefitButton">無料会員登録 →</Link>
+          <span className="cswRevisionBenefitSideNote">会員登録は無料。特典はCS Works経由の正式発注案件が対象です。</span>
+        </div>
+      </section>
+    )}
+
     {/* お客様への安心案内：プライバシーとNDAを同じ段にまとめる */}
     {isLanding && <div className="cswTrustGrid">
       <div className="cswTrustPrivacy">
@@ -2068,6 +2086,23 @@ async function handleFormalQuoteRequest() {
   <section className="cswFinalCta"><div><h2>まずは、制作費の目安を確認。</h2><p>登録不要。作りたいイラストを文章で伝えるだけ。</p></div><Link href="/estimate">AI概算見積りを試す →</Link></section>
 </>}
 <style>{`
+
+
+.cswRevisionBenefit{display:grid;grid-template-columns:minmax(0,1fr) 240px;gap:28px;align-items:center;margin:22px 0;padding:30px 34px;border:1px solid #bfd8f4;border-radius:18px;background:linear-gradient(115deg,#f0f7ff,#fff 68%);box-shadow:0 8px 28px rgba(32,79,132,.05)}
+.cswRevisionBenefitEyebrow{font-size:11px;font-weight:900;letter-spacing:.11em;color:#2563a6}
+.cswRevisionBenefit h2{margin:8px 0 12px;font-size:clamp(23px,2.7vw,32px);line-height:1.42;color:#12345a}
+.cswRevisionBenefitLead{margin:0;color:#334e69;font-size:15px;line-height:1.8;font-weight:650}
+.cswRevisionBenefitTags{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 12px}
+.cswRevisionBenefitTags span{padding:7px 11px;border:1px solid #cfe1f3;border-radius:999px;background:white;color:#27547d;font-size:12px;font-weight:700}
+.cswRevisionBenefitNote{margin:0;color:#718297;font-size:11px;line-height:1.8}
+.cswRevisionBenefitSide{display:flex;flex-direction:column;align-items:stretch;gap:12px;text-align:center}
+.cswRevisionBenefitZero{padding:17px 8px 13px;border-radius:13px;background:white;border:1px solid #d7e6f6}
+.cswRevisionBenefitZero strong{display:block;color:#1764b5;font-size:48px;line-height:1.1;letter-spacing:-.04em}
+.cswRevisionBenefitZero strong span{font-size:22px;margin-left:3px}
+.cswRevisionBenefitZero small{display:block;margin-top:7px;font-size:11px;color:#617991}
+.cswRevisionBenefitButton{display:block;padding:13px 12px;border-radius:10px;background:#2563eb;color:white!important;text-decoration:none!important;font-weight:850;font-size:14px}
+.cswRevisionBenefitSideNote{font-size:11px;line-height:1.7;color:#718297}
+@media(max-width:760px){.cswRevisionBenefit{grid-template-columns:1fr;padding:24px 20px;gap:20px}.cswRevisionBenefitSide{max-width:100%}.cswRevisionBenefitZero strong{font-size:40px}}
 
 .cswResultNavigation{display:flex;justify-content:flex-end;margin:0 0 10px}.cswResultNavigation button{border:1px solid #bdd3ef;background:#fff;color:#1657a7;border-radius:10px;padding:11px 18px;font-size:14px;font-weight:800;cursor:pointer}.cswResultNavigation button:hover{background:#eef5ff}
 .cswSimpleAssistant{display:flex;flex-direction:column;gap:14px;padding:12px 2px 4px}
