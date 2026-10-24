@@ -525,7 +525,7 @@ export default function FileRetentionAdminPage() {
       <strong>削除ジョブの状態（読み取り専用）</strong>
       <p>表示件数：{jobSummary.totalDisplayed}件 ／ 処理取得中：{jobSummary.claimed}件 ／ Storage削除済み：{jobSummary.storageRemoved}件 ／ 失敗：{jobSummary.failed}件 ／ 復旧確認が必要：{jobSummary.recoveryNeeded}件</p>
       {jobSummary.truncated && <p>※最大100件まで表示しています。全件ではありません。</p>}
-      {(jobSummary.staleClaimedJobs?.length ?? 0) > 0 && <div style={{ marginTop: 12, padding: 12, border: '1px solid #fbbf24', borderRadius: 8, padding: 12 }}>
+      {(jobSummary.staleClaimedJobs?.length ?? 0) > 0 && <div style={{ marginTop: 12, padding: 12, border: '1px solid #fbbf24', borderRadius: 8 }}>
         <strong>長時間処理中のジョブ：{jobSummary.staleClaimedJobs?.length}件（要確認）</strong>
         <p>取得から60分以上経過したジョブです。自動再実行・削除は行いません。</p>
         <ul>{jobSummary.staleClaimedJobs?.map(job => <li key={job.fileId}>ファイルID：{job.fileId} ／ 取得日時：{job.claimedAt ?? '不明'} ／ 試行：{job.attemptCount}回</li>)}</ul>
