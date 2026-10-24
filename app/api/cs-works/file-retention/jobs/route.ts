@@ -29,12 +29,16 @@ export async function GET(request: NextRequest) {
       .order('updated_at', { ascending: false }).limit(100);
     if (error) return respond({ error: 'ジョブ管理テーブルを取得できません。SQLの適用を確認してください。' }, 500);
     const rows = jobs ?? [];
+    const recoveryNeeded = rows.filter(row => row.status === 'storage_removed' || row.status === 'failed');
     return respond({
       ok: true, readOnly: true, deletionEnabled: false,
       totalDisplayed: rows.length, truncated: rows.length === 100,
       claimed: rows.filter(row => row.status === 'claimed').length,
       storageRemoved: rows.filter(row => row.status === 'storage_removed').length,
       failed: rows.filter(row => row.status === 'failed').length,
+      recoveryNeeded: recoveryNeeded.length,
+      recoveryCandidates: recoveryNeeded.map(row => ({ projectId: row.project_id, fileId: row.file_id, status: row.status, lastError: row.last_error })),
+      recoveryIsManualOnly: true,
       jobs: rows,
     });
   } catch (error) {
