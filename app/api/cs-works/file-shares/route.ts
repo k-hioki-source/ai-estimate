@@ -33,7 +33,8 @@ async function actor(request: NextRequest) {
   const admin = createClient(url, secret, { auth: { persistSession: false, autoRefreshToken: false } });
   return { user: data.user, admin };
 }
-async function allowedAccess(admin: ReturnType<typeof createClient>, userId: string, projectId: string) {
+type ShareAdminClient = Awaited<ReturnType<typeof actor>> extends infer T ? NonNullable<T>['admin'] : never;
+async function allowedAccess(admin: ShareAdminClient, userId: string, projectId: string) {
   const { data: project, error } = await admin.from('projects').select('id,user_id').eq('id', projectId).maybeSingle();
   if (error || !project) return false;
   const projectRecord = project as { id: string; user_id: string };
