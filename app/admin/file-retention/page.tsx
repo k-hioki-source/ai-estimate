@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { getSupabaseBrowserClient } from '../../../lib/supabase/client';
 
+type ReferenceCheck = { scannedRows: number; missingPaths: number; duplicatePathCount: number; duplicateReferences: number; capped: boolean };
 type DeletionLog = { id: string; project_id: string; file_id: string; outcome: 'deleted' | 'failed' | 'skipped'; detail: string | null; created_at: string };
 type LifecycleResult = { ok: boolean; shareRevoked: boolean; storageRemoved: boolean; fileRowDeleted: boolean; shareCascadeVerified: boolean; auditLogged: boolean; existingFilesTouched: number };
 type LinkageResult = { checkedShares: number; linkedShares: number; invalidShares: number; activeShares: number; truncated: boolean; issues: string[]; deletedFiles: number; changedRows: number };
@@ -28,6 +29,8 @@ export default function FileRetentionAdminPage() {
   const [storageTesting, setStorageTesting] = useState(false);
   const [linkageTesting, setLinkageTesting] = useState(false);
   const [lifecycleTesting, setLifecycleTesting] = useState(false);
+  const [referenceChecking, setReferenceChecking] = useState(false);
+  const [referenceResult, setReferenceResult] = useState<ReferenceCheck | null>(null);
   const [logsLoading, setLogsLoading] = useState(false);
   const [logsLoaded, setLogsLoaded] = useState(false);
   const [deletionLogs, setDeletionLogs] = useState<DeletionLog[]>([]);
@@ -78,6 +81,20 @@ export default function FileRetentionAdminPage() {
       await load();
     } catch (e) { setError(e instanceof Error ? e.message : '保存できませんでした。'); }
     finally { setSaving(null); }
+  }
+  async function checkReferences() {
+    setReferenceChecking(true); setReferenceResult(null); setError('');
+    try {
+      const access = await token();
+      if (!access) throw new Error('ログインし直してください。');
+      const response = await fetch('/api/cs-works/file-retention/reference-check', {
+        method: 'POST', headers: { Authorization: 'Bearer ' + access }, cache: 'no-store',
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || '参照重複の確認に失敗しました。');
+      setReferenceResult(data as ReferenceCheck);
+    } catch (e) { setError(e instanceof Error ? e.message : '参照重複の確認に失敗しました。'); }
+    finally { setReferenceChecking(false); }
   }
   async function loadDeletionLogs() {
     setLogsLoading(true); setError('');
@@ -237,6 +254,16 @@ export default function FileRetentionAdminPage() {
       style={{ width: 'auto', marginLeft: 10, marginTop: 8, padding: '8px 14px', border: '1px solid #94a3b8', background: '#f8fafc', borderRadius: 8, fontWeight: 700 }}>
       {logsLoading ? '履歴を取得中…' : '削除履歴を確認'}
     </button>
+    <button type="button" onClick={() => void checkReferences()} disabled={referenceChecking}
+      style={{ width: 'auto', marginLeft: 10, marginTop: 8, padding: '8px 14px', border: '1px solid #93c5fd', background: '#eff6ff', borderRadius: 8, fontWeight: 700 }}>
+      {referenceChecking ? '参照重複を確認中…' : 'Storageパスの重複参照を確認（変更なし）'}
+    </button>
+    {referenceResult && <section role="status" style={{ marginTop: 16, padding: 16, borderRadius: 12, background: '#eff6ff', border: '1px solid #93c5fd' }}>
+      <strong>Storageパスの参照チェック完了</strong>
+      <p>確認したDB記録：{referenceResult.scannedRows}件 ／ 重複パス：{referenceResult.duplicatePathCount}件 ／ 重複に関係する記録：{referenceResult.duplicateReferences}件 ／ パス未設定：{referenceResult.missingPaths}件</p>
+      {referenceResult.capped && <p style={{ color: '#b45309' }}>1万件の調査上限に達しました。全件確認できていません。</p>}
+      <p>※DB参照の読み取り専用検査です。ファイルの削除・変更は行いません。</p>
+    </section>}
     {logsLoaded && <section style={{ marginTop: 16, padding: 16, borderRadius: 12, background: '#fff', border: '1px solid #cbd5e1' }}>
       <strong>ファイル削除履歴（新しい順・最大50件）</strong>
       {deletionLogs.length === 0 ? <p>削除履歴はまだありません。自動削除は無効です。</p> :
