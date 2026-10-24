@@ -17,6 +17,8 @@ export default function FileRetentionAdminPage() {
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [testing, setTesting] = useState(false);
+  const [sendingTestEmail, setSendingTestEmail] = useState(false);
+  const [emailResult, setEmailResult] = useState('');
   const [testResult, setTestResult] = useState<TestResult | null>(null);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState<string | null>(null);
@@ -58,6 +60,21 @@ export default function FileRetentionAdminPage() {
     } catch (e) { setError(e instanceof Error ? e.message : '保存できませんでした。'); }
     finally { setSaving(null); }
   }
+  async function sendTestEmail() {
+    if (!window.confirm('管理者宛てに保管期限のテストメールを1通送信します。よろしいですか？')) return;
+    setSendingTestEmail(true); setEmailResult(''); setError('');
+    try {
+      const access = await token();
+      if (!access) throw new Error('ログインし直してください。');
+      const response = await fetch('/api/cs-works/file-retention/test-email', {
+        method: 'POST', headers: { Authorization: 'Bearer ' + access },
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'テストメールを送信できませんでした。');
+      setEmailResult('テストメールを送信しました。宛先：' + data.recipient);
+    } catch (e) { setError(e instanceof Error ? e.message : 'テストメールを送信できませんでした。'); }
+    finally { setSendingTestEmail(false); }
+  }
   async function runTest() {
     setTesting(true); setError(''); setTestResult(null);
     try {
@@ -77,7 +94,7 @@ export default function FileRetentionAdminPage() {
     <h1 style={{ marginTop: 24 }}>ファイル保管期限の確認</h1>
     <p>案件完了から30日後を削除予定日とし、7日前から対象を表示します。</p>
     <div style={{ background: '#eff6ff', padding: 16, borderRadius: 12, margin: '16px 0' }}>
-      <strong>現在は確認専用です。自動削除・通知は無効です。</strong>
+      <strong>現在は確認専用です。自動削除・定期通知は無効です。</strong>
       <p style={{ marginBottom: 0 }}>「保留」に設定した案件は、将来の自動削除処理から除外する予定です。現時点ではファイルの削除は行いません。</p>
     </div>
     <button type="button" onClick={() => void load()} disabled={loading} style={{ width: 'auto', padding: '8px 14px', border: '1px solid #bfdbfe', background: '#fff', borderRadius: 8 }}>一覧を更新</button>
@@ -85,6 +102,11 @@ export default function FileRetentionAdminPage() {
       style={{ width: 'auto', marginLeft: 10, padding: '8px 14px', border: '1px solid #93c5fd', background: '#dbeafe', borderRadius: 8, fontWeight: 700 }}>
       {testing ? 'テスト中…' : '保管期限チェックをテスト実行'}
     </button>
+    <button type="button" onClick={() => void sendTestEmail()} disabled={sendingTestEmail}
+      style={{ width: 'auto', marginLeft: 10, marginTop: 8, padding: '8px 14px', border: '1px solid #86efac', background: '#dcfce7', borderRadius: 8, fontWeight: 700 }}>
+      {sendingTestEmail ? '送信中…' : '管理者へテストメール送信'}
+    </button>
+    {emailResult && <p role="status" style={{ color: '#166534', fontWeight: 700 }}>{emailResult}</p>}
     {testResult && <section role="status" style={{ marginTop: 16, padding: 16, borderRadius: 12, background: '#f0fdf4', border: '1px solid #bbf7d0' }}>
       <strong>テスト成功：実ファイルの削除・メール送信は行っていません。</strong>
       <p>対象案件：{testResult.checkedProjects}件 ／ 削除7日前：{testResult.warningProjects}件 ／ 期限超過：{testResult.overdueProjects}件 ／ 保留中：{testResult.heldProjects}件</p>
