@@ -36,9 +36,11 @@ async function actor(request: NextRequest) {
 async function allowedAccess(admin: ReturnType<typeof createClient>, userId: string, projectId: string) {
   const { data: project, error } = await admin.from('projects').select('id,user_id').eq('id', projectId).maybeSingle();
   if (error || !project) return false;
-  if (project.user_id === userId) return true;
+  const projectRecord = project as { id: string; user_id: string };
+  if (projectRecord.user_id === userId) return true;
   const { data: profile } = await admin.from('profiles').select('role').eq('id', userId).maybeSingle();
-  return profile?.role === 'admin';
+  const profileRecord = profile as { role: string } | null;
+  return profileRecord?.role === 'admin';
 }
 export async function POST(request: NextRequest) {
   try {
