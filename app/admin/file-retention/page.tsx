@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { getSupabaseBrowserClient } from '../../../lib/supabase/client';
 
+type LifecycleResult = { ok: boolean; shareRevoked: boolean; storageRemoved: boolean; fileRowDeleted: boolean; shareCascadeVerified: boolean; existingFilesTouched: number };
 type LinkageResult = { checkedShares: number; linkedShares: number; invalidShares: number; activeShares: number; truncated: boolean; issues: string[]; deletedFiles: number; changedRows: number };
 type StorageTestResult = { ok: boolean; uploaded: boolean; verified: boolean; deleted: boolean; confirmedAbsent: boolean; realProjectsChanged: number; databaseRowsChanged: number };
 type FixtureResult = { passed: boolean; fixtureOnly: boolean; realFilesChecked: number; deletedFiles: number; cases: { caseName: string; eligible: number; expected: number; passed: boolean }[] };
@@ -25,6 +26,8 @@ export default function FileRetentionAdminPage() {
   const [fixtureRunning, setFixtureRunning] = useState(false);
   const [storageTesting, setStorageTesting] = useState(false);
   const [linkageTesting, setLinkageTesting] = useState(false);
+  const [lifecycleTesting, setLifecycleTesting] = useState(false);
+  const [lifecycleResult, setLifecycleResult] = useState<LifecycleResult | null>(null);
   const [linkageResult, setLinkageResult] = useState<LinkageResult | null>(null);
   const [storageResult, setStorageResult] = useState<StorageTestResult | null>(null);
   const [fixtureResult, setFixtureResult] = useState<FixtureResult | null>(null);
@@ -71,6 +74,21 @@ export default function FileRetentionAdminPage() {
       await load();
     } catch (e) { setError(e instanceof Error ? e.message : '保存できませんでした。'); }
     finally { setSaving(null); }
+  }
+  async function runLifecycleTest() {
+    if (!window.confirm('指定テスト案件に一時的な専用ファイルと共有記録を作り、それらだけを削除します。既存ファイルは削除しません。実行しますか？')) return;
+    setLifecycleTesting(true); setError(''); setLifecycleResult(null);
+    try {
+      const access = await token();
+      if (!access) throw new Error('ログインし直してください。');
+      const response = await fetch('/api/cs-works/file-retention/linkage-lifecycle-test', {
+        method: 'POST', headers: { Authorization: 'Bearer ' + access }, cache: 'no-store',
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || '連動削除テストに失敗しました。');
+      setLifecycleResult(data as LifecycleResult);
+    } catch (e) { setError(e instanceof Error ? e.message : '連動削除テストに失敗しました。'); }
+    finally { setLifecycleTesting(false); }
   }
   async function runLinkageTest() {
     setLinkageTesting(true); setError(''); setLinkageResult(null);
@@ -191,6 +209,15 @@ export default function FileRetentionAdminPage() {
       style={{ width: 'auto', marginLeft: 10, marginTop: 8, padding: '8px 14px', border: '1px solid #7dd3fc', background: '#e0f2fe', borderRadius: 8, fontWeight: 700 }}>
       {linkageTesting ? '関連付け確認中…' : 'DB・共有リンクの関連付けを照合（変更なし）'}
     </button>
+    <button type="button" onClick={() => void runLifecycleTest()} disabled={lifecycleTesting}
+      style={{ width: 'auto', marginLeft: 10, marginTop: 8, padding: '8px 14px', border: '1px solid #fca5a5', background: '#fee2e2', borderRadius: 8, fontWeight: 700 }}>
+      {lifecycleTesting ? '連動テスト中…' : '専用データで共有・Storage・DB連動削除をテスト'}
+    </button>
+    {lifecycleResult && <section role="status" style={{ marginTop: 16, padding: 16, borderRadius: 12, background: '#f0fdf4', border: '1px solid #86efac' }}>
+      <strong>連動削除テスト成功（新規作成した専用データのみ）</strong>
+      <p>共有リンク無効化：{lifecycleResult.shareRevoked ? '成功' : '失敗'} ／ Storage削除：{lifecycleResult.storageRemoved ? '成功' : '失敗'} ／ DB記録削除：{lifecycleResult.fileRowDeleted ? '成功' : '失敗'} ／ 共有履歴の連動削除：{lifecycleResult.shareCascadeVerified ? '成功' : '失敗'}</p>
+      <p>既存ファイルの操作：{lifecycleResult.existingFilesTouched}件 ／ 本番自動削除：無効</p>
+    </section>}
     {linkageResult && <section role="status" style={{ marginTop: 16, padding: 16, borderRadius: 12, background: '#f0f9ff', border: '1px solid #7dd3fc' }}>
       <strong>DB・共有リンクの関連付け照合完了</strong>
       <p>確認した共有リンク：{linkageResult.checkedShares}件 ／ 正常な関連付け：{linkageResult.linkedShares}件 ／ 要確認：{linkageResult.invalidShares}件 ／ 有効期間内・未失効：{linkageResult.activeShares}件</p>
