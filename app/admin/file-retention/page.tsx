@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { getSupabaseBrowserClient } from '../../../lib/supabase/client';
 
+type DeletionPlan = { ok: boolean; dryRun: boolean; deletionEnabled: boolean; inspectedProjects: number; readyFiles: number; blockedFiles: number; heldProjects: number; truncated: boolean; projects: { projectCode: string; state: string; readyFiles: number; blockedFiles: number; details: string[] }[] };
 type TestResult = { ok: boolean; dryRun: boolean; checkedProjects: number; warningProjects: number; overdueProjects: number; heldProjects: number; emailSent: number; deletedFiles: number; details: { projectCode: string; fileCount: number; dueAt: string; state: string }[] };
 type Row = {
   projectId: string; projectCode: string; completedAt: string; deletionDueAt: string;
@@ -17,6 +18,8 @@ export default function FileRetentionAdminPage() {
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [testing, setTesting] = useState(false);
+  const [planning, setPlanning] = useState(false);
+  const [deletionPlan, setDeletionPlan] = useState<DeletionPlan | null>(null);
   const [sendingTestEmail, setSendingTestEmail] = useState(false);
   const [emailResult, setEmailResult] = useState('');
   const [testResult, setTestResult] = useState<TestResult | null>(null);
@@ -59,6 +62,20 @@ export default function FileRetentionAdminPage() {
       await load();
     } catch (e) { setError(e instanceof Error ? e.message : '保存できませんでした。'); }
     finally { setSaving(null); }
+  }
+  async function runDeletionPlan() {
+    setPlanning(true); setError(''); setDeletionPlan(null);
+    try {
+      const access = await token();
+      if (!access) throw new Error('ログインし直してください。');
+      const response = await fetch('/api/cs-works/file-retention/deletion-plan', {
+        method: 'POST', headers: { Authorization: 'Bearer ' + access }, cache: 'no-store',
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || '削除対象の照合に失敗しました。');
+      setDeletionPlan(data as DeletionPlan);
+    } catch (e) { setError(e instanceof Error ? e.message : '削除対象の照合に失敗しました。'); }
+    finally { setPlanning(false); }
   }
   async function sendTestEmail() {
     if (!window.confirm('管理者宛てに保管期限のテストメールを1通送信します。よろしいですか？')) return;
@@ -106,6 +123,20 @@ export default function FileRetentionAdminPage() {
       style={{ width: 'auto', marginLeft: 10, marginTop: 8, padding: '8px 14px', border: '1px solid #86efac', background: '#dcfce7', borderRadius: 8, fontWeight: 700 }}>
       {sendingTestEmail ? '送信中…' : '管理者へテストメール送信'}
     </button>
+    <button type="button" onClick={() => void runDeletionPlan()} disabled={planning}
+      style={{ width: 'auto', marginLeft: 10, marginTop: 8, padding: '8px 14px', border: '1px solid #fcd34d', background: '#fef3c7', borderRadius: 8, fontWeight: 700 }}>
+      {planning ? '照合中…' : '30日経過ファイルの削除対象を照合（削除なし）'}
+    </button>
+    {deletionPlan && <section role="status" style={{ marginTop: 16, padding: 16, borderRadius: 12, border: '1px solid #fcd34d', background: '#fffbeb' }}>
+      <strong>削除対象の照合完了（実際の削除はしていません）</strong>
+      <p>調査案件：{deletionPlan.inspectedProjects}件 ／ Storage照合済み：{deletionPlan.readyFiles}ファイル ／ 要確認：{deletionPlan.blockedFiles}ファイル ／ 保留案件：{deletionPlan.heldProjects}件</p>
+      {deletionPlan.truncated && <p style={{ color: '#b45309' }}>200案件の上限に達しました。全件確認には追加対応が必要です。</p>}
+      {deletionPlan.projects.length > 0 && <details><summary>案件別の照合結果</summary><ul>{deletionPlan.projects.map((item, index) =>
+        <li key={index}>{item.projectCode}：{item.state}（照合済み {item.readyFiles}件、要確認 {item.blockedFiles}件）
+          {item.details.length > 0 && <ul>{item.details.map((d, i) => <li key={i}>{d}</li>)}</ul>}
+        </li>
+      )}</ul></details>}
+    </section>}
     {emailResult && <p role="status" style={{ color: '#166534', fontWeight: 700 }}>{emailResult}</p>}
     {testResult && <section role="status" style={{ marginTop: 16, padding: 16, borderRadius: 12, background: '#f0fdf4', border: '1px solid #bbf7d0' }}>
       <strong>テスト成功：実ファイルの削除・メール送信は行っていません。</strong>
