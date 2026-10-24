@@ -118,7 +118,7 @@ export default function AdminPage(){
  const visible=useMemo(()=>{const q=search.trim().toLowerCase();return projects.filter(p=>(filter==='all'||(filter==='active'?active.has(p.status):filter==='needs_action'?(p.status==='quote_requested'||p.status==='revision'||p.status==='approved'||p.status==='invoice_requested'):p.status===filter))&&(!q||[p.project_code,p.title,p.customer?.company_name,p.customer?.contact_name,p.customer?.email].some(v=>(v??'').toLowerCase().includes(q))))},[projects,search,filter]);
  if(loading)return <main className="authPage"><section className="authCard"><p>管理画面を読み込んでいます…</p></section></main>;
  return <main className="myPageShell">
-  <header className="myPageHeader"><div><div className="authBrand">CS Works ADMIN</div><h1>案件管理</h1></div><div className="adminHeaderActions"><button className="supportButton" onClick={()=>router.push('/admin/estimates')}>AI見積り</button><button className="supportButton" onClick={()=>router.push('/admin/site')}>トップページ管理</button><button className="supportButton" onClick={()=>router.push('/admin/email')}>メール配信</button><button className="supportButton" onClick={()=>router.push('/admin/consultations')}>相談予約</button><button className="supportButton" onClick={()=>router.push('/admin/calendar')}>Googleカレンダー</button><button className="supportButton" onClick={()=>router.push('/admin/file-retention')}>ファイル保管管理</button><button className="supportButton" onClick={()=>router.push('/admin/support')}>お問い合わせ{supportUnread>0?<span className="supportUnread">{supportUnread}</span>:null}</button><button className="logoutButton" onClick={()=>router.push('/mypage')}>My Page</button></div></header>
+  <header className="myPageHeader cswAdminHeader"><div className="cswAdminTitle"><div className="authBrand">CS Works ADMIN</div><h1>案件管理</h1></div><div className="adminHeaderActions"><button className="supportButton" onClick={()=>router.push('/admin/estimates')}>AI見積り</button><button className="supportButton" onClick={()=>router.push('/admin/site')}>トップページ管理</button><button className="supportButton" onClick={()=>router.push('/admin/email')}>メール配信</button><button className="supportButton" onClick={()=>router.push('/admin/consultations')}>相談予約</button><button className="supportButton" onClick={()=>router.push('/admin/calendar')}>Googleカレンダー</button><button className="supportButton" onClick={()=>router.push('/admin/file-retention')}>ファイル保管管理</button><button className="supportButton" onClick={()=>router.push('/admin/support')}>お問い合わせ{supportUnread>0?<span className="supportUnread">{supportUnread}</span>:null}</button><button className="logoutButton" onClick={()=>router.push('/mypage')}>My Page</button></div></header>
   <section className="welcomeCard"><span className="statusDot"/> 管理者<h2>プロジェクト</h2><p>進行中の案件を中心に、検索・絞り込みして管理できます。</p></section>
    <section className="consultationPanel">
      <div className="consultationPanelHead"><div><div className="authBrand">CONSULTATIONS</div><h2>オンライン相談の予定</h2><p>今後の確定予約とGoogle Meetを確認できます。</p></div><button type="button" className="supportButton" onClick={()=>router.push('/admin/consultations')}>予約一覧・カレンダー →</button></div>
@@ -202,7 +202,15 @@ export default function AdminPage(){
      .messageBadge{display:inline-flex;align-items:center;gap:3px;padding:5px 9px;border-radius:999px;background:#eff6ff;color:#1d4ed8;font-size:12px;font-weight:900;white-space:nowrap}
      .noMessage{color:#94a3b8}
      .mobileBadges{display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
-     .adminHeaderActions{display:flex;gap:8px;align-items:center}
+     .cswAdminHeader{display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap}
+     .cswAdminTitle{flex:0 0 auto;min-width:140px}
+     .cswAdminTitle h1{white-space:nowrap;margin:4px 0}
+     .cswAdminTitle .authBrand{white-space:nowrap}
+     .adminHeaderActions{display:flex;gap:8px;align-items:center;justify-content:flex-end;flex-wrap:wrap;flex:1 1 720px;min-width:0}
+     @media(max-width:760px){
+       .cswAdminHeader{align-items:flex-start;flex-direction:column;gap:12px}
+       .adminHeaderActions{flex:0 1 auto;width:100%;justify-content:flex-start}
+     }
      .supportButton{display:inline-flex;align-items:center;gap:7px;padding:10px 14px;border:1px solid #dbe3ec;border-radius:10px;background:#fff;color:#0f172a;font-weight:800;cursor:pointer;white-space:nowrap;width:auto!important;max-width:none!important;flex:0 0 auto}
      .supportUnread{display:inline-flex;min-width:20px;height:20px;padding:0 6px;align-items:center;justify-content:center;border-radius:999px;background:#dc2626;color:#fff;font-size:11px;font-weight:900;box-sizing:border-box}
     @media (min-width:900px){
