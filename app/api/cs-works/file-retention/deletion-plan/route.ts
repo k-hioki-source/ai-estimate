@@ -37,11 +37,11 @@ export async function POST(request: NextRequest) {
     const { data: holds, error: holdsError } = await db.from('project_file_retention_holds').select('project_id,is_held').in('project_id', ids);
     if (holdsError) return reply({ error: '保留情報の取得に失敗しました。' }, 500);
     const heldIds = new Set((holds ?? []).filter(h => h.is_held).map(h => h.project_id));
-    const results: { projectCode: string; state: string; readyFiles: number; blockedFiles: number; details: string[] }[] = [];
+    const results: { projectId: string; projectCode: string; state: string; readyFiles: number; blockedFiles: number; details: string[]; candidates: { id: string; name: string; type: string }[] }[] = [];
     let readyFiles = 0, blockedFiles = 0, heldProjects = 0;
     for (const project of projects ?? []) {
       if (!project.completed_at) continue;
-      if (heldIds.has(project.id)) { heldProjects++; results.push({ projectCode: project.project_code, state: '保留中', readyFiles: 0, blockedFiles: 0, details: [] }); continue; }
+      if (heldIds.has(project.id)) { heldProjects++; results.push({ projectId: project.id, projectCode: project.project_code, state: '保留中', readyFiles: 0, blockedFiles: 0, details: [], candidates: [] }); continue; }
       const { data: files, error: filesError } = await db.from('project_files')
         .select('id,file_name,file_type,storage_path,created_at')
         .eq('project_id', project.id).in('file_type', TYPES).limit(1001);
@@ -49,6 +49,7 @@ export async function POST(request: NextRequest) {
       if ((files ?? []).length > 1000) return reply({ error: '1案件のファイル数が上限を超えています。手動確認が必要です。' }, 409);
       let ready = 0, blocked = 0;
       const details: string[] = [];
+      const candidates: { id: string; name: string; type: string }[] = [];
       for (const file of files ?? []) {
         const path = file.storage_path as string | null;
         // Reject malformed paths, uploads after completion, and unsupported types.
@@ -75,10 +76,11 @@ export async function POST(request: NextRequest) {
             shares.some(share => !share.revoked_at && Date.parse(share.expires_at) > now)) {
           blocked++; details.push(file.file_name + '：要確認（共有リンク）'); continue;
         }
+        candidates.push({ id: file.id, name: file.file_name, type: file.file_type });
         ready++;
       }
       readyFiles += ready; blockedFiles += blocked;
-      if (ready || blocked) results.push({ projectCode: project.project_code, state: blocked ? '要確認あり' : '照合済み（削除は未実行）', readyFiles: ready, blockedFiles: blocked, details });
+      if (ready || blocked) results.push({ projectId: project.id, projectCode: project.project_code, state: blocked ? '要確認あり' : '照合済み（削除は未実行）', readyFiles: ready, blockedFiles: blocked, details, candidates });
     }
     return reply({ ok: true, dryRun: true, deletionEnabled: false, inspectedProjects: projects?.length ?? 0,
       readyFiles, blockedFiles, heldProjects, truncated: (projects?.length ?? 0) === 200, projects: results });
