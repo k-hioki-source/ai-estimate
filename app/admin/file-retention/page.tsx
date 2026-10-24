@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { getSupabaseBrowserClient } from '../../../lib/supabase/client';
 
+type RecoveryTest = { claimed: boolean; markedFailed: boolean; retryBlocked: boolean; storageRemovedState: boolean; recordDeleted: boolean; cleaned: boolean; storageOperations: number; existingFilesTouched: number };
 type ClaimTest = { concurrentAttempts: number; successfulClaims: number; oneClaimOnly: boolean; cleanupOk: boolean; existingFilesTouched: number; storageFilesDeleted: number };
 type ReferenceCheck = { scannedRows: number; missingPaths: number; duplicatePathCount: number; duplicateReferences: number; capped: boolean };
 type DeletionLog = { id: string; project_id: string; file_id: string; outcome: 'deleted' | 'failed' | 'skipped'; detail: string | null; created_at: string };
@@ -30,6 +31,8 @@ export default function FileRetentionAdminPage() {
   const [storageTesting, setStorageTesting] = useState(false);
   const [linkageTesting, setLinkageTesting] = useState(false);
   const [lifecycleTesting, setLifecycleTesting] = useState(false);
+  const [recoveryTesting, setRecoveryTesting] = useState(false);
+  const [recoveryResult, setRecoveryResult] = useState<RecoveryTest | null>(null);
   const [claimTesting, setClaimTesting] = useState(false);
   const [claimResult, setClaimResult] = useState<ClaimTest | null>(null);
   const [referenceChecking, setReferenceChecking] = useState(false);
@@ -84,6 +87,21 @@ export default function FileRetentionAdminPage() {
       await load();
     } catch (e) { setError(e instanceof Error ? e.message : '保存できませんでした。'); }
     finally { setSaving(null); }
+  }
+  async function runRecoveryTest() {
+    if (!window.confirm('テスト案件内に一時的なDB記録を作り、失敗・復旧の状態遷移を検証します。Storageには一切アクセスしません。実行しますか？')) return;
+    setRecoveryTesting(true); setRecoveryResult(null); setError('');
+    try {
+      const access = await token();
+      if (!access) throw new Error('ログインし直してください。');
+      const response = await fetch('/api/cs-works/file-retention/recovery-state-test', {
+        method: 'POST', headers: { Authorization: 'Bearer ' + access }, cache: 'no-store',
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || '復旧状態テストに失敗しました。');
+      setRecoveryResult(data as RecoveryTest);
+    } catch (e) { setError(e instanceof Error ? e.message : '復旧状態テストに失敗しました。'); }
+    finally { setRecoveryTesting(false); }
   }
   async function runClaimTest() {
     if (!window.confirm('専用テスト案件に一時的なDB記録を作り、2つのジョブ取得を同時実行します。実ファイルは削除しません。よろしいですか？')) return;
@@ -280,6 +298,16 @@ export default function FileRetentionAdminPage() {
       style={{ width: 'auto', marginLeft: 10, marginTop: 8, padding: '8px 14px', border: '1px solid #a5b4fc', background: '#eef2ff', borderRadius: 8, fontWeight: 700 }}>
       {claimTesting ? '重複防止テスト中…' : '削除ジョブの二重取得防止をテスト'}
     </button>
+    <button type="button" onClick={() => void runRecoveryTest()} disabled={recoveryTesting}
+      style={{ width: 'auto', marginLeft: 10, marginTop: 8, padding: '8px 14px', border: '1px solid #c4b5fd', background: '#f5f3ff', borderRadius: 8, fontWeight: 700 }}>
+      {recoveryTesting ? '復旧状態テスト中…' : '削除失敗・復旧の状態遷移をテスト'}
+    </button>
+    {recoveryResult && <section role="status" style={{ marginTop: 16, padding: 16, borderRadius: 12, background: '#f5f3ff', border: '1px solid #c4b5fd' }}>
+      <strong>削除失敗・復旧の状態遷移テスト成功</strong>
+      <p>ジョブ取得：{recoveryResult.claimed ? '成功' : '失敗'} ／ 失敗状態の記録：{recoveryResult.markedFailed ? '成功' : '失敗'} ／ 二重取得の防止：{recoveryResult.retryBlocked ? '成功' : '失敗'}</p>
+      <p>復旧状態への変更：{recoveryResult.storageRemovedState ? '成功' : '失敗'} ／ テストDB記録の削除：{recoveryResult.recordDeleted ? '成功' : '失敗'} ／ 後片付け：{recoveryResult.cleaned ? '成功' : '失敗'}</p>
+      <p>※DB状態の模擬テストです。Storage削除や実際の障害復旧は検証していません。</p>
+    </section>}
     {claimResult && <section role="status" style={{ marginTop: 16, padding: 16, borderRadius: 12, background: '#eef2ff', border: '1px solid #a5b4fc' }}>
       <strong>ジョブ重複防止テスト成功</strong>
       <p>同時取得試行：{claimResult.concurrentAttempts}回 ／ 取得成功：{claimResult.successfulClaims}回 ／ 一意性確認：{claimResult.oneClaimOnly ? '成功' : '失敗'} ／ テストデータ後片付け：{claimResult.cleanupOk ? '成功' : '失敗'}</p>
