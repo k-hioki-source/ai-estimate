@@ -92,6 +92,20 @@ export async function GET(request: NextRequest) {
         targetStorageState === 'present' && targetContentMatches,
       readOnly: true,
     };
+    // Claimed jobs are not automatically retried or deleted.
+    // Surface long-running claims so an administrator can investigate them.
+    const staleClaimCutoff = Date.now() - 60 * 60 * 1000;
+    const staleClaimedJobs = (jobs ?? []).filter(row =>
+      row.status === 'claimed' &&
+      (!row.claimed_at || !Number.isFinite(Date.parse(row.claimed_at)) ||
+        Date.parse(row.claimed_at) <= staleClaimCutoff)
+    ).map(row => ({
+      projectId: row.project_id,
+      fileId: row.file_id,
+      claimedAt: row.claimed_at,
+      attemptCount: row.attempt_count,
+      requiresManualReview: true,
+    }));
     const rows = jobs ?? [];
     const recoveryNeeded = rows.filter(row => row.status === 'storage_removed' || row.status === 'failed');
     const recoveryChecks = [];
@@ -127,6 +141,8 @@ export async function GET(request: NextRequest) {
     return respond({
       stagedRecoveryCheck,
       cleanupReadiness,
+      staleClaimedJobs,
+      staleClaimThresholdMinutes: 60,
       recoveryChecks, inspectedRecoveryJobs: recoveryChecks.length,
       recoveryChecksLimited: recoveryNeeded.length > 20,
       ok: true, readOnly: true, deletionEnabled: false,
