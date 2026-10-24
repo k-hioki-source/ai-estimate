@@ -61,6 +61,7 @@ export default function FileRetentionAdminPage() {
   const [deletionPlan, setDeletionPlan] = useState<DeletionPlan | null>(null);
   const [selectedCandidates, setSelectedCandidates] = useState<string[]>([]);
   const [reviewOpen, setReviewOpen] = useState(false);
+  const [mockPlan, setMockPlan] = useState(false);
   const [sendingTestEmail, setSendingTestEmail] = useState(false);
   const [emailResult, setEmailResult] = useState('');
   const [testResult, setTestResult] = useState<TestResult | null>(null);
@@ -308,7 +309,7 @@ export default function FileRetentionAdminPage() {
     finally { setFixtureRunning(false); }
   }
   async function runDeletionPlan() {
-    setPlanning(true); setError(''); setDeletionPlan(null); setSelectedCandidates([]); setReviewOpen(false);
+    setPlanning(true); setError(''); setDeletionPlan(null); setSelectedCandidates([]); setReviewOpen(false); setMockPlan(false);
     try {
       const access = await token();
       if (!access) throw new Error('ログインし直してください。');
@@ -430,6 +431,15 @@ export default function FileRetentionAdminPage() {
       {logsLoading ? '履歴を取得中…' : '削除履歴を確認'}
     </button>
     </>}
+    {isTestPage && <button type="button" onClick={() => {
+      setError(''); setSelectedCandidates([]); setReviewOpen(false); setMockPlan(true);
+      setDeletionPlan({ ok: true, dryRun: true, deletionEnabled: false, inspectedProjects: 1, readyFiles: 2, blockedFiles: 0, heldProjects: 0, truncated: false,
+        projects: [{ projectId: 'mock-project', projectCode: '【画面テスト】架空案件', state: '画面確認用（DB照合なし）', readyFiles: 2, blockedFiles: 0, details: [],
+          candidates: [{ id: 'mock-file-1', name: 'sample_delivery_01.pdf', type: 'delivery' },
+                       { id: 'mock-file-2', name: 'sample_review_02.png', type: 'review' }] }] });
+    }} style={{ width: 'auto', marginTop: 12, padding: '8px 14px', border: '1px solid #a78bfa', background: '#f5f3ff', borderRadius: 8 }}>
+      削除候補の選択画面を模擬表示（DB変更なし）
+    </button>}
     {stageResult && <section role="status" style={{ marginTop: 16, padding: 16, borderRadius: '12px', border: '1px solid #93c5fd', background: '#eff6ff' }}>
       <strong>復旧テストの準備完了（削除なし）</strong>
       <p>Storage作成：{stageResult.storageCreated ? '成功' : '失敗'} ／ DB記録作成：{stageResult.dbRecordCreated ? '成功' : '失敗'} ／ ジョブ取得：{stageResult.jobClaimed ? '成功' : '失敗'}</p>
@@ -541,7 +551,7 @@ export default function FileRetentionAdminPage() {
       <p>※これは判定ルール単体の模擬テストです。実際のStorage照合・削除処理の検証ではありません。</p>
     </section>}
     {deletionPlan && <section role="status" style={{ marginTop: 16, padding: 16, borderRadius: 12, border: '1px solid #fcd34d', background: '#fffbeb' }}>
-      <strong>削除対象の照合完了（実際の削除はしていません）</strong>
+      <strong>{mockPlan ? "【模擬データ】削除候補の画面テスト（実データではありません）" : "削除対象の照合完了（実際の削除はしていません）"}</strong>
       <p>調査案件：{deletionPlan.inspectedProjects}件 ／ Storage照合済み：{deletionPlan.readyFiles}ファイル ／ 要確認：{deletionPlan.blockedFiles}ファイル ／ 保留案件：{deletionPlan.heldProjects}件</p>
       {deletionPlan.truncated && <p style={{ color: '#b45309' }}>200案件の上限に達しました。全件確認には追加対応が必要です。</p>}
       {deletionPlan.projects.length > 0 && <details><summary>案件別の照合結果</summary><ul>{deletionPlan.projects.map((item, index) =>
