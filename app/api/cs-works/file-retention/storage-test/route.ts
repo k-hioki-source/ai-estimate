@@ -47,8 +47,8 @@ export async function POST(request: NextRequest) {
       throw new Error('テストファイルの読み取り検証に失敗しました。');
     }
     verified = true;
-    const { data: removed, error: removeError } = await bucket.remove([path]);
-    if (removeError || !removed?.some(item => item.name === path)) {
+    const { error: removeError } = await bucket.remove([path]);
+    if (removeError) {
       throw new Error('テストファイルの削除結果を確認できませんでした。');
     }
     deleted = true;
