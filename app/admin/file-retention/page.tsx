@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { getSupabaseBrowserClient } from '../../../lib/supabase/client';
 
+type StorageTestResult = { ok: boolean; uploaded: boolean; verified: boolean; deleted: boolean; confirmedAbsent: boolean; realProjectsChanged: number; databaseRowsChanged: number };
 type FixtureResult = { passed: boolean; fixtureOnly: boolean; realFilesChecked: number; deletedFiles: number; cases: { caseName: string; eligible: number; expected: number; passed: boolean }[] };
 type DeletionPlan = { ok: boolean; dryRun: boolean; deletionEnabled: boolean; inspectedProjects: number; readyFiles: number; blockedFiles: number; heldProjects: number; truncated: boolean; projects: { projectCode: string; state: string; readyFiles: number; blockedFiles: number; details: string[] }[] };
 type TestResult = { ok: boolean; dryRun: boolean; checkedProjects: number; warningProjects: number; overdueProjects: number; heldProjects: number; emailSent: number; deletedFiles: number; details: { projectCode: string; fileCount: number; dueAt: string; state: string }[] };
@@ -21,6 +22,8 @@ export default function FileRetentionAdminPage() {
   const [testing, setTesting] = useState(false);
   const [planning, setPlanning] = useState(false);
   const [fixtureRunning, setFixtureRunning] = useState(false);
+  const [storageTesting, setStorageTesting] = useState(false);
+  const [storageResult, setStorageResult] = useState<StorageTestResult | null>(null);
   const [fixtureResult, setFixtureResult] = useState<FixtureResult | null>(null);
   const [deletionPlan, setDeletionPlan] = useState<DeletionPlan | null>(null);
   const [sendingTestEmail, setSendingTestEmail] = useState(false);
@@ -65,6 +68,21 @@ export default function FileRetentionAdminPage() {
       await load();
     } catch (e) { setError(e instanceof Error ? e.message : '保存できませんでした。'); }
     finally { setSaving(null); }
+  }
+  async function runStorageTest() {
+    if (!window.confirm('専用のテストファイルをStorageに一時作成し、そのテストファイルだけを削除します。既存案件には触れません。実行しますか？')) return;
+    setStorageTesting(true); setError(''); setStorageResult(null);
+    try {
+      const access = await token();
+      if (!access) throw new Error('ログインし直してください。');
+      const response = await fetch('/api/cs-works/file-retention/storage-test', {
+        method: 'POST', headers: { Authorization: 'Bearer ' + access }, cache: 'no-store',
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Storageテストに失敗しました。');
+      setStorageResult(data as StorageTestResult);
+    } catch (e) { setError(e instanceof Error ? e.message : 'Storageテストに失敗しました。'); }
+    finally { setStorageTesting(false); }
   }
   async function runFixtureTest() {
     setFixtureRunning(true); setError(''); setFixtureResult(null);
@@ -148,6 +166,16 @@ export default function FileRetentionAdminPage() {
       style={{ width: 'auto', marginLeft: 10, marginTop: 8, padding: '8px 14px', border: '1px solid #c4b5fd', background: '#ede9fe', borderRadius: 8, fontWeight: 700 }}>
       {fixtureRunning ? '模擬テスト中…' : '削除条件を5パターンで模擬テスト'}
     </button>
+    <button type="button" onClick={() => void runStorageTest()} disabled={storageTesting}
+      style={{ width: 'auto', marginLeft: 10, marginTop: 8, padding: '8px 14px', border: '1px solid #94a3b8', background: '#e2e8f0', borderRadius: 8, fontWeight: 700 }}>
+      {storageTesting ? 'Storageテスト中…' : '専用テストファイルでStorage削除を検証'}
+    </button>
+    {storageResult && <section role="status" style={{ marginTop: 16, padding: 16, borderRadius: 12, background: '#f0fdf4', border: '1px solid #86efac' }}>
+      <strong>Storageテスト成功（専用ファイルのみ）</strong>
+      <p>作成：{storageResult.uploaded ? '成功' : '失敗'} ／ 読取：{storageResult.verified ? '成功' : '失敗'} ／ 削除：{storageResult.deleted ? '成功' : '失敗'} ／ 削除後の不存在確認：{storageResult.confirmedAbsent ? '成功' : '失敗'}</p>
+      <p>既存案件の変更：{storageResult.realProjectsChanged}件 ／ DBレコード変更：{storageResult.databaseRowsChanged}件</p>
+      <p>※共有リンク・DB連動削除はこのテストの対象外です。</p>
+    </section>}
     {fixtureResult && <section role="status" style={{ marginTop: 16, padding: 16, borderRadius: 12, background: '#f5f3ff', border: '1px solid #c4b5fd' }}>
       <strong>{fixtureResult.passed ? '模擬テスト全件成功' : '模擬テストに失敗しました'}</strong>
       <p>架空データのみ使用／実案件への変更なし／削除ファイル：{fixtureResult.deletedFiles}件</p>
