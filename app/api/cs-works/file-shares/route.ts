@@ -75,3 +75,20 @@ export async function DELETE(request: NextRequest) {
     return reply({ ok: true, revoked: (data?.length ?? 0) > 0 });
   } catch (error) { console.error('Share revoke error', error); return reply({ error: '共有リンクを無効化できません。' }, 500); }
 }
+
+export async function GET(request: NextRequest) {
+  try {
+    const identity = await actor(request);
+    if (!identity) return reply({ error: 'ログインが必要です。' }, 401);
+    const projectId = new URL(request.url).searchParams.get('projectId');
+    const fileId = new URL(request.url).searchParams.get('fileId');
+    if (!projectId || !fileId) return reply({ error: '対象が指定されていません。' }, 400);
+    const { admin, user } = identity;
+    if (!await allowedAccess(admin, user.id, projectId)) return reply({ error: 'アクセス権がありません。' }, 403);
+    const { data, error } = await admin.from('project_file_shares')
+      .select('id,expires_at,created_at').eq('project_id', projectId).eq('file_id', fileId)
+      .is('revoked_at', null).gt('expires_at', new Date().toISOString()).order('created_at', { ascending: false }).limit(30);
+    if (error) return reply({ error: '共有履歴を取得できません。' }, 500);
+    return reply({ shares: data ?? [] });
+  } catch (error) { console.error('Share list error', error); return reply({ error: '共有履歴を取得できません。' }, 500); }
+}
