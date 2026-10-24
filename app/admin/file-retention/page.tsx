@@ -553,6 +553,7 @@ export default function FileRetentionAdminPage() {
         <li key={index}>{item.projectCode}：{item.state}／{item.fileCount}ファイル／期限 {date(item.dueAt)}</li>
       )}</ul></details>}
     </section>}
+    <p style={{ fontSize: 12, color: '#64748b', marginTop: 16 }}>運用メモ：30日経過後は管理者が確認して手動対応。自動処理への移行は、履歴と障害復旧の検証後に再検討します。</p>
     {error && <p role="alert" style={{ color: '#b91c1c' }}>{error}</p>}
     {loading ? <p>読み込み中…</p> : rows.length === 0 ? <p>現在、削除予告の対象ファイルはありません。</p> :
       <div style={{ display: 'grid', gap: 16, marginTop: 20 }}>
