@@ -65,9 +65,9 @@ export async function GET(request: NextRequest) {
       targetFileId,
       sharesChecked: !stagedSharesError,
       shareCount: stagedShares?.length ?? 0,
-      sharesTruncated: (stagedShares?.length ?? 0) === 100,
+      sharesTruncated: (stagedShares?.length ?? 0) >= 100,
       activeShares: (stagedShares ?? []).filter(share =>
-        !share.revoked_at && Date.parse(share.expires_at) > Date.now()).length,
+        !share.revoked_at && (!Number.isFinite(Date.parse(share.expires_at)) || Date.parse(share.expires_at) > Date.now())).length,
       projectChecked: !stagedProjectError && !!stagedProject,
       projectStatus: stagedProject?.status ?? null,
       retentionHoldChecked: !stagedHoldError,
@@ -76,7 +76,7 @@ export async function GET(request: NextRequest) {
         targetIdentityMatches && targetJobMatches && targetUniqueReference &&
         targetStorageState === 'present' && targetContentMatches,
       readyForManualReview: !stagedSharesError && !stagedProjectError && !stagedHoldError &&
-        (stagedShares?.length ?? 0) === 0 && targetIdentityMatches &&
+        (stagedShares?.length ?? 0) === 0 && !targetFileError && !targetJobError && !targetReferencesError && targetIdentityMatches &&
         targetJobMatches && targetUniqueReference && targetStorageState === 'present' &&
         targetContentMatches,
       note: 'これは読み取り専用の後片付け事前確認です。削除の許可・実行ではありません。',
