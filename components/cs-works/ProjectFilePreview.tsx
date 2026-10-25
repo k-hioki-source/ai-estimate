@@ -9,11 +9,10 @@ type Props = {
 };
 
 function previewKind(fileName: string, mimeType?: string | null): 'image' | 'pdf' | null {
-  const type = (mimeType ?? '').toLowerCase();
-  const name = fileName.toLowerCase();
+  const type = (mimeType ?? '').trim().toLowerCase().split(';')[0];
+  const name = fileName.trim().toLowerCase();
   if (type === 'application/pdf' || name.endsWith('.pdf')) return 'pdf';
-  if (['image/png', 'image/jpeg', 'image/gif', 'image/webp'].includes(type) ||
-      /\.(png|jpe?g|gif|webp)$/.test(name)) return 'image';
+  if (type.startsWith('image/') || /(?:\.|[-_])(png|jpe?g|gif|webp)$/.test(name)) return 'image';
   return null;
 }
 
@@ -30,7 +29,8 @@ export default function ProjectFilePreview({ url, fileName, mimeType }: Props) {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [open]);
 
-  if (!url || !kind) return null;
+  if (!url) return null;
+  if (!kind) return <span style={{ fontSize: 12, color: '#64748b' }}>プレビュー非対応（ファイルを開く・ダウンロードをご利用ください）</span>;
 
   return (
     <>
