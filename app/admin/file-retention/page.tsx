@@ -7,7 +7,7 @@ import { getSupabaseBrowserClient } from '../../../lib/supabase/client';
 
 type RecoveryCheck = { projectId: string; fileId: string; jobStatus: string; recordMatches: boolean; storageState: string; safeToAutoRecover: boolean };
 type StagedRecoveryCheck = { fileId: string; dbReadOk: boolean; fileMatches: boolean; jobMatches: boolean; uniqueReference: boolean; storageState: string; contentMatches: boolean; allChecksPassed: boolean };
-type JobSummary = { staleClaimedJobs?: { projectId: string; fileId: string; claimedAt: string | null; attemptCount: number; requiresManualReview: boolean }[]; staleClaimThresholdMinutes?: number; stagedRecoveryCheck?: StagedRecoveryCheck; recoveryChecks?: RecoveryCheck[]; inspectedRecoveryJobs?: number; recoveryChecksLimited?: boolean; totalDisplayed: number; claimed: number; storageRemoved: number; failed: number; recoveryNeeded: number; truncated: boolean; recoveryCandidates: { projectId: string; fileId: string; status: string; lastError: string | null }[] };
+type JobSummary = { cleanupReadiness?: { readOnly: boolean; sharesChecked: boolean; shareCount: number; sharesTruncated: boolean; activeShares: number; projectChecked: boolean; projectStatus: string | null; retentionHoldChecked: boolean; retentionHeld: boolean; targetPreflightPassed: boolean; readyForManualReview: boolean }; staleClaimedJobs?: { projectId: string; fileId: string; claimedAt: string | null; attemptCount: number; requiresManualReview: boolean }[]; staleClaimThresholdMinutes?: number; stagedRecoveryCheck?: StagedRecoveryCheck; recoveryChecks?: RecoveryCheck[]; inspectedRecoveryJobs?: number; recoveryChecksLimited?: boolean; totalDisplayed: number; claimed: number; storageRemoved: number; failed: number; recoveryNeeded: number; truncated: boolean; recoveryCandidates: { projectId: string; fileId: string; status: string; lastError: string | null }[] };
 type RecoveryTest = { claimed: boolean; markedFailed: boolean; retryBlocked: boolean; storageRemovedState: boolean; recordDeleted: boolean; cleaned: boolean; storageOperations: number; existingFilesTouched: number };
 type ClaimTest = { concurrentAttempts: number; successfulClaims: number; oneClaimOnly: boolean; cleanupOk: boolean; existingFilesTouched: number; storageFilesDeleted: number };
 type ReferenceCheck = { scannedRows: number; missingPaths: number; duplicatePathCount: number; duplicateReferences: number; capped: boolean };
@@ -531,6 +531,15 @@ export default function FileRetentionAdminPage() {
         <ul>{jobSummary.staleClaimedJobs?.map(job => <li key={job.fileId}>ファイルID：{job.fileId} ／ 取得日時：{job.claimedAt ?? '不明'} ／ 試行：{job.attemptCount}回</li>)}</ul>
       </div>}
 
+      {isTestPage && jobSummary.cleanupReadiness && <div style={{ marginTop: 12, padding: 12, border: '1px solid #94a3b8', borderRadius: 8 }}>
+        <strong>復旧テストデータの後片付け事前確認（読み取り専用）</strong>
+        <p>共有リンク照合：{jobSummary.cleanupReadiness.sharesChecked ? '成功' : '失敗'} ／ 共有リンク：{jobSummary.cleanupReadiness.shareCount}件 ／ 有効：{jobSummary.cleanupReadiness.activeShares}件</p>
+        <p>案件照合：{jobSummary.cleanupReadiness.projectChecked ? '成功' : '失敗'} ／ 保留情報：{jobSummary.cleanupReadiness.retentionHoldChecked ? '照合成功' : '照合失敗'}</p>
+        <p>Storage・DB・ジョブ照合：{jobSummary.cleanupReadiness.targetPreflightPassed ? '一致' : '要確認'}</p>
+        <p><strong>{jobSummary.cleanupReadiness.readyForManualReview ? '後片付け手順の検討可能（削除許可ではありません）' : '要確認：後片付けを進めないでください'}</strong></p>
+        {jobSummary.cleanupReadiness.sharesTruncated && <p>※共有リンク取得上限に達しています。</p>}
+        <p>この表示ではファイルやジョブを変更しません。</p>
+      </div>}
       {jobSummary.stagedRecoveryCheck && <div style={{ marginTop: 12, padding: 12, border: '1px solid #93c5fd', borderRadius: 8, background: '#eff6ff' }}>
         <strong>準備済み復旧テストの事前照合（変更なし）</strong>
         <p>DB照合：{jobSummary.stagedRecoveryCheck.dbReadOk ? '成功' : '要確認'} ／ ファイル識別：{jobSummary.stagedRecoveryCheck.fileMatches ? '一致' : '不一致'} ／ ジョブ状態：{jobSummary.stagedRecoveryCheck.jobMatches ? '一致' : '不一致'}</p>
