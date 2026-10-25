@@ -14,6 +14,11 @@ const reply = (body: object, status = 200) => NextResponse.json(body, {
 
 // Explicitly disabled by default. Never for customer files.
 export async function POST(request: NextRequest) {
+  // Defense in depth: never allow fixture mutation from Production, even if a flag is enabled.
+  if (process.env.VERCEL_ENV !== 'preview') {
+    return respond({ error: 'テスト用変更APIはPreview環境でのみ実行できます。' }, 403);
+  }
+
   if (process.env.CSWORKS_ENABLE_TEST_FIXTURE_FINALIZE !== 'true') {
     return reply({ error: 'テスト用最終整理は無効です。' }, 403);
   }
