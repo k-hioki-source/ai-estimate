@@ -38,6 +38,14 @@ export default function RecoveryFixtureTestPanel() {
     } catch (e) { setError(e instanceof Error ? e.message : '実行ロックを確認できません。'); }
     finally { setBusy(false); }
   }
+  const storageGateChecks = {
+    audit: phase === 'before' && passed && audit?.readyForManualReview === true,
+    recoveryState: stateCheck?.state === 'before_deletion',
+    confirmation: confirmText === 'テストデータ1件のみ',
+    lockChecked: executionStatus?.ok === true && executionStatus.readOnly === true,
+    executionLocked: executionStatus?.storageExecutionEnabled === false,
+  };
+  const storageGatePassed = Object.values(storageGateChecks).every(Boolean);
   function simulate(action: 'storage' | 'finalize') {
     const allowed = action === 'storage' ? readyForStorage : readyForFinalize;
     if (!allowed) { setSimulation('安全条件が揃っていません。変更していません。'); return; }
@@ -124,6 +132,14 @@ export default function RecoveryFixtureTestPanel() {
     <button type="button" disabled={busy || !readyForFinalize} style={{ marginLeft: 8 }} onClick={() => simulate('finalize')}>DB・ジョブ整理の確認を模擬（実削除なし）</button>
     {simulation && <p role="status">{simulation}</p>}
     <p>※模擬ボタンは削除APIを呼び出しません。実行ロックも解除しません。</p>
+    <div style={{ marginTop: 12, padding: 12, border: '1px solid #cbd5e1', borderRadius: 8 }}>
+      <strong>Storage実行前ゲート検証（読み取り専用）</strong>
+      <p>事前照合：{storageGateChecks.audit ? 'OK' : '未完了'} ／ 状態診断：{storageGateChecks.recoveryState ? 'OK' : '未完了'} ／ 確認入力：{storageGateChecks.confirmation ? 'OK' : '未完了'}</p>
+      <p>実行ロック照合：{storageGateChecks.lockChecked ? 'OK' : '未完了'} ／ ロック保持：{storageGateChecks.executionLocked ? 'OK' : '未確認または解除中'}</p>
+      <strong>{storageGatePassed ? '安全なロック状態で確認手順が完了しました（削除不可）' : '安全確認が未完了です（削除不可）'}</strong>
+      <p>この表示は条件判定だけを行い、削除APIには接続していません。</p>
+    </div>
+
     <p>※本番ファイルの削除機能やVercelの実行ロックは変更しません。</p>
   </section>;
 }
