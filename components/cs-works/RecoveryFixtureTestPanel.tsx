@@ -6,7 +6,7 @@ import { getSupabaseBrowserClient } from '../../lib/supabase/client';
 const FILE_ID = '2b3abd29-fd48-416c-8a9d-64882e4798d4';
 const FILE_NAME = 'csw_recovery_stage_edb579f7-fc50-4406-a161-d5b810e1ffc4.txt';
 type StateCheck = { state: string; jobStatus: string | null; storagePresent: boolean; contentMatches: boolean; requiresManualReview: boolean; checks: Record<string, boolean>; error?: string };
-type Audit = { ok?: boolean; readOnly?: boolean; readyForManualReview?: boolean; readyForManualFinalization?: boolean; checks?: Record<string, boolean>; error?: string };
+type ExecutionStatus = { ok: boolean; readOnly: boolean; storageExecutionEnabled: boolean; finalizationEnabled: boolean; error?: string };\ntype Audit = { ok?: boolean; readOnly?: boolean; readyForManualReview?: boolean; readyForManualFinalization?: boolean; checks?: Record<string, boolean>; error?: string };
 export default function RecoveryFixtureTestPanel() {
   const [busy, setBusy] = useState(false);
   const [audit, setAudit] = useState<Audit | null>(null);
@@ -14,14 +14,14 @@ export default function RecoveryFixtureTestPanel() {
   const [phase, setPhase] = useState<'before' | 'after'>('before');
   const [confirmText, setConfirmText] = useState('');
   const [error, setError] = useState('');
-  const [simulation, setSimulation] = useState('');
+  const [simulation, setSimulation] = useState('');\n  const [executionStatus, setExecutionStatus] = useState<ExecutionStatus | null>(null);
   const passed = !!audit && Object.values(audit.checks ?? {}).length > 0 &&
     Object.values(audit.checks ?? {}).every(Boolean);
   const readyForStorage = phase === 'before' && passed && audit?.readyForManualReview === true &&
     stateCheck?.state === 'before_deletion' && confirmText === 'テストデータ1件のみ';
   const readyForFinalize = phase === 'after' && passed && audit?.readyForManualFinalization === true &&
     stateCheck?.state === 'storage_removed' && confirmText === 'テストデータ1件のみ';
-  function simulate(action: 'storage' | 'finalize') {
+  async function inspectExecutionLock() {\n    setBusy(true); setExecutionStatus(null); setError('');\n    try {\n      const { data } = await getSupabaseBrowserClient().auth.getSession();\n      const access = data.session?.access_token;\n      if (!access) throw new Error('ログインし直してください。');\n      const response = await fetch('/api/cs-works/file-retention/recovery-stage-execution-status', {\n        headers: { Authorization: 'Bearer ' + access }, cache: 'no-store',\n      });\n      const result = (await response.json()) as ExecutionStatus;\n      if (!response.ok) throw new Error(result.error ?? '実行ロックを確認できません。');\n      setExecutionStatus(result);\n    } catch (e) { setError(e instanceof Error ? e.message : '実行ロックを確認できません。'); }\n    finally { setBusy(false); }\n  }\n  function simulate(action: 'storage' | 'finalize') {
     const allowed = action === 'storage' ? readyForStorage : readyForFinalize;
     if (!allowed) { setSimulation('安全条件が揃っていません。変更していません。'); return; }
     const label = action === 'storage' ? 'Storage削除' : 'DB・ジョブ最終整理';
@@ -74,7 +74,7 @@ export default function RecoveryFixtureTestPanel() {
         {busy && phase === 'after' ? '照合中…' : '② Storage削除後の復旧照合（変更なし）'}
       </button>
     </div>
-    <button type="button" disabled={busy} onClick={() => void inspectState()}>③ 中断・復旧状態を診断（変更なし）</button>
+    <button type="button" disabled={busy} onClick={() => void inspectState()}>③ 中断・復旧状態を診断（変更なし）</button>\n    <button type="button" disabled={busy} onClick={() => void inspectExecutionLock()}>④ 実行ロックの状態を確認（変更なし）</button>\n    {executionStatus && <div role="status" style={{ marginTop: 12, padding: 12, border: '1px solid #94a3b8', borderRadius: 8 }}>\n      <strong>実行ロック確認結果（読み取り専用）</strong>\n      <p>Storage削除：{executionStatus.storageExecutionEnabled ? '有効（要注意）' : '無効・ロック中'} ／ DB最終整理：{executionStatus.finalizationEnabled ? '有効（要注意）' : '無効・ロック中'}</p>\n      <p>※ロックが有効でも、ここから実削除APIを呼び出すことはありません。</p>\n    </div>}
     {stateCheck && <div role="status" style={{ marginTop: 12 }}>
       <strong>状態：{stateCheck.state === 'before_deletion' ? '削除前・正常' : stateCheck.state === 'storage_removed' ? 'Storage削除済み・最終整理待ち' : stateCheck.state === 'interrupted_after_storage' ? '中断検出・手動復旧が必要' : '要確認・操作停止'}</strong>
       <p>ジョブ：{stateCheck.jobStatus ?? 'なし'} ／ Storage：{stateCheck.storagePresent ? '存在' : '不存在'} ／ 手動確認：{stateCheck.requiresManualReview ? '必要' : '通常状態'}</p>
