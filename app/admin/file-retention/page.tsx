@@ -8,6 +8,7 @@ import { getSupabaseBrowserClient } from '../../../lib/supabase/client';
 type RecoveryCheck = { projectId: string; fileId: string; jobStatus: string; recordMatches: boolean; storageState: string; safeToAutoRecover: boolean };
 type StagedRecoveryCheck = { fileId: string; dbReadOk: boolean; fileMatches: boolean; jobMatches: boolean; uniqueReference: boolean; storageState: string; contentMatches: boolean; allChecksPassed: boolean };
 type JobSummary = { cleanupReadiness?: { readOnly: boolean; sharesChecked: boolean; shareCount: number; sharesTruncated: boolean; activeShares: number; projectChecked: boolean; projectStatus: string | null; retentionHoldChecked: boolean; retentionHeld: boolean; targetPreflightPassed: boolean; readyForManualReview: boolean }; staleClaimedJobs?: { projectId: string; fileId: string; claimedAt: string | null; attemptCount: number; requiresManualReview: boolean }[]; staleClaimThresholdMinutes?: number; stagedRecoveryCheck?: StagedRecoveryCheck; recoveryChecks?: RecoveryCheck[]; inspectedRecoveryJobs?: number; recoveryChecksLimited?: boolean; totalDisplayed: number; claimed: number; storageRemoved: number; failed: number; recoveryNeeded: number; truncated: boolean; recoveryCandidates: { projectId: string; fileId: string; status: string; lastError: string | null }[] };
+type StageCleanupAudit = { ok: boolean; readOnly: boolean; checks: { fileIdentity: boolean; claimedJob: boolean; uniqueReference: boolean; noShares: boolean; holdLookup: boolean; notHeld: boolean; storageContent: boolean }; readyForManualReview: boolean; deletionEnabled: boolean };
 type RecoveryTest = { claimed: boolean; markedFailed: boolean; retryBlocked: boolean; storageRemovedState: boolean; recordDeleted: boolean; cleaned: boolean; storageOperations: number; existingFilesTouched: number };
 type ClaimTest = { concurrentAttempts: number; successfulClaims: number; oneClaimOnly: boolean; cleanupOk: boolean; existingFilesTouched: number; storageFilesDeleted: number };
 type ReferenceCheck = { scannedRows: number; missingPaths: number; duplicatePathCount: number; duplicateReferences: number; capped: boolean };
@@ -45,6 +46,8 @@ export default function FileRetentionAdminPage() {
   const [fixtureMessage, setFixtureMessage] = useState('');
   const [jobLoading, setJobLoading] = useState(false);
   const [jobSummary, setJobSummary] = useState<JobSummary | null>(null);
+  const [stageAuditBusy, setStageAuditBusy] = useState(false);
+  const [stageAudit, setStageAudit] = useState<StageCleanupAudit | null>(null);
   const [recoveryTesting, setRecoveryTesting] = useState(false);
   const [recoveryResult, setRecoveryResult] = useState<RecoveryTest | null>(null);
   const [claimTesting, setClaimTesting] = useState(false);
@@ -193,6 +196,20 @@ export default function FileRetentionAdminPage() {
       setJobSummary(data as JobSummary);
     } catch (e) { setError(e instanceof Error ? e.message : 'ジョブ状態を確認できませんでした。'); }
     finally { setJobLoading(false); }
+  }
+  async function inspectStageCleanup() {
+    setStageAuditBusy(true); setStageAudit(null); setError('');
+    try {
+      const access = await token();
+      if (!access) throw new Error('ログインし直してください。');
+      const response = await fetch('/api/cs-works/file-retention/recovery-stage-cleanup', {
+        method: 'POST', headers: { Authorization: 'Bearer ' + access }, cache: 'no-store',
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || '専用の事前照合に失敗しました。');
+      setStageAudit(data as StageCleanupAudit);
+    } catch (e) { setError(e instanceof Error ? e.message : '専用の事前照合に失敗しました。'); }
+    finally { setStageAuditBusy(false); }
   }
   async function runRecoveryTest() {
     if (!window.confirm('テスト案件内に一時的なDB記録を作り、失敗・復旧の状態遷移を検証します。Storageには一切アクセスしません。実行しますか？')) return;
@@ -504,6 +521,19 @@ export default function FileRetentionAdminPage() {
       {fixturePreflight && <div role="status" style={{ marginTop: 8 }}>
         <strong>{fixturePreflight.eligible ? '事前照合OK（削除は未許可）' : '要確認（削除不可）'}</strong>
         {fixturePreflight.reasons.length > 0 && <ul>{fixturePreflight.reasons.map((reason, index) => <li key={index}>{reason}</li>)}</ul>}
+      </div>}
+    </section>}
+    {isTestPage && <section style={{ marginTop: 12, padding: 12, border: '1px solid #94a3b8', borderRadius: 8 }}>
+      <strong>復旧テスト専用・最終照合（変更なし）</strong>
+      <p>対象を固定した専用APIで、ファイル内容・ジョブ・共有リンク・保留状態を再確認します。</p>
+      <button type="button" disabled={stageAuditBusy} onClick={() => void inspectStageCleanup()}>
+        {stageAuditBusy ? '照合中…' : '専用テストデータの最終照合（削除なし）'}
+      </button>
+      {stageAudit && <div role="status" style={{ marginTop: 8 }}>
+        <strong>{stageAudit.readyForManualReview ? '全項目一致（削除許可ではありません）' : '要確認：削除しないでください'}</strong>
+        <p>ファイル識別：{stageAudit.checks.fileIdentity ? '一致' : '不一致'} ／ ジョブ：{stageAudit.checks.claimedJob ? '一致' : '不一致'} ／ Storage参照：{stageAudit.checks.uniqueReference ? '一意' : '要確認'}</p>
+        <p>共有リンク：{stageAudit.checks.noShares ? 'なし' : '要確認'} ／ 保留照合：{stageAudit.checks.holdLookup ? '成功' : '失敗'} ／ 保留なし：{stageAudit.checks.notHeld ? '確認' : '要確認'}</p>
+        <p>Storage内容：{stageAudit.checks.storageContent ? '一致' : '不一致'} ／ 実際の削除：無効</p>
       </div>}
     </section>}
     {stageResult && <section role="status" style={{ marginTop: 16, padding: 16, borderRadius: '12px', border: '1px solid #93c5fd', background: '#eff6ff' }}>
