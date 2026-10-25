@@ -56,6 +56,19 @@ export async function POST(request: NextRequest) {
     return respond({ error: 'テスト専用のStorage内容が一致しません。変更していません。' }, 409);
   }
 
+  // Atomic, durable one-shot latch: primary key allows exactly one request to
+  // pass, including when requests reach different Vercel instances concurrently.
+  // If the migration is absent, or a previous attempt exists, fail closed.
+  // The latch is intentionally never released automatically after any error.
+  const { error: latchError } = await db.from('csw_recovery_fixture_execution_locks')
+    .insert({ file_id: FILE_ID, project_id: PROJECT_ID, claim_token: job.data.claim_token });
+  if (latchError) {
+    return respond({
+      error: '実行権の取得に失敗しました。重複実行またはDB設定未反映の可能性があるため停止します。',
+      requiresManualReview: true,
+    }, 409);
+  }
+
   // Storage and Postgres cannot be deleted atomically.
   // Mark the job as storage_removed after the Storage operation so an interrupted
   // cleanup remains visible for manual investigation. Never auto-retry.
