@@ -14,10 +14,22 @@ export default function RecoveryFixtureTestPanel() {
   const [phase, setPhase] = useState<'before' | 'after'>('before');
   const [confirmText, setConfirmText] = useState('');
   const [error, setError] = useState('');
+  const [simulation, setSimulation] = useState('');
   const passed = !!audit && Object.values(audit.checks ?? {}).length > 0 &&
     Object.values(audit.checks ?? {}).every(Boolean);
+  const readyForStorage = phase === 'before' && passed && audit?.readyForManualReview === true &&
+    stateCheck?.state === 'before_deletion' && confirmText === 'テストデータ1件のみ';
+  const readyForFinalize = phase === 'after' && passed && audit?.readyForManualFinalization === true &&
+    stateCheck?.state === 'storage_removed' && confirmText === 'テストデータ1件のみ';
+  function simulate(action: 'storage' | 'finalize') {
+    const allowed = action === 'storage' ? readyForStorage : readyForFinalize;
+    if (!allowed) { setSimulation('安全条件が揃っていません。変更していません。'); return; }
+    const label = action === 'storage' ? 'Storage削除' : 'DB・ジョブ最終整理';
+    if (!window.confirm('【模擬確認】' + label + ' の確認画面です。実際の削除は行いません。')) return;
+    setSimulation(label + ' の確認手順を検証しました。APIは呼び出していません。');
+  }
   async function inspectState() {
-    setBusy(true); setStateCheck(null); setError('');
+    setBusy(true); setStateCheck(null); setError(''); setSimulation('');
     try {
       const { data } = await getSupabaseBrowserClient().auth.getSession();
       const access = data.session?.access_token;
@@ -32,7 +44,7 @@ export default function RecoveryFixtureTestPanel() {
     finally { setBusy(false); }
   }
   async function check(next: 'before' | 'after') {
-    setBusy(true); setAudit(null); setError(''); setPhase(next); setConfirmText('');
+    setBusy(true); setAudit(null); setStateCheck(null); setError(''); setPhase(next); setConfirmText(''); setSimulation('');
     try {
       const { data } = await getSupabaseBrowserClient().auth.getSession();
       const access = data.session?.access_token;
@@ -84,8 +96,11 @@ export default function RecoveryFixtureTestPanel() {
     <p>{confirmText === 'テストデータ1件のみ' && passed
       ? '確認入力と照合は一致しています。実削除はまだ無効です。'
       : '実行前の確認用UIです。実削除はできません。'}</p>
-    <button type="button" disabled>Storage削除を実行（未有効化）</button>
-    <button type="button" disabled style={{ marginLeft: 8 }}>DB・ジョブ最終整理（未有効化）</button>
+    <p>Storage削除の事前条件：{readyForStorage ? '一致' : '未完了'} ／ DB最終整理の事前条件：{readyForFinalize ? '一致' : '未完了'}</p>
+    <button type="button" disabled={busy || !readyForStorage} onClick={() => simulate('storage')}>Storage削除の確認を模擬（実削除なし）</button>
+    <button type="button" disabled={busy || !readyForFinalize} style={{ marginLeft: 8 }} onClick={() => simulate('finalize')}>DB・ジョブ整理の確認を模擬（実削除なし）</button>
+    {simulation && <p role="status">{simulation}</p>}
+    <p>※模擬ボタンは削除APIを呼び出しません。実行ロックも解除しません。</p>
     <p>※本番ファイルの削除機能やVercelの実行ロックは変更しません。</p>
   </section>;
 }
