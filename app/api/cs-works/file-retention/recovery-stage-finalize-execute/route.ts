@@ -22,6 +22,9 @@ export async function POST(request: NextRequest) {
   if (process.env.CSWORKS_ENABLE_TEST_FIXTURE_FINALIZE !== 'true') {
     return reply({ error: 'テスト用最終整理は無効です。' }, 403);
   }
+  if (process.env.CSWORKS_ENABLE_TEST_FIXTURE_CLEANUP === 'true') {
+    return reply({ error: 'Storage削除を無効にしてから最終整理してください。' }, 403);
+  }
   const body = await request.json().catch(() => null);
   if (body?.fileId !== FILE || body?.confirmation !== 'FINALIZE_EXACT_RECOVERY_TEST_FIXTURE') {
     return reply({ error: '確認情報が一致しません。' }, 400);
