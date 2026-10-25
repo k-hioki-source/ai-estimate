@@ -35,24 +35,27 @@ export async function POST(request: NextRequest) {
     .select('role').eq('id', identity.user.id).maybeSingle();
   if (profileError || profile?.role !== 'admin') return reply({ error: '管理者のみ実行できます。' }, 403);
 
-  const [file, job, refs, shares, hold] = await Promise.all([
+  const [file, job, refs, shares, hold, latch] = await Promise.all([
     db.from('project_files').select('id,project_id,file_name,storage_path').eq('id', FILE).maybeSingle(),
     db.from('project_file_retention_jobs').select('file_id,project_id,status,claim_token').eq('file_id', FILE).maybeSingle(),
     db.from('project_files').select('id').eq('storage_path', PATH).limit(2),
     db.from('project_file_shares').select('id').eq('file_id', FILE).limit(1),
     db.from('project_file_retention_holds').select('is_held').eq('project_id', PROJECT).maybeSingle(),
+    db.from('csw_recovery_fixture_execution_locks').select('file_id,project_id,claim_token').eq('file_id', FILE).maybeSingle(),
   ]);
-  if (file.error || job.error || refs.error || shares.error || hold.error ||
+  if (file.error || job.error || refs.error || shares.error || hold.error || latch.error ||
       file.data?.project_id !== PROJECT || file.data?.file_name !== NAME ||
       file.data?.storage_path !== PATH || job.data?.status !== 'storage_removed' ||
       job.data?.project_id !== PROJECT || !job.data?.claim_token ||
       refs.data?.length !== 1 || refs.data[0]?.id !== FILE ||
-      shares.data?.length !== 0 || hold.data?.is_held === true) {
+      shares.data?.length !== 0 || hold.data?.is_held === true ||
+      latch.data?.file_id !== FILE || latch.data?.project_id !== PROJECT ||
+      latch.data?.claim_token !== job.data.claim_token) {
     return reply({ error: '安全確認に失敗しました。変更していません。' }, 409);
   }
   const { data: objects, error: storageError } = await db.storage.from('project-files')
     .list(PROJECT, { search: NAME, limit: 1000 });
-  if (storageError || !objects || objects.some(item => item.name === NAME)) {
+  if (storageError || !objects || objects.length >= 1000 || objects.some(item => item.name === NAME)) {
     return reply({ error: 'Storage削除済みを確認できません。変更していません。' }, 409);
   }
   const { data, error } = await db.rpc('finalize_csw_recovery_test_fixture', {
