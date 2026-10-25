@@ -16,6 +16,7 @@ export default function RecoveryFixtureTestPanel() {
   const [confirmText, setConfirmText] = useState('');
   const [error, setError] = useState('');
   const [simulation, setSimulation] = useState('');
+  const [executionResult, setExecutionResult] = useState('');
   const [executionStatus, setExecutionStatus] = useState<ExecutionStatus | null>(null);
   const passed = !!audit && Object.values(audit.checks ?? {}).length > 0 &&
     Object.values(audit.checks ?? {}).every(Boolean);
@@ -52,6 +53,31 @@ export default function RecoveryFixtureTestPanel() {
     const label = action === 'storage' ? 'Storage削除' : 'DB・ジョブ最終整理';
     if (!window.confirm('【模擬確認】' + label + ' の確認画面です。実際の削除は行いません。')) return;
     setSimulation(label + ' の確認手順を検証しました。APIは呼び出していません。');
+  }
+  async function executeFixtureStorageDeletion() {
+    if (!readyForStorage || !storageGateChecks.lockChecked || !executionStatus?.storageExecutionEnabled) {
+      setError('実行前条件が揃っていません。再照合してください。');
+      return;
+    }
+    if (!window.confirm('固定テストファイル1件のStorageを実際に削除します。続行しますか？')) return;
+    setBusy(true); setError(''); setExecutionResult('');
+    try {
+      const { data } = await getSupabaseBrowserClient().auth.getSession();
+      const token = data.session?.access_token;
+      if (!token) throw new Error('ログインし直してください。');
+      const response = await fetch('/api/cs-works/file-retention/recovery-stage-execute', {
+        method: 'POST', cache: 'no-store',
+        headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fileId: FILE_ID, confirmation: 'DELETE_EXACT_RECOVERY_TEST_FIXTURE' }),
+      });
+      const result = await response.json() as { ok?: boolean; error?: string; jobStatus?: string };
+      if (!response.ok || !result.ok) throw new Error(result.error ?? '削除結果を確認できません。再実行せず状態を診断してください。');
+      setExecutionResult('テスト用Storage削除APIが完了しました。ジョブ：' + result.jobStatus + '。次に復旧状態を診断してください。');
+      setAudit(null); setStateCheck(null); setExecutionStatus(null); setConfirmText('');
+    } catch (e) {
+      setError((e instanceof Error ? e.message : '実行エラー') + ' 再実行せず、状態診断を行ってください。');
+      setAudit(null); setStateCheck(null); setExecutionStatus(null);
+    } finally { setBusy(false); }
   }
   async function inspectState() {
     setBusy(true); setStateCheck(null); setError(''); setSimulation('');
@@ -140,6 +166,13 @@ export default function RecoveryFixtureTestPanel() {
       <p>この表示は条件判定だけを行い、削除APIには接続していません。</p>
     </div>
 
+    <div style={{ marginTop: 12, padding: 12, border: '1px solid #dc2626', borderRadius: 8 }}>
+      <strong>Preview専用・固定テストファイル1件の実削除</strong>
+      <p>Storageのみ削除します。DBのファイル記録とジョブは残ります。実行後は再実行せず状態を診断してください。</p>
+      <button type="button" disabled={busy || !readyForStorage || !storageGateChecks.lockChecked || executionStatus?.storageExecutionEnabled !== true}
+        onClick={() => void executeFixtureStorageDeletion()}>固定テストファイルのStorage削除を実行</button>
+      {executionResult && <p role="status">{executionResult}</p>}
+    </div>
     <p>※本番ファイルの削除機能やVercelの実行ロックは変更しません。</p>
   </section>;
 }
