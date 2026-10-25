@@ -5,16 +5,16 @@ import { getSupabaseBrowserClient } from '../../lib/supabase/client';
 
 const FILE_ID = '2b3abd29-fd48-416c-8a9d-64882e4798d4';
 const FILE_NAME = 'csw_recovery_stage_edb579f7-fc50-4406-a161-d5b810e1ffc4.txt';
-type Audit = { ok?: boolean; readOnly?: boolean; readyForManualReview?: boolean; readyForManualFinalization?: boolean; checks?: Record<string, boolean>; error?: string };
+type StateCheck = { state: string; jobStatus: string | null; storagePresent: boolean; contentMatches: boolean; requiresManualReview: boolean; checks: Record<string, boolean>; error?: string };\ntype Audit = { ok?: boolean; readOnly?: boolean; readyForManualReview?: boolean; readyForManualFinalization?: boolean; checks?: Record<string, boolean>; error?: string };
 export default function RecoveryFixtureTestPanel() {
   const [busy, setBusy] = useState(false);
-  const [audit, setAudit] = useState<Audit | null>(null);
+  const [audit, setAudit] = useState<Audit | null>(null);\n  const [stateCheck, setStateCheck] = useState<StateCheck | null>(null);
   const [phase, setPhase] = useState<'before' | 'after'>('before');
   const [confirmText, setConfirmText] = useState('');
   const [error, setError] = useState('');
   const passed = !!audit && Object.values(audit.checks ?? {}).length > 0 &&
     Object.values(audit.checks ?? {}).every(Boolean);
-  async function check(next: 'before' | 'after') {
+  async function inspectState() {\n    setBusy(true); setStateCheck(null); setError('');\n    try {\n      const { data } = await getSupabaseBrowserClient().auth.getSession();\n      const access = data.session?.access_token;\n      if (!access) throw new Error('ログインし直してください。');\n      const response = await fetch('/api/cs-works/file-retention/recovery-stage-state', {\n        method: 'POST', headers: { Authorization: 'Bearer ' + access }, cache: 'no-store',\n      });\n      const result = (await response.json()) as StateCheck;\n      if (!response.ok) throw new Error(result.error ?? '状態照合に失敗しました。');\n      setStateCheck(result);\n    } catch (e) { setError(e instanceof Error ? e.message : '状態照合に失敗しました。'); }\n    finally { setBusy(false); }\n  }\n  async function check(next: 'before' | 'after') {
     setBusy(true); setAudit(null); setError(''); setPhase(next); setConfirmText('');
     try {
       const { data } = await getSupabaseBrowserClient().auth.getSession();
@@ -45,7 +45,7 @@ export default function RecoveryFixtureTestPanel() {
         {busy && phase === 'after' ? '照合中…' : '② Storage削除後の復旧照合（変更なし）'}
       </button>
     </div>
-    {error && <p role="alert">{error}</p>}
+    <button type="button" disabled={busy} onClick={() => void inspectState()}>③ 中断・復旧状態を診断（変更なし）</button>\n    {stateCheck && <div role="status" style={{ marginTop: 12 }}>\n      <strong>状態：{stateCheck.state === 'before_deletion' ? '削除前・正常' : stateCheck.state === 'storage_removed' ? 'Storage削除済み・最終整理待ち' : stateCheck.state === 'interrupted_after_storage' ? '中断検出・手動復旧が必要' : '要確認・操作停止'}</strong>\n      <p>ジョブ：{stateCheck.jobStatus ?? 'なし'} ／ Storage：{stateCheck.storagePresent ? '存在' : '不存在'} ／ 手動確認：{stateCheck.requiresManualReview ? '必要' : '通常状態'}</p>\n      <p>この診断ではファイルやジョブを変更しません。</p>\n    </div>}\n    {error && <p role="alert">{error}</p>}
     {audit && <div role="status" style={{ marginTop: 12 }}>
       <strong>{passed ? '照合一致（削除許可ではありません）' : '不一致：操作を中止してください'}</strong>
       <p>照合段階：{phase === 'before' ? 'Storage削除前' : 'Storage削除後'}</p>
