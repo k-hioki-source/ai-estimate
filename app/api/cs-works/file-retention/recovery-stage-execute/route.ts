@@ -14,6 +14,11 @@ const respond = (body: object, status = 200) =>
   NextResponse.json(body, { status, headers: { 'Cache-Control': 'no-store, private' } });
 
 export async function POST(request: NextRequest) {
+  // Defense in depth: never allow fixture mutation from Production, even if a flag is enabled.
+  if (process.env.VERCEL_ENV !== 'preview') {
+    return respond({ error: 'テスト用変更APIはPreview環境でのみ実行できます。' }, 403);
+  }
+
   // Deployment flag deliberately defaults to OFF.
   if (process.env.CSWORKS_ENABLE_TEST_FIXTURE_CLEANUP !== 'true') {
     return respond({ error: 'テスト用後片付けは無効です。', enabled: false }, 403);
