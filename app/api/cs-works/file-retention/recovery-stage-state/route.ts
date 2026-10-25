@@ -51,6 +51,11 @@ export async function POST(request: NextRequest) {
   const { data: objects, error: listError } = await db.storage.from('project-files')
     .list(PROJECT_ID, { search: FILE_NAME, limit: 1000 });
   if (listError || !objects) return reply({ error: 'Storage照合に失敗しました。操作を停止してください。' }, 503);
+  // Never interpret a truncated listing as proof that the object is absent.
+  // An incomplete list must stop the recovery workflow for manual inspection.
+  if (objects.length >= 1000) {
+    return reply({ error: 'Storage一覧が上限に達したため不存在を証明できません。操作を停止してください。' }, 409);
+  }
   const storagePresent = objects.some(item => item.name === FILE_NAME);
   let contentMatches = false;
   if (storagePresent) {
@@ -66,7 +71,7 @@ export async function POST(request: NextRequest) {
   return reply({
     ok: true, readOnly: true, fixtureOnly: true, deletionEnabled: false,
     state, fileId: FILE_ID, jobStatus, storagePresent, contentMatches,
-    checks: { identityMatches, jobMatches, uniqueReference, noShares, notHeld },
+    checks: { identityMatches, jobMatches, uniqueReference, noShares, notHeld, storageListingComplete: true },
     requiresManualReview: state === 'manual_review' || state === 'interrupted_after_storage',
     note: '状態確認のみです。再試行・ジョブ変更・Storage削除は行いません。',
   });
