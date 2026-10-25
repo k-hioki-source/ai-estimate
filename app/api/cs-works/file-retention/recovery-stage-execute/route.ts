@@ -61,6 +61,18 @@ export async function POST(request: NextRequest) {
   // cleanup remains visible for manual investigation. Never auto-retry.
   const { error: removeError } = await db.storage.from('project-files').remove([PATH]);
   if (removeError) return respond({ error: 'Storage削除に失敗しました。ジョブを残しています。' }, 500);
+  // Storage.remove() succeeding does not by itself prove that the exact object is absent.
+  // Fail closed if the listing is unavailable or potentially truncated. Do not advance
+  // the job; the separate read-only state diagnostic will classify the partial state.
+  const { data: remaining, error: verifyError } = await db.storage.from('project-files')
+    .list(PROJECT_ID, { search: NAME, limit: 1000 });
+  if (verifyError || !remaining || remaining.length >= 1000 ||
+      remaining.some(item => item.name === NAME)) {
+    return respond({
+      error: 'Storage削除後の不存在を確認できません。ジョブを変更せず、手動調査が必要です。',
+      partial: true, requiresManualReview: true,
+    }, 503);
+  }
   const { data: marked, error: markError } = await db.from('project_file_retention_jobs')
     .update({ status: 'storage_removed' })
     .eq('file_id', FILE_ID).eq('project_id', PROJECT_ID)
