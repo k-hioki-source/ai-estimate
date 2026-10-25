@@ -29,12 +29,13 @@ export async function POST(request: NextRequest) {
     .select('role').eq('id', identity.user.id).maybeSingle();
   if (profileError || profile?.role !== 'admin') return reply({ error: '管理者のみ利用できます。' }, 403);
 
-  const [fileResult, jobResult, referencesResult, sharesResult, holdResult] = await Promise.all([
+  const [fileResult, jobResult, referencesResult, sharesResult, holdResult, lockResult] = await Promise.all([
     db.from('project_files').select('id,project_id,file_name,storage_path').eq('id', FILE_ID).maybeSingle(),
     db.from('project_file_retention_jobs').select('file_id,project_id,status,claim_token').eq('file_id', FILE_ID).maybeSingle(),
     db.from('project_files').select('id').eq('storage_path', STORAGE_PATH).limit(2),
     db.from('project_file_shares').select('id').eq('file_id', FILE_ID).limit(1),
     db.from('project_file_retention_holds').select('is_held').eq('project_id', PROJECT_ID).maybeSingle(),
+    db.from('csw_recovery_fixture_execution_locks').select('file_id').eq('file_id', FILE_ID).limit(1),
   ]);
   const checks = {
     fileIdentity: !fileResult.error && fileResult.data?.id === FILE_ID &&
@@ -49,6 +50,7 @@ export async function POST(request: NextRequest) {
     noShares: !sharesResult.error && sharesResult.data?.length === 0,
     holdLookup: !holdResult.error,
     notHeld: !holdResult.error && holdResult.data?.is_held !== true,
+    executionLockAvailable: !lockResult.error && lockResult.data?.length === 0,
     storageContent: false,
   };
   if (checks.fileIdentity && checks.claimedJob && checks.uniqueReference && checks.noShares && checks.holdLookup) {
@@ -60,6 +62,6 @@ export async function POST(request: NextRequest) {
     ok: true, readOnly: true, fixtureOnly: true, fileId: FILE_ID,
     checks, readyForManualReview: Object.values(checks).every(Boolean),
     deletionEnabled: false,
-    note: '照合のみです。Storage、DB、ジョブを変更しません。',
+    note: '照合のみです。Storage、DB、ジョブ、実行ロックを変更しません。',
   });
 }
