@@ -183,6 +183,8 @@ export default function MyPage() {
   const projectId = params.id;
 
   const [user, setUser] = useState<User | null>(null);
+  // Fail closed until the signed-in user's customer role has been verified.
+  const [canEditImageAnnotations, setCanEditImageAnnotations] = useState(false);
   const reviewContext = useReviewContext(projectId, !!user);
   const reviewRequests = useRef<Record<string, string>>({});
   const [profile, setProfile] = useState<Profile>(emptyProfile);
@@ -238,6 +240,7 @@ const [orderError, setOrderError] = useState('');
         return;
       }
 
+      setCanEditImageAnnotations(false);
       setUser(userData.user);
 
       const [
@@ -248,7 +251,7 @@ const [orderError, setOrderError] = useState('');
   supabase
     .from('profiles')
     .select(
-      'company_name, department_name, contact_name, phone, postal_code, address'
+      'company_name, department_name, contact_name, phone, postal_code, address, role'
     )
     .eq('id', userData.user.id)
     .single(),
@@ -266,6 +269,8 @@ const [orderError, setOrderError] = useState('');
     .eq('id', projectId)
     .order('created_at', { ascending: false }),
 ]);
+
+      setCanEditImageAnnotations(!profileError && profileData?.role === 'customer');
 
       if (profileData) {
         setProfile({
@@ -1365,7 +1370,7 @@ async function submitProjectReview(project: Project, action: 'approval' | 'revis
                                 </span>
                               </div>
                               <div className="fileActions">
-                                <ProjectFilePreview url={file.signed_url} fileName={file.file_name} mimeType={file.mime_type} projectId={file.project_id} fileId={file.id} fileType={file.file_type} annotationEditable={project.status === 'customer_review' && file.file_type !== 'reference' && file.file_type !== 'delivery'} />
+                                <ProjectFilePreview url={file.signed_url} fileName={file.file_name} mimeType={file.mime_type} projectId={file.project_id} fileId={file.id} fileType={file.file_type} annotationEditable={canEditImageAnnotations && project.user_id === user?.id && project.status === 'customer_review' && file.file_type !== 'reference' && file.file_type !== 'delivery'} />
             <ProjectFileShare fileId={file.id} projectId={file.project_id} fileType={file.file_type} />
             {file.signed_url ? (
                                   <a href={file.signed_url} target="_blank" rel="noreferrer">
@@ -1434,7 +1439,7 @@ async function submitProjectReview(project: Project, action: 'approval' | 'revis
                               <strong>{file.file_name}</strong>
                               <span>{formatDate(file.created_at)}</span>
                             </div>
-                            <ProjectFilePreview url={file.signed_url} fileName={file.file_name} mimeType={file.mime_type} projectId={file.project_id} fileId={file.id} fileType={file.file_type} annotationEditable={project.status === 'customer_review' && file.file_type !== 'reference' && file.file_type !== 'delivery'} />
+                            <ProjectFilePreview url={file.signed_url} fileName={file.file_name} mimeType={file.mime_type} projectId={file.project_id} fileId={file.id} fileType={file.file_type} annotationEditable={canEditImageAnnotations && project.user_id === user?.id && project.status === 'customer_review' && file.file_type !== 'reference' && file.file_type !== 'delivery'} />
             <ProjectFileShare fileId={file.id} projectId={file.project_id} fileType={file.file_type} />
             {file.signed_url ? (
                               <a
@@ -1611,7 +1616,7 @@ async function submitProjectReview(project: Project, action: 'approval' | 'revis
                           <strong>{file.file_name}</strong>
                           <span>{formatDate(file.created_at)}</span>
                         </div>
-                        <ProjectFilePreview url={file.signed_url} fileName={file.file_name} mimeType={file.mime_type} projectId={file.project_id} fileId={file.id} fileType={file.file_type} annotationEditable={project.status === 'customer_review' && file.file_type !== 'reference' && file.file_type !== 'delivery'} />
+                        <ProjectFilePreview url={file.signed_url} fileName={file.file_name} mimeType={file.mime_type} projectId={file.project_id} fileId={file.id} fileType={file.file_type} annotationEditable={canEditImageAnnotations && project.user_id === user?.id && project.status === 'customer_review' && file.file_type !== 'reference' && file.file_type !== 'delivery'} />
             <ProjectFileShare fileId={file.id} projectId={file.project_id} fileType={file.file_type} />
             {file.signed_url ? (
                           <a
