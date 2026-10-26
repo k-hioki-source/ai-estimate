@@ -81,3 +81,12 @@
 - PreviewではVercel認証が必要。本番の共有認証設定は未確認で保護解除は行わない。
 - 2026-10-26再照合: main=4eda90720a6dddac16f7726231e89058ac7f7824、レビュー対象=db70dd0c295a6eca264e94fc207ff8160aa64d75。127コミット先・56ファイル差分。アプリ内容はe622680時点と同一。
 - CS_WORKS_RELEASE_PLAN.md / CS_WORKS_RELEASE_MANIFEST.mdを参照。公開候補の選別、実DBの権限・制約・環境接続先確認が残る。mainマージ/Productionデプロイは未実施・未承認。
+
+## 11. 公開候補の整理完了（2026-10-26）
+- 最新の候補: release/csworks-preview-manual-retention-20261026 / 84569d9f2160ae42c06bf8097bc2859e874d3c06。
+- main=4eda907を直接の親とする1コミット。旧レビュー履歴全体はマージせず、アプリ15ファイルと文書/試験7ファイルの22ファイルを選別。
+- 保管画面を735行から222行へ整理。旧テストUI/通信/型/模擬表示を除去。保管はpreview/hold/deletion-plan/manual-preflight/deletion-logsの5ルートのみ。
+- 旧テストAPI、保管Cron、復旧コンポーネント/固定テストID、新規migration群は候補に含めない。保留以外の新しい書き込み処理は共有リンクの発行/無効化のみ。既存の顧客制作資料削除は別機能として維持。
+- ローカル型チェック/ビルド/共有16件/公開範囲ガード/差分空白チェック成功。実キー未使用。候補のVercel Preview状態はコミットのai-estimate-rwxrステータスを確認する。
+- 候補にdocs/sql/csworks-release-readonly-checks.sqlを用意（メタデータSELECTのみ、未実行）。実環境の権限/制約/接続先、候補Previewの実機再確認、通常ダウンロード、本番共有認証、依存更新済み戻し先の準備は残る。
+- 次回は上記候補のdocs/CS_WORKS_HANDOFF.mdから開始。Production変更/mainマージ/実データ削除なし。
