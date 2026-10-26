@@ -117,3 +117,6 @@ node scripts/test-retention-release.cjs
 追加CSVは35列とprojects_set_updated_atトリガー1件。ファイル・履歴・案件IDはuuid、status/message_type/sender_typeはtextで一致。project_messages.sender_typeはNOT NULL・既定値systemであるため、追加RPCから保存する修正依頼/承認メッセージはsender_type=customerを明示するよう修正した。既存メッセージの更新はしない。
 既存projects_set_updated_atはBEFORE UPDATEでupdated_at=now()を設定する。新規AFTER UPDATEトリガーと役割は競合しない。提供された列・既定値・トリガーを再現し、提供された実RPC定義を用いてDB試験31項目が成功。承認・修正依頼の送信者がcustomerで保存されることも検証。
 実DBのFK/CHECK/インデックス/RLSは当該CSVに含まれない。これらをすべて再現したとは主張しない。専用検証DBでのAuth/Storage/通知を含む結合試験は引き続き未実施。本番DB変更なし。
+
+## 専用検証プロジェクトの準備
+ユーザーがcs-works-test（jjiebuuasaimaqemhiua）を作成。docs/CS_WORKS_ANNOTATIONS_TEST_SETUP.mdに初期化・架空アカウント/案件・ブランチ限定環境変数の手順を追加。空DB向けSQLと保護チェックのローカル16項目成功。実SupabaseへのSQL適用・実機結合確認はまだ行っていない。

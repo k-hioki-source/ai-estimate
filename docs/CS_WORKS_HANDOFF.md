@@ -99,3 +99,5 @@
 - 2026-10-26追記: ユーザー提供CSVで既存approve_project/request_project_revision本文を確認。追加SQLからの呼び出しと整合し、提供された実関数定義をローカル架空DBへ読み込んだ30項目が成功。実テーブル定義・トリガー照合と専用検証DBの結合試験は未実施。DB変更なし。
 
 - 追加CSVでproject_messages.sender_typeの既定値systemを確認。追加RPCではcustomerを明示して保存する修正を実施。既存35列・更新日時トリガーをローカルに再現し、提供された実RPC定義で31項目成功。実DB未適用。
+
+- ユーザーが検証専用cs-works-testを作成。URLはhttps://jjiebuuasaimaqemhiua.supabase.co。初期化・テストユーザー/案件・ブランチ限定Vercel設定はdocs/CS_WORKS_ANNOTATIONS_TEST_SETUP.md。初期化SQLは空DBガード付きで作成・ローカル16項目検証済み。外部DBへは未適用。
