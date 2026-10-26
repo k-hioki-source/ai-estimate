@@ -90,3 +90,9 @@
 - ローカル型チェック/ビルド/共有16件/公開範囲ガード/差分空白チェック成功。実キー未使用。候補のVercel Preview状態はコミットのai-estimate-rwxrステータスを確認する。
 - 候補にdocs/sql/csworks-release-readonly-checks.sqlを用意（メタデータSELECTのみ、未実行）。実環境の権限/制約/接続先、候補Previewの実機再確認、通常ダウンロード、本番共有認証、依存更新済み戻し先の準備は残る。
 - 次回は上記候補のdocs/CS_WORKS_HANDOFF.mdから開始。Production変更/mainマージ/実データ削除なし。
+
+### 候補のデプロイ・HTTP確認
+- 84569d9のai-estimate-rwxr PreviewはGitHub statusでsuccessを確認。https://vercel.com/create-support/ai-estimate-rwxr/7EeXLFcxoYGEVGAbBJDPLdWoRq7w
+- 他の6プロジェクトはfailureだが公開対象外。対象プロジェクトの成功と区別する。
+- ローカルのビルド済みNext.jsサーバーで16件のHTTP確認成功（共有管理3メソッド/保管5 APIの未認証401、不正共有404、旧テスト/cron6ルートと旧テスト画面404）。実キー/実DBは使用しない。
+- ブラウザによる候補Previewの再受け入れは未実施。次はこのデプロイを開き、画像/PDF・共有・保管を再確認し、読み取り専用SQLで実DBの権限/制約を確認する。
