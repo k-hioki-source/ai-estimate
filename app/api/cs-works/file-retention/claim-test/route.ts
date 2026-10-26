@@ -7,6 +7,14 @@ export const dynamic = 'force-dynamic';
 const TEST_PROJECT_ID = 'c5723ed4-bdbe-439d-88a1-f1d7213f654f';
 
 export async function POST(request: NextRequest) {
+  // Deletion testing has ended. Keep historical code for audit, never execute it.
+  const testMutationEnabled = false;
+  if (!testMutationEnabled) {
+    return NextResponse.json({ error: '削除テスト・テストデータ変更は終了し、無効化されています。' }, {
+      status: 403, headers: { 'Cache-Control': 'no-store, private' },
+    });
+  }
+
   const respond = (body: object, status = 200) => NextResponse.json(body, {
     status, headers: { 'Cache-Control': 'no-store, private' },
   });

@@ -12,6 +12,14 @@ const reply = (body: object, status = 200) => NextResponse.json(body, {
 // Preparation only: creates a uniquely named disposable Storage object.
 // Does not delete files or modify project_files / retention jobs.
 export async function POST(request: NextRequest) {
+  // Deletion testing has ended. Keep historical code for audit, never execute it.
+  const testMutationEnabled = false;
+  if (!testMutationEnabled) {
+    return NextResponse.json({ error: '削除テスト・テストデータ変更は終了し、無効化されています。' }, {
+      status: 403, headers: { 'Cache-Control': 'no-store, private' },
+    });
+  }
+
   const bearer = request.headers.get('authorization') ?? '';
   if (!bearer.startsWith('Bearer ')) return reply({ error: 'ログインが必要です。' }, 401);
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;

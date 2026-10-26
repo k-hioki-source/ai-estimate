@@ -426,10 +426,10 @@ export default function FileRetentionAdminPage() {
   return <main style={{ maxWidth: 1080, margin: '32px auto', padding: '0 20px', color: '#172554' }}>
     <Link href="/admin">← 管理者トップへ戻る</Link>
     <h1 style={{ marginTop: 24 }}>{isTestPage ? "ファイル保管・開発テスト" : "ファイル保管期限の確認"}</h1>
-    <p>{isTestPage ? "検証機能をまとめた管理者専用ページです。" : "案件完了から30日後を削除予定日とし、7日前から対象を表示します。"}</p>
+    <p>{isTestPage ? "検証機能をまとめた管理者専用ページです。" : "案件完了から30日後を保管見直し日とし、7日前から対象を表示します。30日後に必ず削除するものではありません。"}</p>
     <div style={{ background: '#eff6ff', padding: 16, borderRadius: 12, margin: '16px 0' }}>
-      <strong>現在は確認専用です。自動削除・定期通知は無効です。</strong>
-      <p style={{ marginBottom: 0 }}>「保留」に設定した案件は、将来の自動削除処理から除外する予定です。現時点ではファイルの削除は行いません。</p>
+      <strong>対象の確認・保留設定ができます。サイト内での期限後削除・自動削除・定期通知は無効です。</strong>
+      <p style={{ marginBottom: 0 }}>対象は確認用・修正用・納品ファイルです。顧客の支給資料は対象外です。30日経過後、管理者確認のうえ削除する場合があります。保留中の案件は削除せず、実際の削除は管理者がSupabaseで個別に行います。</p>
     </div>
     <button type="button" onClick={() => void load()} disabled={loading} style={{ width: 'auto', padding: '8px 14px', border: '1px solid #bfdbfe', background: '#fff', borderRadius: 8 }}>一覧を更新</button>
     {isTestPage ? <><p>開発・検証用の操作です。実案件では実行しないでください。</p>    <button type="button" onClick={() => void runTest()} disabled={testing}
@@ -493,7 +493,7 @@ export default function FileRetentionAdminPage() {
       {stageBusy ? '復旧テスト準備中…' : 'Storage・DB・ジョブ復旧テストを準備'}
     </button>
     </> : <>
-      <p><Link href="/admin/file-retention/tests">開発・検証用ツールはこちら →</Link></p>
+      <p>削除前には対象・バックアップ・共有リンク・StorageとDBの対応を確認してください。サイトから削除は実行できません。</p>
     <button type="button" onClick={() => void runDeletionPlan()} disabled={planning}
       style={{ width: 'auto', marginLeft: 10, marginTop: 8, padding: '8px 14px', border: '1px solid #fcd34d', background: '#fef3c7', borderRadius: 8, fontWeight: 700 }}>
       {planning ? '照合中…' : '30日経過ファイルの削除対象を照合（削除なし）'}
@@ -686,7 +686,7 @@ export default function FileRetentionAdminPage() {
           選択した{selectedCandidates.length}件を確認
         </button>
         {reviewOpen && <div style={{ marginTop: 12, padding: 12, border: '1px solid #fcd34d', borderRadius: 8 }}>
-          <strong>削除前の確認（実行機能は未実装）</strong>
+          <strong>Supabaseで個別対応するための確認（サイト内では削除しません）</strong>
           <ul>{deletionPlan.projects.flatMap(p => (p.candidates ?? []).filter(f => selectedCandidates.includes(f.id)).map(f => <li key={f.id}>
             {p.projectCode}：{f.name}
             {mockPlan ? ' — 模擬データ（API照合なし）' : preflightBusy ? ' — サーバー確認中…' :
@@ -706,17 +706,17 @@ export default function FileRetentionAdminPage() {
         <li key={index}>{item.projectCode}：{item.state}／{item.fileCount}ファイル／期限 {date(item.dueAt)}</li>
       )}</ul></details>}
     </section>}
-    <p style={{ fontSize: 12, color: '#64748b', marginTop: 16 }}>運用メモ：30日経過後は管理者が確認して手動対応。自動処理への移行は、履歴と障害復旧の検証後に再検討します。</p>
+    <p style={{ fontSize: 12, color: '#64748b', marginTop: 16 }}>運用メモ：30日経過後は管理者確認のうえSupabaseで個別対応します。手作業の削除はこの画面の履歴へ自動記録されません。別途作業記録を残してください。</p>
     {error && <p role="alert" style={{ color: '#b91c1c' }}>{error}</p>}
-    {loading ? <p>読み込み中…</p> : rows.length === 0 ? <p>現在、削除予告の対象ファイルはありません。</p> :
+    {loading ? <p>読み込み中…</p> : rows.length === 0 ? <p>現在、保管見直しの対象ファイルはありません。</p> :
       <div style={{ display: 'grid', gap: 16, marginTop: 20 }}>
         {rows.map(row => <section key={row.projectId} style={{ background: '#fff', border: '1px solid #dbeafe', borderRadius: 12, padding: 18 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
             <div>
               <Link href={'/admin/projects/' + row.projectId}><strong>{row.projectCode}</strong></Link>
-              <p style={{ margin: '8px 0' }}>完了日：{date(row.completedAt)} ／ 削除予定日：{date(row.deletionDueAt)} ／ 対象：{row.fileCount}件</p>
+              <p style={{ margin: '8px 0' }}>完了日：{date(row.completedAt)} ／ 保管見直し日：{date(row.deletionDueAt)} ／ 対象：{row.fileCount}件</p>
               <strong style={{ color: row.held ? '#1d4ed8' : row.state === 'overdue' ? '#b91c1c' : '#92400e' }}>
-                {row.held ? '削除保留中' : row.state === 'overdue' ? '削除予定日超過' : '削除7日前の確認対象'}
+                {row.held ? '削除保留中' : row.state === 'overdue' ? '保管見直し日を経過' : '保管見直し7日前の確認対象'}
               </strong>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 240 }}>

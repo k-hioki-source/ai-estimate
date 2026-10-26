@@ -1,11 +1,6 @@
-import FileRetentionAdminPage from '../page';
-import RecoveryFixtureTestPanel from '../../../../components/cs-works/RecoveryFixtureTestPanel';
+import { notFound } from 'next/navigation';
 
-export const dynamic = 'force-dynamic';
-
+// Historical test APIs are disabled separately; hiding the page is not the security boundary.
 export default function FileRetentionTestsPage() {
-  return <>
-    <FileRetentionAdminPage />
-    <RecoveryFixtureTestPanel preview={process.env.VERCEL_ENV === 'preview'} />
-  </>;
+  notFound();
 }

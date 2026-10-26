@@ -25,8 +25,8 @@ export async function GET(request: NextRequest) {
     ok: true,
     readOnly: true,
     fixtureOnly: true,
-    storageExecutionEnabled: process.env.CSWORKS_ENABLE_TEST_FIXTURE_CLEANUP === 'true',
-    finalizationEnabled: process.env.CSWORKS_ENABLE_TEST_FIXTURE_FINALIZE === 'true',
+    storageExecutionEnabled: false,
+    finalizationEnabled: false,
     automaticCustomerDeletionEnabled: false,
   });
 }

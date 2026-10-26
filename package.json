@@ -8,16 +8,17 @@
     "start": "next start"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.57.4",
     "html2canvas": "^1.4.1",
     "jspdf": "^4.2.1",
-    "next": "15.5.7",
+    "next": "15.5.28",
     "openai": "^4.104.0",
     "pdfkit": "^0.19.1",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "resend": "^4.0.1",
-    "typescript": "^5.7.2",
-    "@supabase/supabase-js": "^2.57.4"
+    "sharp": "0.35.5",
+    "typescript": "^5.7.2"
   },
   "devDependencies": {
     "@types/node": "^22.10.1",

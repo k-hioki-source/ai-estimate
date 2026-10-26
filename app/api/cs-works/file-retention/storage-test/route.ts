@@ -14,6 +14,14 @@ function reply(data: object, status = 200) {
  * project_files, project_file_shares, or customer-owned objects.
  */
 export async function POST(request: NextRequest) {
+  // Deletion testing has ended. Keep historical code for audit, never execute it.
+  const testMutationEnabled = false;
+  if (!testMutationEnabled) {
+    return NextResponse.json({ error: '削除テスト・テストデータ変更は終了し、無効化されています。' }, {
+      status: 403, headers: { 'Cache-Control': 'no-store, private' },
+    });
+  }
+
   const authHeader = request.headers.get('authorization') ?? '';
   if (!authHeader.startsWith('Bearer ')) return reply({ error: 'ログインが必要です。' }, 401);
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;

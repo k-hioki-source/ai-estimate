@@ -14,6 +14,14 @@ const reply = (body: object, status = 200) => NextResponse.json(body, {
 
 // Explicitly disabled by default. Never for customer files.
 export async function POST(request: NextRequest) {
+  // Deletion testing has ended. Keep historical code for audit, never execute it.
+  const testMutationEnabled = false;
+  if (!testMutationEnabled) {
+    return NextResponse.json({ error: '削除テスト・テストデータ変更は終了し、無効化されています。' }, {
+      status: 403, headers: { 'Cache-Control': 'no-store, private' },
+    });
+  }
+
   // Defense in depth: never allow fixture mutation from Production, even if a flag is enabled.
   if (process.env.VERCEL_ENV !== 'preview') {
     return reply({ error: 'テスト用変更APIはPreview環境でのみ実行できます。' }, 403);

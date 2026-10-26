@@ -56,7 +56,8 @@ export async function GET(request: NextRequest) {
     if (notified.has(project.id + ':' + project.completed_at)) continue;
     pending.push({ id: project.id, code: project.project_code, completedAt: project.completed_at, dueAt, fileCount: count });
   }
-  const sendEnabled = process.env.CS_WORKS_RETENTION_SEND_WARNINGS === 'true';
+  // Manual review policy: scheduled retention notifications remain disabled.
+  const sendEnabled = false;
   if (!sendEnabled) {
     return reply({ ok: true, dryRun: true, pendingWarnings: pending.length, overdue, sent: 0, deletionEnabled: false,
       preview: pending.slice(0, 20).map(x => ({ code: x.code, dueAt: x.dueAt, fileCount: x.fileCount })) });
