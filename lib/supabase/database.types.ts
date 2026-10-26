@@ -155,6 +155,7 @@ export type Database = {
           desired_deadline: string | null;
           confirmed_deadline: string | null;
           quote_presented_at: string | null;
+          formal_quote_id?: string | null;
           ordered_at: string | null;
           completed_at: string | null;
           created_at: string;
@@ -183,6 +184,7 @@ export type Database = {
           desired_deadline?: string | null;
           confirmed_deadline?: string | null;
           quote_presented_at?: string | null;
+          formal_quote_id?: string | null;
           ordered_at?: string | null;
           completed_at?: string | null;
           created_at?: string;
@@ -207,6 +209,7 @@ export type Database = {
           desired_deadline?: string | null;
           confirmed_deadline?: string | null;
           quote_presented_at?: string | null;
+          formal_quote_id?: string | null;
           ordered_at?: string | null;
           completed_at?: string | null;
           updated_at?: string;

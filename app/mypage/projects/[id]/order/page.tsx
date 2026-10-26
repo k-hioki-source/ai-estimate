@@ -1,4 +1,5 @@
 'use client';
+import FormalQuoteDetails from '../../../../../components/cs-works/FormalQuoteDetails';
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
@@ -6,6 +7,7 @@ import { getSupabaseBrowserClient } from '../../../../../lib/supabase/client';
 
 type ProjectOrder = {
   id: string;
+  formal_quote_id?: string | null;
   project_id: string;
   user_id: string;
   order_code: string;
@@ -48,6 +50,7 @@ export default function ProjectOrderPage() {
 
   const [order, setOrder] = useState<ProjectOrder | null>(null);
   const [loading, setLoading] = useState(true);
+  const [quoteDetailsReady, setQuoteDetailsReady] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -97,7 +100,7 @@ export default function ProjectOrderPage() {
     <main className="orderPage">
       <div className="toolbar noPrint">
         <button type="button" onClick={() => router.push(`/mypage/projects/${projectId}`)}>← 案件詳細へ戻る</button>
-        <button type="button" className="printButton" onClick={() => window.print()}>印刷・PDF保存</button>
+        <button type="button" className="printButton" disabled={!!order.formal_quote_id && !quoteDetailsReady} onClick={() => window.print()}>印刷・PDF保存</button>
       </div>
 
       <article className="document">
@@ -157,6 +160,8 @@ export default function ProjectOrderPage() {
           <h2>作業内容・制作条件</h2>
           <p>{order.project_description || '特記事項なし'}</p>
         </section>
+
+        {order.formal_quote_id && <FormalQuoteDetails projectId={projectId} quoteId={order.formal_quote_id} onReadinessChange={setQuoteDetailsReady} />}
 
         <section className="priceSection">
           <table className="priceTable">
