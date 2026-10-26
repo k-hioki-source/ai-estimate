@@ -1,3 +1,4 @@
+import { illustrationsEnabled } from '../../../../lib/cs-works/illustrations';
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { sendCsWorksEmail, type CsWorksMailPayload } from '@/lib/email';
@@ -8,6 +9,7 @@ type NotifyBody = {
   type: CsWorksMailPayload['type'];
   projectId: string;
   message?: string;
+  illustrationOperationId?: string;
 };
 
 const allowedTypes: CsWorksMailPayload['type'][] = [
@@ -148,8 +150,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    let verifiedIllustrationOperation = false;
+    let notificationMessage = body.message;
+    if (body.illustrationOperationId) {
+      if (!illustrationsEnabled || !/^[0-9a-f-]{36}$/i.test(body.illustrationOperationId)) {
+        return NextResponse.json({ ok: false, error: 'Invalid operation' }, { status: 400 });
+      }
+      const { data: operation, error: operationError } = await supabase.from('project_illustration_operations').select('project_id,actor_id,notification_type,message_id').eq('id', body.illustrationOperationId).single();
+      if (operationError || !operation || operation.project_id !== project.id || operation.actor_id !== user.id || operation.notification_type !== body.type) {
+        return NextResponse.json({ ok: false, error: 'Operation does not match' }, { status: 403 });
+      }
+      const { data: reviewMessage, error: messageError } = await supabase.from('project_messages').select('message').eq('id', operation.message_id).eq('project_id', project.id).single();
+      if (messageError || !reviewMessage) return NextResponse.json({ ok: false, error: 'Operation message not found' }, { status: 409 });
+      notificationMessage = reviewMessage.message;
+      verifiedIllustrationOperation = true;
+    }
+
     // 通知種別と現在ステータスを照合
-    const validStatus =
+    const validStatus = verifiedIllustrationOperation ||
       (body.type === 'quote_requested' && project.status === 'quote_requested') ||
       (body.type === 'quote_presented' && project.status === 'quote_presented') ||
       (body.type === 'review_requested' && project.status === 'customer_review') ||
@@ -201,7 +219,7 @@ export async function POST(request: NextRequest) {
       customerEmail: customerProfile.email ?? undefined,
       quotedAmount: project.quoted_amount,
       confirmedDeadline: project.confirmed_deadline,
-      message: body.message,
+      message: notificationMessage,
     });
 
     if (!result.ok) {

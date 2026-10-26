@@ -1,4 +1,6 @@
 'use client';
+import IllustrationWorkflow from '../../../../components/cs-works/IllustrationWorkflow';
+import { illustrationsEnabled } from '../../../../lib/cs-works/illustrations';
 import FormalQuoteEditor from '../../../../components/cs-works/FormalQuoteEditor';
 
 import ProjectFilePreview from '../../../../components/cs-works/ProjectFilePreview';
@@ -20,6 +22,7 @@ type Project = Omit<Database['public']['Tables']['projects']['Row'], 'status'> &
     | 'invoice_requested'
     | 'invoiced';
   formal_quote_id?: string | null;
+  illustration_workflow?: boolean;
 };
 type Estimate = Database['public']['Tables']['estimates']['Row'];
 
@@ -1064,6 +1067,7 @@ export default function AdminPage() {
                   </div>
                 ) : null}
 
+                {(project.illustration_workflow || (illustrationsEnabled && !!project.formal_quote_id && !['quote_requested', 'quote_reviewing', 'quote_presented', 'cancelled'].includes(project.status))) ? <IllustrationWorkflow project={project} isAdmin onProject={updated => { setProjects(xs => xs.map(x => x.id === updated.id ? { ...x, ...updated } : x)); void reviewContext.reload(); }} /> : <>
                 {project.status === 'ordered' ? (
                   <div className="stateCard attention">
                     <strong>お客様から発注されました</strong>
@@ -1213,6 +1217,8 @@ export default function AdminPage() {
                     </button>
                   </div>
                 ) : null}
+
+                </>}
 
                 {project.status === 'approved' ? (
                   <div className="stateCard success">

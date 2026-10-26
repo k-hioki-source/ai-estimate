@@ -1,4 +1,6 @@
 'use client';
+import IllustrationWorkflow from '../../../../components/cs-works/IllustrationWorkflow';
+import { illustrationsEnabled } from '../../../../lib/cs-works/illustrations';
 import { formalQuotesEnabled, type QuoteContext } from '../../../../lib/cs-works/formal-quotes';
 import { formalQuoteRequest } from '../../../../lib/cs-works/formal-quotes-client';
 import { QuoteItemsTable } from '../../../../components/cs-works/FormalQuoteDetails';
@@ -25,6 +27,7 @@ type Project = Omit<Database['public']['Tables']['projects']['Row'], 'status'> &
     | 'invoiced';
   archived_at?: string | null;
   formal_quote_id?: string | null;
+  illustration_workflow?: boolean;
 };
 
 type ProjectFile = {
@@ -1431,6 +1434,7 @@ async function submitProjectReview(project: Project, action: 'approval' | 'revis
                   </div>
                 ) : null}
 
+                {(project.illustration_workflow || (illustrationsEnabled && !!project.formal_quote_id && !['quote_requested', 'quote_reviewing', 'quote_presented', 'cancelled'].includes(project.status))) ? <IllustrationWorkflow project={project} customerEditor={canEditImageAnnotations && project.user_id === user?.id} onProject={updated => { setProjects(xs => xs.map(x => x.id === updated.id ? { ...x, ...updated } : x)); void reviewContext.reload(); }} /> : <>
                 {project.status === 'in_production' ? (
                   <div className="stateCard progress">
                     <strong>制作中です</strong>
@@ -1518,6 +1522,8 @@ async function submitProjectReview(project: Project, action: 'approval' | 'revis
                     </div>
                   </div>
                 ) : null}
+
+                </>}
 
                 {project.status === 'approved' ? (
                   <div className="stateCard success">

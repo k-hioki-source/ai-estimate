@@ -22,6 +22,6 @@ export function validateAnnotations(value: unknown): value is AnnotationDocument
   return d.strokes.every(s => s && id(s.id) && Array.isArray(s.points) && s.points.length >= 2 && s.points.length <= 2000 && s.points.every(point)) && d.strokes.reduce((n, s) => n + s.points.length, 0) <= 20000;
 }
 export type ReviewFile = { id: string; project_id: string; file_name: string; mime_type: string | null; storage_path: string; file_type: string; created_at: string };
-export type ReviewBatch = { id: string; project_id: string; round_number: number; state: 'open' | 'revision_request' | 'approval' | 'closed'; message_id: string | null };
+export type ReviewBatch = { id: string; project_id: string; round_number: number; state: 'open' | 'revision_request' | 'approval' | 'closed'; message_id: string | null; illustration_id?: string | null; illustration_revision?: number | null; illustration_label?: string | null };
 export type SavedAnnotation = { batch_id: string; file_id: string; document: AnnotationDocument; version: number; finalized_at: string | null };
 export type ReviewContext = { batches: ReviewBatch[]; members: { batch_id: string; file_id: string }[]; annotations: SavedAnnotation[]; files: ReviewFile[] };
