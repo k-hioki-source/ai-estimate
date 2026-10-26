@@ -60,7 +60,7 @@ Vercelの本番環境、main、Production、本番DB設定は変更しない。
 ## 検証結果
 
 - ローカルPostgreSQL互換PGlite: 30項目成功。所有権・RLS・管理者閲覧・確定後ロック・別稿分離・保存競合・原子的な失敗時ロールバック・再送。
-- 実APIハンドラー＋認証モック: 15項目成功。認証、入力検証、実サイズ制限、機能無効、競合/権限エラー、DB不在、座標変換等。
+- 実APIハンドラー＋認証モック: 17項目成功。認証、入力検証、実サイズ制限、機能無効、競合/権限エラー、DB不在、座標変換等。
 - 実Reactコンポーネントをlocalhostで動かすブラウザ試験: 14項目成功。ピン・描画・取り消し・選択削除・保存・再表示・ズーム後の位置・未保存破棄確認・保存競合・閲覧専用・既存プレビュー/ダウンロード・狭幅画面。
 - 既存共有モック16件成功。既存保管公開範囲ガード成功。
 - 機能無効時の本番ビルド成功（仮OpenAI/Resendキー、実外部サービス未接続）。機能有効時の本番ビルドも成功。
@@ -79,3 +79,26 @@ node scripts/test-file-sharing.cjs
 node scripts/test-retention-release.cjs
 ```
 テスト用Chromiumバイナリは環境側で準備。UI試験は外部通信を遮断し、localhostだけで実行する。
+
+## 変更ファイル一覧
+
+| ファイル | 役割 |
+|---|---|
+| app/mypage/projects/[id]/page.tsx | 確認対象と赤入れ、既存修正依頼・承認への接続 |
+| app/admin/projects/[id]/page.tsx | 確認対象選択、既存履歴からの閲覧 |
+| components/cs-works/ProjectFilePreview.tsx | プレビュー内外の入口、既存機能維持 |
+| components/cs-works/ProjectImageAnnotations.tsx | 画像上のピン・線・編集・拡縮・保存 |
+| components/cs-works/ProjectReviewAnnotations.tsx | 確認回取得、閲覧ボタン、履歴・対象選択 |
+| app/api/cs-works/image-annotations/route.ts | 認証、入力検証、取得・保存・確認結果送信 |
+| lib/cs-works/image-annotations.ts | 文書型、画像判定、座標・入力検証 |
+| lib/cs-works/image-annotations-client.ts | 認証付きAPI通信、未保存管理 |
+| supabase/migrations/20261026_image_annotations.sql | 新規テーブル、RLS、トリガー、既存RPC連携の草案 |
+| docs/sql/csworks-annotations-preflight.sql | 既存実DB定義の読み取り専用確認 |
+| scripts/test-image-annotations-db.cjs | 架空DBでの権限・ワークフロー検証 |
+| scripts/test-image-annotations-api.cjs | API・入力・座標検証 |
+| scripts/test-image-annotations-browser.cjs | 実UIのローカルブラウザ検証 |
+| docs/CS_WORKS_HANDOFF.md | 最新の公開状態・開発状況 |
+| docs/CS_WORKS_IMAGE_ANNOTATIONS.md | 本書：設計・運用・試験・未確認事項 |
+
+既存の共有API・通知API・package.json・vercel.jsonは変更していない。
+対象Vercel ai-estimate-rwxrで開発ブランチのPreviewビルド成功を確認済み。実DB未設定のため、赤入れ機能は無効のまま維持する。

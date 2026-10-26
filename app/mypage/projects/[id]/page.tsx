@@ -687,7 +687,7 @@ async function submitProjectReview(project: Project, action: 'approval' | 'revis
           { action: 'submit', batchId, requestId, reviewAction: action, comment });
         setProjects(cur => cur.map(p => p.id === project.id ? result.project : p));
         setProjectMessages(cur => ({ ...cur, [project.id]: [...(cur[project.id] ?? []).filter(m => m.id !== result.message.id), result.message] }));
-        const mailSent = result.replayed ? true : await sendCsWorksNotification(supabase, action === 'approval' ? 'approved' : 'revision_requested', project.id, comment || '確認内容を承認しました。');
+        const mailSent = result.replayed ? true : await sendCsWorksNotification(supabase, action === 'approval' ? 'approved' : 'revision_requested', project.id, comment || '確認内容を承認しました。').catch(() => false);
         delete reviewRequests.current[requestKey];
         setReviewComments(cur => ({ ...cur, [project.id]: '' }));
         setReviewMessage((action === 'approval' ? '確認内容を承認しました。' : '画像の修正指示と修正依頼を送信しました。') + (!mailSent ? ' メール通知のみ失敗しました。' : result.replayed ? ' 再送結果を確認しました。メールの送信状態は管理者へご確認ください。' : ''));
