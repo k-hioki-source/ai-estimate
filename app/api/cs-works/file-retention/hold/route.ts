@@ -17,14 +17,13 @@ export async function POST(request: NextRequest) {
     const admin = createClient(url, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
     const { data: profile } = await admin.from('profiles').select('role').eq('id', authData.user.id).maybeSingle();
     if ((profile as { role?: string } | null)?.role !== 'admin') return reply({ error: '管理者のみ操作できます。' }, 403);
-    const body = await request.json() as { projectId?: string; held?: boolean; reason?: string };
-    if (!body.projectId || typeof body.held !== 'boolean' || (body.reason?.length ?? 0) > 500) return reply({ error: '入力内容を確認してください。' }, 400);
+    const body = await request.json() as { projectId?: string; held?: boolean };
+    if (!body.projectId || typeof body.held !== 'boolean') return reply({ error: '入力内容を確認してください。' }, 400);
     const { data: project } = await admin.from('projects').select('id,status').eq('id', body.projectId).maybeSingle();
     if (!project || project.status !== 'completed') return reply({ error: '完了済み案件のみ設定できます。' }, 409);
     const { error } = await admin.from('project_file_retention_holds').upsert({
       project_id: body.projectId, is_held: body.held,
-      reason: body.held ? (body.reason?.trim() || null) : null,
-      updated_by: authData.user.id, updated_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     }, { onConflict: 'project_id' });
     if (error) { console.error('Retention hold update failed', error); return reply({ error: '保留設定を保存できません。' }, 500); }
     return reply({ ok: true, held: body.held });

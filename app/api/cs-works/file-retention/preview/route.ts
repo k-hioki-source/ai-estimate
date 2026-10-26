@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
 
     const projectIds = (projects ?? []).map(p => p.id);
     const { data: holds, error: holdsError } = projectIds.length
-      ? await admin.from('project_file_retention_holds').select('project_id,is_held,reason').in('project_id', projectIds)
+      ? await admin.from('project_file_retention_holds').select('project_id,is_held').in('project_id', projectIds)
       : { data: [], error: null };
     if (holdsError) return json({ error: '保留情報を取得できません。SQLの適用状況をご確認ください。' }, 500);
     const holdMap = new Map((holds ?? []).map(h => [h.project_id, h]));
@@ -69,7 +69,6 @@ export async function GET(request: NextRequest) {
         state: due.getTime() <= now ? 'overdue' : 'warning',
         fileCount: files.length,
         held: holdMap.get(project.id)?.is_held === true,
-        holdReason: holdMap.get(project.id)?.reason ?? null,
         files: files.map(f => ({ id: f.id, name: f.file_name, type: f.file_type })),
       });
     }
