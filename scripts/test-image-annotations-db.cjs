@@ -21,18 +21,20 @@ const doc={schemaVersion:1,pins:[{id:'pin-1',number:1,x:.25,y:.5,comment:'左端
  create type public.project_status as enum('in_production','customer_review','revision','approved','completed');
  create type public.message_kind as enum('message','revision_request','approval','system');
  create table public.profiles(id uuid primary key,role text);
- create table public.projects(id uuid primary key,user_id uuid,status public.project_status,title text);
+ create table public.projects(id uuid primary key,user_id uuid,status public.project_status,title text,updated_at timestamptz default now());
  create table public.project_files(id uuid primary key,project_id uuid references public.projects(id),file_name text,file_type text,mime_type text,storage_path text,created_at timestamptz default now());
  create table public.project_messages(id uuid primary key default gen_random_uuid(),project_id uuid,user_id uuid,message text,message_type public.message_kind,created_at timestamptz default now());
- create function public.request_project_revision(p_project_id uuid) returns setof public.projects language plpgsql security definer as $$begin
- if current_setting('test.fail_rpc',true)='true' then raise exception 'Synthetic failure'; end if;
- return query update public.projects set status='revision' where id=p_project_id and user_id=auth.uid() and status='customer_review' returning *; end$$;
- create function public.approve_project(p_project_id uuid) returns setof public.projects language sql security definer as $$update public.projects set status='approved' where id=p_project_id and user_id=auth.uid() and status='customer_review' returning *$$;
  `);
+ await db.exec(fs.readFileSync('scripts/fixtures/csworks-existing-review-functions.sql','utf8'));
+ // Inject a synthetic failure outside the unmodified production RPC definitions.
+ await db.exec(`create function public.test_workflow_failure() returns trigger language plpgsql as $$begin
+  if current_setting('test.fail_rpc',true)='true' then raise exception 'Synthetic workflow failure'; end if;
+  return new; end$$;
+  create trigger test_workflow_failure before update of status on public.projects for each row execute function public.test_workflow_failure();`);
  await db.exec(fs.readFileSync('supabase/migrations/20261026_image_annotations.sql','utf8'));
  for(const n of [1,2,3]) await query('insert into auth.users values($1);',[uid(n)]);
  for(const [n,r] of [[1,'customer'],[2,'customer'],[3,'admin']]) await query('insert into public.profiles values($1,$2)',[uid(n),r]);
- await query("insert into public.projects values($1,$2,'in_production','Synthetic A'),($3,$4,'in_production','Synthetic B')",[uid(10),uid(1),uid(20),uid(2)]);
+ await query("insert into public.projects(id,user_id,status,title) values($1,$2,'in_production','Synthetic A'),($3,$4,'in_production','Synthetic B')",[uid(10),uid(1),uid(20),uid(2)]);
  for(const [id,p,name,type,mime] of [[11,10,'first.png','review','image/png'],[12,10,'second.jpg','revision','image/jpeg'],[13,10,'source.png','reference','image/png'],[21,20,'other.png','review','image/png'],[14,10,'manual.pdf','review','application/pdf']]) await query('insert into public.project_files(id,project_id,file_name,file_type,mime_type,storage_path) values($1,$2,$3,$4,$5,$6)',[uid(id),uid(p),name,type,mime,uid(p)+'/'+name]);
  await actor(1);
  await check('customer cannot start review',()=>rejected('select public.csworks_start_review($1,$2)',[uid(10),[uid(11)]],'42501'));
@@ -87,6 +89,6 @@ const doc={schemaVersion:1,pins:[{id:'pin-1',number:1,x:.25,y:.5,comment:'左端
  await check('service-role direct annotation changes denied',()=>rejected('delete from public.project_file_annotations',[],'42501'));
  await db.exec('reset role');
  await check('failed transaction left no stray message',async()=>assert.equal((await query('select count(*)::int n from public.project_messages'))[0].n,2));
- console.log(`${count} database checks passed (synthetic fixture, existing RPCs stubbed).`);
+ console.log(`${count} database checks passed (synthetic fixture, user-supplied existing RPC definitions).`);
  await db.close();
 })().catch(async e=>{console.error(e);await db.close();process.exitCode=1});

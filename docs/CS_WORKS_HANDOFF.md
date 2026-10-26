@@ -95,3 +95,5 @@
 - 画像赤入れは設計承認後、feature/image-annotations-20261026で実装。主機能: 確認用PNG/JPEGへのピン・赤線・保存、既存修正依頼/承認との統合、履歴での閲覧、確認回・ファイルIDによる分離と確定後ロック。
 - 詳細・テスト・未確認事項・有効化手順はdocs/CS_WORKS_IMAGE_ANNOTATIONS.md。新規SQLは未適用。本番DB・main・Productionはこの開発で変更していない。
 - Previewは本番DBと共通。赤入れを有効化して実操作する前に専用検証DBと既存RPC定義の確認が必要。フラグ既定無効。
+
+- 2026-10-26追記: ユーザー提供CSVで既存approve_project/request_project_revision本文を確認。追加SQLからの呼び出しと整合し、提供された実関数定義をローカル架空DBへ読み込んだ30項目が成功。実テーブル定義・トリガー照合と専用検証DBの結合試験は未実施。DB変更なし。

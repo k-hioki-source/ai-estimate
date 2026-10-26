@@ -40,7 +40,7 @@
 ## DB適用前に必要な確認（未実施）
 
 `docs/sql/csworks-annotations-preflight.sql` は定義・メタデータだけを読むSELECT。
-実DBの既存2RPC本文、project_messagesの型/デフォルト、projectsのトリガー/RLSとの整合を先に確認する。
+既存2RPC本文はユーザー提供CSVで確認済み。project_messagesの型/デフォルト、projectsのトリガー/RLSとの整合は適用前に確認する。
 SQLは `supabase/migrations/20261026_image_annotations.sql` に草案を保存。実DBには適用していない。
 特に既存RPCが別のメッセージを追加しないか、必須引数・返却・追加副作用、sendertypeデフォルト、トリガーとの干渉を確認する。異なる場合は草案を修正してから再検証する。
 
@@ -65,7 +65,7 @@ Vercelの本番環境、main、Production、本番DB設定は変更しない。
 - 既存共有モック16件成功。既存保管公開範囲ガード成功。
 - 機能無効時の本番ビルド成功（仮OpenAI/Resendキー、実外部サービス未接続）。機能有効時の本番ビルドも成功。
 
-PGliteでは既存RPCのテスト用代替関数と架空スキーマを使用。実SupabaseのRPC/既存RLS/通知メールの実証ではない。
+PGliteではユーザー提供の既存RPC定義を変更せず、架空スキーマ上に読み込んで検証。失敗注入はテスト用トリガーで行う。実Supabaseの既存テーブルトリガー/RLS/通知メールの実証ではない。
 ブラウザ試験は実UI＋テスト用認証/保存サーバーであり、実Supabase Auth/Storage/Vercelを結合した試験ではない。
 別ユーザー・端末同時操作や、本物のタッチ端末、実メールは未確認。
 
@@ -93,6 +93,8 @@ node scripts/test-retention-release.cjs
 | lib/cs-works/image-annotations.ts | 文書型、画像判定、座標・入力検証 |
 | lib/cs-works/image-annotations-client.ts | 認証付きAPI通信、未保存管理 |
 | supabase/migrations/20261026_image_annotations.sql | 新規テーブル、RLS、トリガー、既存RPC連携の草案 |
+| docs/sql/csworks-annotations-schema-check.sql | テーブル・トリガー・RLSを1つの結果で確認 |
+| scripts/fixtures/csworks-existing-review-functions.sql | ユーザー提供の既存RPC定義（ローカル検証専用） |
 | docs/sql/csworks-annotations-preflight.sql | 既存実DB定義の読み取り専用確認 |
 | scripts/test-image-annotations-db.cjs | 架空DBでの権限・ワークフロー検証 |
 | scripts/test-image-annotations-api.cjs | API・入力・座標検証 |
@@ -102,3 +104,10 @@ node scripts/test-retention-release.cjs
 
 既存の共有API・通知API・package.json・vercel.jsonは変更していない。
 対象Vercel ai-estimate-rwxrで開発ブランチのPreviewビルド成功を確認済み。実DB未設定のため、赤入れ機能は無効のまま維持する。
+
+## 既存RPC定義の照合（2026-10-26）
+ユーザー提供CSVのapprove_project(uuid)とrequest_project_revision(uuid)は、いずれも単一のprojects行を返すSECURITY DEFINER関数。所有者とcustomer_reviewを検証し、approved/revisionへ変更する。修正依頼関数はupdated_atも更新する。関数内にメッセージ追加・メール送信はない。
+追加SQLのPERFORM呼び出し・同一トランザクション化・既存履歴1件追加と整合する。既存RPC本文の変更は不要。
+定義はscripts/fixtures/csworks-existing-review-functions.sqlに検証用として保存。これは適用用migrationではない。実スキーマ・既存トリガーの照合と専用検証DBでの結合試験は引き続き未実施。
+
+次の読み取り確認にはdocs/sql/csworks-annotations-schema-check.sqlを使用する。複数SELECTの最後だけがCSV化されることを避け、1つの結果にまとめている。
