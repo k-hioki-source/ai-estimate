@@ -40,7 +40,7 @@
 ## DB適用前に必要な確認（未実施）
 
 `docs/sql/csworks-annotations-preflight.sql` は定義・メタデータだけを読むSELECT。
-既存2RPC本文はユーザー提供CSVで確認済み。project_messagesの型/デフォルト、projectsのトリガー/RLSとの整合は適用前に確認する。
+既存2RPC本文はユーザー提供CSVで確認済み。project_messagesの型/デフォルトとprojectsトリガーは追加CSVで照合済み。未提供の制約/RLSと専用検証DBでの結合試験は残る。
 SQLは `supabase/migrations/20261026_image_annotations.sql` に草案を保存。実DBには適用していない。
 特に既存RPCが別のメッセージを追加しないか、必須引数・返却・追加副作用、sendertypeデフォルト、トリガーとの干渉を確認する。異なる場合は草案を修正してから再検証する。
 
@@ -59,13 +59,13 @@ Vercelの本番環境、main、Production、本番DB設定は変更しない。
 
 ## 検証結果
 
-- ローカルPostgreSQL互換PGlite: 30項目成功。所有権・RLS・管理者閲覧・確定後ロック・別稿分離・保存競合・原子的な失敗時ロールバック・再送。
+- ローカルPostgreSQL互換PGlite: 31項目成功。所有権・RLS・管理者閲覧・確定後ロック・別稿分離・保存競合・原子的な失敗時ロールバック・再送。
 - 実APIハンドラー＋認証モック: 17項目成功。認証、入力検証、実サイズ制限、機能無効、競合/権限エラー、DB不在、座標変換等。
 - 実Reactコンポーネントをlocalhostで動かすブラウザ試験: 14項目成功。ピン・描画・取り消し・選択削除・保存・再表示・ズーム後の位置・未保存破棄確認・保存競合・閲覧専用・既存プレビュー/ダウンロード・狭幅画面。
 - 既存共有モック16件成功。既存保管公開範囲ガード成功。
 - 機能無効時の本番ビルド成功（仮OpenAI/Resendキー、実外部サービス未接続）。機能有効時の本番ビルドも成功。
 
-PGliteではユーザー提供の既存RPC定義を変更せず、架空スキーマ上に読み込んで検証。失敗注入はテスト用トリガーで行う。実Supabaseの既存テーブルトリガー/RLS/通知メールの実証ではない。
+PGliteではユーザー提供の既存RPC定義を変更せず、ユーザー提供の列定義・初期値・更新日時トリガーを再現したローカルスキーマへ読み込んで検証。失敗注入はテスト用トリガーで行う。実Supabaseの既存テーブルトリガー/RLS/通知メールの実証ではない。
 ブラウザ試験は実UI＋テスト用認証/保存サーバーであり、実Supabase Auth/Storage/Vercelを結合した試験ではない。
 別ユーザー・端末同時操作や、本物のタッチ端末、実メールは未確認。
 
@@ -94,6 +94,7 @@ node scripts/test-retention-release.cjs
 | lib/cs-works/image-annotations-client.ts | 認証付きAPI通信、未保存管理 |
 | supabase/migrations/20261026_image_annotations.sql | 新規テーブル、RLS、トリガー、既存RPC連携の草案 |
 | docs/sql/csworks-annotations-schema-check.sql | テーブル・トリガー・RLSを1つの結果で確認 |
+| scripts/fixtures/csworks-existing-review-schema.sql | 提供された列定義・初期値・トリガーのローカル検証用再現 |
 | scripts/fixtures/csworks-existing-review-functions.sql | ユーザー提供の既存RPC定義（ローカル検証専用） |
 | docs/sql/csworks-annotations-preflight.sql | 既存実DB定義の読み取り専用確認 |
 | scripts/test-image-annotations-db.cjs | 架空DBでの権限・ワークフロー検証 |
@@ -108,6 +109,11 @@ node scripts/test-retention-release.cjs
 ## 既存RPC定義の照合（2026-10-26）
 ユーザー提供CSVのapprove_project(uuid)とrequest_project_revision(uuid)は、いずれも単一のprojects行を返すSECURITY DEFINER関数。所有者とcustomer_reviewを検証し、approved/revisionへ変更する。修正依頼関数はupdated_atも更新する。関数内にメッセージ追加・メール送信はない。
 追加SQLのPERFORM呼び出し・同一トランザクション化・既存履歴1件追加と整合する。既存RPC本文の変更は不要。
-定義はscripts/fixtures/csworks-existing-review-functions.sqlに検証用として保存。これは適用用migrationではない。実スキーマ・既存トリガーの照合と専用検証DBでの結合試験は引き続き未実施。
+定義はscripts/fixtures/csworks-existing-review-functions.sqlに検証用として保存。これは適用用migrationではない。列・初期値・既存トリガーは後続の追加CSVで照合済み。未提供の制約/RLSと専用検証DBでの結合試験は残る。
 
 次の読み取り確認にはdocs/sql/csworks-annotations-schema-check.sqlを使用する。複数SELECTの最後だけがCSV化されることを避け、1つの結果にまとめている。
+
+## 列定義・トリガーの照合（2026-10-26）
+追加CSVは35列とprojects_set_updated_atトリガー1件。ファイル・履歴・案件IDはuuid、status/message_type/sender_typeはtextで一致。project_messages.sender_typeはNOT NULL・既定値systemであるため、追加RPCから保存する修正依頼/承認メッセージはsender_type=customerを明示するよう修正した。既存メッセージの更新はしない。
+既存projects_set_updated_atはBEFORE UPDATEでupdated_at=now()を設定する。新規AFTER UPDATEトリガーと役割は競合しない。提供された列・既定値・トリガーを再現し、提供された実RPC定義を用いてDB試験31項目が成功。承認・修正依頼の送信者がcustomerで保存されることも検証。
+実DBのFK/CHECK/インデックス/RLSは当該CSVに含まれない。これらをすべて再現したとは主張しない。専用検証DBでのAuth/Storage/通知を含む結合試験は引き続き未実施。本番DB変更なし。

@@ -6,8 +6,11 @@ begin
   if to_regprocedure('public.request_project_revision(uuid)') is null or to_regprocedure('public.approve_project(uuid)') is null then
     raise exception 'Review existing workflow RPC definitions before applying this migration';
   end if;
-  if (select atttypid from pg_attribute where attrelid='public.project_messages'::regclass and attname='id') <> 'uuid'::regtype then
+  if (select atttypid from pg_attribute where attrelid='public.project_messages'::regclass and attname='id') is distinct from 'uuid'::regtype then
     raise exception 'project_messages.id must be uuid; review schema before applying';
+  end if;
+  if (select atttypid from pg_attribute where attrelid='public.project_messages'::regclass and attname='sender_type') is distinct from 'text'::regtype then
+    raise exception 'project_messages.sender_type must be text; review schema before applying';
   end if;
 end $$;
 create table public.project_review_batches (
@@ -195,8 +198,8 @@ begin
   (jsonb_array_length(document->'pins')>0 or jsonb_array_length(document->'strokes')>0)) then raise exception 'Clear annotation drafts before approval' using errcode='22023'; end if;
  select * into msg from jsonb_populate_record(null::public.project_messages,jsonb_build_object(
   'project_id',p_project_id,'user_id',auth.uid(),'message',case when p_action='approval' then coalesce(nullif(btrim(p_comment),''),'確認内容を承認しました。') else btrim(p_comment) end,'message_type',p_action));
- insert into public.project_messages(project_id,user_id,message,message_type)
- values(msg.project_id,msg.user_id,msg.message,msg.message_type) returning * into msg;
+ insert into public.project_messages(project_id,user_id,message,message_type,sender_type)
+ values(msg.project_id,msg.user_id,msg.message,msg.message_type,'customer') returning * into msg;
  -- Calls run in this transaction, with the original user's JWT/auth.uid().
  if p_action='revision_request' then perform public.request_project_revision(p_project_id);
  else perform public.approve_project(p_project_id); end if;

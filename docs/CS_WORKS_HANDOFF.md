@@ -97,3 +97,5 @@
 - Previewは本番DBと共通。赤入れを有効化して実操作する前に専用検証DBと既存RPC定義の確認が必要。フラグ既定無効。
 
 - 2026-10-26追記: ユーザー提供CSVで既存approve_project/request_project_revision本文を確認。追加SQLからの呼び出しと整合し、提供された実関数定義をローカル架空DBへ読み込んだ30項目が成功。実テーブル定義・トリガー照合と専用検証DBの結合試験は未実施。DB変更なし。
+
+- 追加CSVでproject_messages.sender_typeの既定値systemを確認。追加RPCではcustomerを明示して保存する修正を実施。既存35列・更新日時トリガーをローカルに再現し、提供された実RPC定義で31項目成功。実DB未適用。

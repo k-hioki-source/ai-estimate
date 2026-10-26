@@ -18,13 +18,10 @@ const doc={schemaVersion:1,pins:[{id:'pin-1',number:1,x:.25,y:.5,comment:'左端
  create table auth.users(id uuid primary key);
  create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;
  grant usage on schema auth to authenticated,anon,service_role; grant execute on function auth.uid() to public;
- create type public.project_status as enum('in_production','customer_review','revision','approved','completed');
- create type public.message_kind as enum('message','revision_request','approval','system');
  create table public.profiles(id uuid primary key,role text);
- create table public.projects(id uuid primary key,user_id uuid,status public.project_status,title text,updated_at timestamptz default now());
- create table public.project_files(id uuid primary key,project_id uuid references public.projects(id),file_name text,file_type text,mime_type text,storage_path text,created_at timestamptz default now());
- create table public.project_messages(id uuid primary key default gen_random_uuid(),project_id uuid,user_id uuid,message text,message_type public.message_kind,created_at timestamptz default now());
  `);
+ await db.exec(fs.readFileSync('scripts/fixtures/csworks-existing-review-schema.sql','utf8'));
+ const senderDefault=(await query("select column_default from information_schema.columns where table_schema='public' and table_name='project_messages' and column_name='sender_type'"))[0].column_default;
  await db.exec(fs.readFileSync('scripts/fixtures/csworks-existing-review-functions.sql','utf8'));
  // Inject a synthetic failure outside the unmodified production RPC definitions.
  await db.exec(`create function public.test_workflow_failure() returns trigger language plpgsql as $$begin
@@ -34,8 +31,8 @@ const doc={schemaVersion:1,pins:[{id:'pin-1',number:1,x:.25,y:.5,comment:'左端
  await db.exec(fs.readFileSync('supabase/migrations/20261026_image_annotations.sql','utf8'));
  for(const n of [1,2,3]) await query('insert into auth.users values($1);',[uid(n)]);
  for(const [n,r] of [[1,'customer'],[2,'customer'],[3,'admin']]) await query('insert into public.profiles values($1,$2)',[uid(n),r]);
- await query("insert into public.projects(id,user_id,status,title) values($1,$2,'in_production','Synthetic A'),($3,$4,'in_production','Synthetic B')",[uid(10),uid(1),uid(20),uid(2)]);
- for(const [id,p,name,type,mime] of [[11,10,'first.png','review','image/png'],[12,10,'second.jpg','revision','image/jpeg'],[13,10,'source.png','reference','image/png'],[21,20,'other.png','review','image/png'],[14,10,'manual.pdf','review','application/pdf']]) await query('insert into public.project_files(id,project_id,file_name,file_type,mime_type,storage_path) values($1,$2,$3,$4,$5,$6)',[uid(id),uid(p),name,type,mime,uid(p)+'/'+name]);
+ await query("insert into public.projects(id,user_id,status,title,project_code) values($1,$2,'in_production','Synthetic A','TEST-A'),($3,$4,'in_production','Synthetic B','TEST-B')",[uid(10),uid(1),uid(20),uid(2)]);
+ for(const [id,p,name,type,mime] of [[11,10,'first.png','review','image/png'],[12,10,'second.jpg','revision','image/jpeg'],[13,10,'source.png','reference','image/png'],[21,20,'other.png','review','image/png'],[14,10,'manual.pdf','review','application/pdf']]) await query('insert into public.project_files(id,project_id,file_name,file_type,mime_type,storage_path,uploaded_by) values($1,$2,$3,$4,$5,$6,$7)',[uid(id),uid(p),name,type,mime,uid(p)+'/'+name,uid(p===20?2:1)]);
  await actor(1);
  await check('customer cannot start review',()=>rejected('select public.csworks_start_review($1,$2)',[uid(10),[uid(11)]],'42501'));
  await actor(3);
@@ -64,7 +61,8 @@ const doc={schemaVersion:1,pins:[{id:'pin-1',number:1,x:.25,y:.5,comment:'左端
  await check('workflow failure rolls back message and annotation finalization',async()=>{await rejected('select public.csworks_submit_review($1,$2,$3,$4,$5)',[uid(10),b1,uid(42),'revision_request','修正']);assert.equal((await query('select state from public.project_review_batches'))[0].state,'open')});
  await db.exec("select set_config('test.fail_rpc','false',false)");
  const result=(await query('select public.csworks_submit_review($1,$2,$3,$4,$5) result',[uid(10),b1,uid(42),'revision_request','画像の赤入れをご確認ください。']))[0].result;
- await check('existing revision RPC and history linked atomically',async()=>{assert.equal(result.project.status,'revision');assert.equal(result.message.message_type,'revision_request');assert.equal((await query('select message_id from public.project_review_batches'))[0].message_id,result.message.id);assert.ok((await query('select finalized_at from public.project_file_annotations'))[0].finalized_at)});
+ await check('existing revision RPC and history linked atomically',async()=>{assert.equal(result.project.status,'revision');assert.equal(result.message.message_type,'revision_request');assert.equal(result.message.sender_type,'customer');assert.equal((await query('select message_id from public.project_review_batches'))[0].message_id,result.message.id);assert.ok((await query('select finalized_at from public.project_file_annotations'))[0].finalized_at)});
+ await check('exported message default is system but review is saved as customer',async()=>{assert.equal(senderDefault,"'system'::text");assert.equal(result.message.sender_type,'customer')});
  await check('idempotent resend returns original history',async()=>assert.equal((await query('select public.csworks_submit_review($1,$2,$3,$4,$5) result',[uid(10),b1,uid(42),'revision_request','画像の赤入れをご確認ください。']))[0].result.message.id,result.message.id));
  await check('submitted annotation cannot change',()=>rejected('select public.csworks_save_annotations($1,$2,$3,1,$4)',[uid(10),b1,uid(11),doc],'40001'));
  await actor(3);
@@ -72,7 +70,7 @@ const doc={schemaVersion:1,pins:[{id:'pin-1',number:1,x:.25,y:.5,comment:'左端
  await actor(1);
  await check('new draft does not inherit previous file annotations',async()=>{assert.equal((await query('select * from public.project_file_annotations where batch_id=$1',[b2])).length,0);await rejected('select public.csworks_save_annotations($1,$2,$3,0,$4)',[uid(10),b2,uid(11),doc],'42501')});
  await query('select public.csworks_save_annotations($1,$2,$3,0,$4)',[uid(10),b2,uid(12),{schemaVersion:1,pins:[],strokes:[]}]);
- await check('existing approval RPC reused',async()=>assert.equal((await query('select public.csworks_submit_review($1,$2,$3,$4,$5) result',[uid(10),b2,uid(43),'approval','']))[0].result.project.status,'approved'));
+ await check('existing approval RPC reused',async()=>{const r=(await query('select public.csworks_submit_review($1,$2,$3,$4,$5) result',[uid(10),b2,uid(43),'approval','']))[0].result;assert.equal(r.project.status,'approved');assert.equal(r.message.sender_type,'customer')});
  await check('approved project annotation immutable',()=>rejected('select public.csworks_save_annotations($1,$2,$3,1,$4)',[uid(10),b2,uid(12),doc],'40001'));
  await db.exec("reset role; update public.projects set status='revision' where title='Synthetic A'");
  await actor(3);
