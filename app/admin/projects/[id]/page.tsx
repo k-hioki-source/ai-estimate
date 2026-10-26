@@ -2,6 +2,9 @@
 
 import ProjectFilePreview from '../../../../components/cs-works/ProjectFilePreview';
 import ProjectFileShare from '../../../../components/cs-works/ProjectFileShare';
+import { annotationsEnabled } from '../../../../lib/cs-works/image-annotations';
+import { annotationRequest } from '../../../../lib/cs-works/image-annotations-client';
+import { useReviewContext, ReviewHistoryAnnotations, ReviewTargetPicker } from '../../../../components/cs-works/ProjectReviewAnnotations';
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
@@ -147,6 +150,8 @@ export default function AdminPage() {
   const projectId = params.id;
 
   const [user, setUser] = useState<User | null>(null);
+  const reviewContext = useReviewContext(projectId, !!user);
+  const [reviewTargetIds, setReviewTargetIds] = useState<string[]>([]);
   const [projects, setProjects] = useState<ProjectWithData[]>([]);
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState<string | null>(null);
@@ -497,7 +502,15 @@ export default function AdminPage() {
   }
 
   const statusResult =
-    nextStatus === 'delivered'
+    annotationsEnabled && nextStatus === 'customer_review'
+      ? await (async () => {
+          try {
+            const result = await annotationRequest<{ project: Project }>(project.id, { action: 'start', fileIds: reviewTargetIds });
+            setReviewTargetIds([]); await reviewContext.reload();
+            return { data: result.project, error: null };
+          } catch (e) { return { data: null, error: { message: e instanceof Error ? e.message : '確認対象を設定できません。' } }; }
+        })()
+      : nextStatus === 'delivered'
       ? await (supabase as any).rpc('deliver_project', {
           p_project_id: project.id,
         })
@@ -524,7 +537,7 @@ export default function AdminPage() {
         ? '納品処理または納品書の作成に失敗しました。'
         : nextStatus === 'completed'
           ? '請求書の作成に失敗しました。'
-          : '案件ステータスを変更できませんでした。'
+          : updateError?.message || '案件ステータスを変更できませんでした。'
     );
     return;
   }
@@ -695,6 +708,7 @@ export default function AdminPage() {
       ...current,
       [project.id]: [newFile, ...(current[project.id] ?? [])],
     }));
+    if (annotationsEnabled && (fileType === 'review' || fileType === 'revision')) setReviewTargetIds(ids => [...ids, newFile.id]);
     setSelectedFiles((current) => ({ ...current, [project.id]: null }));
     setUploadingProjectId(null);
     setMessage(fileType === 'delivery'
@@ -1096,6 +1110,7 @@ export default function AdminPage() {
                         </button>
                       </div>
                       <FileRows files={reviewFiles} />
+                      <ReviewTargetPicker files={reviewFiles} selected={reviewTargetIds} onChange={setReviewTargetIds} />
                     </div>
 
                     <button
@@ -1119,6 +1134,12 @@ export default function AdminPage() {
                     <p>
                       お客様の承認または修正依頼を待っています。
                     </p>
+                    {annotationsEnabled && reviewContext.error && <p role="alert">{reviewContext.error}</p>}
+                    {annotationsEnabled && reviewContext.context && !reviewContext.context.batches.some(b => b.state === 'open') && <div>
+                      <p>今回の確認対象を選択し、既存の確認依頼を再送してください。</p>
+                      <ReviewTargetPicker files={reviewFiles} selected={reviewTargetIds} onChange={setReviewTargetIds} />
+                      <button type="button" disabled={changingStatusId === project.id} onClick={() => changeProjectStatus(project, 'customer_review')}>確認対象を設定して確認依頼を再送</button>
+                    </div>}
                     {!isLatestApproved ? (
                       <button
                         type="button"
@@ -1167,6 +1188,7 @@ export default function AdminPage() {
                         </button>
                       </div>
                       <FileRows files={reviewFiles} />
+                      <ReviewTargetPicker files={reviewFiles} selected={reviewTargetIds} onChange={setReviewTargetIds} />
                     </div>
 
                     <button
@@ -1288,6 +1310,7 @@ export default function AdminPage() {
                             <span>{formatDate(item.created_at)}</span>
                           </div>
                           <p>{item.message}</p>
+                          <ReviewHistoryAnnotations context={reviewContext.context} projectId={project.id} messageId={item.id} />
                         </div>
                       </div>
                     ))}
@@ -1778,7 +1801,7 @@ export default function AdminPage() {
                 {formatDate(file.created_at)}
               </span>
             </div>
-            <ProjectFilePreview url={file.signed_url} fileName={file.file_name} mimeType={file.mime_type} />
+            <ProjectFilePreview url={file.signed_url} fileName={file.file_name} mimeType={file.mime_type} projectId={file.project_id} fileId={file.id} fileType={file.file_type} />
             <ProjectFileShare fileId={file.id} projectId={file.project_id} fileType={file.file_type} />
             {file.signed_url ? (
               <a href={file.signed_url} target="_blank" rel="noreferrer">
