@@ -1,11 +1,17 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { annotationImage, annotationsEnabled } from '../../lib/cs-works/image-annotations';
+import { ReviewAnnotationButton } from './ProjectReviewAnnotations';
 
 type Props = {
   url?: string | null;
   fileName: string;
   mimeType?: string | null;
+  projectId?: string;
+  fileId?: string;
+  fileType?: string;
+  annotationEditable?: boolean;
 };
 
 function previewKind(fileName: string, mimeType?: string | null): 'image' | 'pdf' | null {
@@ -16,14 +22,14 @@ function previewKind(fileName: string, mimeType?: string | null): 'image' | 'pdf
   return null;
 }
 
-export default function ProjectFilePreview({ url, fileName, mimeType }: Props) {
+export default function ProjectFilePreview({ url, fileName, mimeType, projectId, fileId, fileType, annotationEditable = false }: Props) {
   const [open, setOpen] = useState(false);
   const kind = previewKind(fileName, mimeType);
 
   useEffect(() => {
     if (!open) return;
     function onKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') setOpen(false);
+      if (event.key === 'Escape' && !window.document.querySelector('[data-csworks-annotation-dialog]')) setOpen(false);
     }
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
@@ -39,6 +45,7 @@ export default function ProjectFilePreview({ url, fileName, mimeType }: Props) {
         style={{ display: 'inline-flex', flex: '0 0 auto', width: 'auto', marginRight: 10, padding: '6px 12px', borderRadius: 7, border: '1px solid #cbd5e1', background: '#fff', color: '#1e40af', fontSize: 13, whiteSpace: 'nowrap', textDecoration: 'none' }}>
         ダウンロード
       </a>
+      {annotationsEnabled && projectId && fileId && ['review', 'revision'].includes(fileType ?? '') && annotationImage(fileName, mimeType) && <ReviewAnnotationButton projectId={projectId} fileId={fileId} fileName={fileName} mimeType={mimeType} url={url} editable={annotationEditable} />}
       {kind ? <button
         type="button"
         onClick={() => setOpen(true)}
@@ -54,6 +61,7 @@ export default function ProjectFilePreview({ url, fileName, mimeType }: Props) {
         >
           <div style={{ display: 'flex', flexDirection: 'row', flexWrap: 'nowrap', alignItems: 'center', justifyContent: 'flex-end', gap: 12, color: '#fff', paddingBottom: 12, width: '100%' }}>
             <strong style={{ flex: '1 1 auto', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{fileName}</strong>
+            {annotationsEnabled && projectId && fileId && ['review', 'revision'].includes(fileType ?? '') && annotationImage(fileName, mimeType) && <ReviewAnnotationButton projectId={projectId} fileId={fileId} fileName={fileName} mimeType={mimeType} url={url} editable={annotationEditable} />}
             <a href={url} target="_blank" rel="noopener noreferrer" style={{ color: '#bfdbfe', flex: '0 0 auto', width: 'auto', whiteSpace: 'nowrap', display: 'inline-flex' }}>別タブで開く</a>
             <button type="button" onClick={() => setOpen(false)} aria-label="プレビューを閉じる" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto', width: 'auto', minWidth: 'unset', whiteSpace: 'nowrap', border: 0, borderRadius: 6, padding: '8px 12px', background: '#fff', cursor: 'pointer' }}>閉じる ×</button>
           </div>

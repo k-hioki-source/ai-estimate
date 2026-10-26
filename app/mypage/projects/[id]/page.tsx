@@ -2,9 +2,12 @@
 
 import ProjectFilePreview from '../../../../components/cs-works/ProjectFilePreview';
 import ProjectFileShare from '../../../../components/cs-works/ProjectFileShare';
+import { annotationsEnabled } from '../../../../lib/cs-works/image-annotations';
+import { annotationRequest, hasUnsavedAnnotations } from '../../../../lib/cs-works/image-annotations-client';
+import { useReviewContext, ReviewHistoryAnnotations, ReviewTargetPicker } from '../../../../components/cs-works/ProjectReviewAnnotations';
 
 import Link from 'next/link';
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import type { User } from '@supabase/supabase-js';
 import { getSupabaseBrowserClient } from '../../../../lib/supabase/client';
@@ -180,6 +183,8 @@ export default function MyPage() {
   const projectId = params.id;
 
   const [user, setUser] = useState<User | null>(null);
+  const reviewContext = useReviewContext(projectId, !!user);
+  const reviewRequests = useRef<Record<string, string>>({});
   const [profile, setProfile] = useState<Profile>(emptyProfile);
   const [estimates, setEstimates] = useState<Estimate[]>([]);
   const [estimateImages, setEstimateImages] = useState<Record<string, string>>({});
@@ -664,9 +669,33 @@ async function submitProjectReview(project: Project, action: 'approval' | 'revis
       setReviewError('修正内容を入力してください。');
       return;
     }
+    if (annotationsEnabled && hasUnsavedAnnotations(project.id)) { setReviewError('未保存の修正指示があります。保存または破棄してから送信してください。'); return; }
     if (!window.confirm(action === 'approval' ? 'この確認内容を承認しますか？' : '修正を依頼しますか？')) return;
     setReviewingProjectId(project.id); setReviewMessage(''); setReviewError('');
     const supabase = getSupabaseBrowserClient();
+    if (annotationsEnabled) {
+      try {
+        const fresh = await reviewContext.reload();
+        const batch = fresh?.batches.find(b => b.state === 'open');
+        // A retry may refer to the just-finalized batch after a lost response.
+        const pending = Object.keys(reviewRequests.current).find(k => k.startsWith(project.id + ':' + action + ':'));
+        const batchId = pending?.split(':')[2] ?? batch?.id;
+        if (!batchId) throw new Error(reviewContext.error || '確認対象が未設定です。管理者へお問い合わせください。');
+        const requestKey = `${project.id}:${action}:${batchId}`;
+        const requestId = reviewRequests.current[requestKey] ?? (reviewRequests.current[requestKey] = crypto.randomUUID());
+        const result = await annotationRequest<{ project: Project; message: ProjectMessage; replayed: boolean }>(project.id,
+          { action: 'submit', batchId, requestId, reviewAction: action, comment });
+        setProjects(cur => cur.map(p => p.id === project.id ? result.project : p));
+        setProjectMessages(cur => ({ ...cur, [project.id]: [...(cur[project.id] ?? []).filter(m => m.id !== result.message.id), result.message] }));
+        const mailSent = result.replayed ? true : await sendCsWorksNotification(supabase, action === 'approval' ? 'approved' : 'revision_requested', project.id, comment || '確認内容を承認しました。');
+        delete reviewRequests.current[requestKey];
+        setReviewComments(cur => ({ ...cur, [project.id]: '' }));
+        setReviewMessage((action === 'approval' ? '確認内容を承認しました。' : '画像の修正指示と修正依頼を送信しました。') + (!mailSent ? ' メール通知のみ失敗しました。' : result.replayed ? ' 再送結果を確認しました。メールの送信状態は管理者へご確認ください。' : ''));
+        await reviewContext.reload();
+      } catch (e) { setReviewError(e instanceof Error ? e.message : '確認結果を送信できません。'); }
+      finally { setReviewingProjectId(null); }
+      return;
+    }
     const { data: msg, error: msgError } = await (supabase.from('project_messages' as any) as any)
       .insert({ project_id: project.id, user_id: user.id, message: action === 'approval' ? (comment || '確認内容を承認しました。') : comment, message_type: action })
       .select('*').single();
@@ -1023,9 +1052,9 @@ async function submitProjectReview(project: Project, action: 'approval' | 'revis
   const files = project ? (projectFiles[project.id] ?? []) : [];
   const messages = project ? (projectMessages[project.id] ?? []) : [];
   const referenceFiles = files.filter((file) => file.file_type === 'reference');
-  const reviewFiles = files.filter(
-    (file) => file.file_type === 'review' || file.file_type === 'revision'
-  );
+  const currentReviewBatch = reviewContext.context?.batches.find(b => b.state === 'open');
+  const reviewFiles = files.filter(file => (file.file_type === 'review' || file.file_type === 'revision') &&
+    (!annotationsEnabled || !!reviewContext.context?.members.some(m => m.batch_id === currentReviewBatch?.id && m.file_id === file.id)));
   const deliveryFiles = files.filter((file) => file.file_type === 'delivery');
   const relevantMessages = messages.filter(
     (item) =>
@@ -1336,7 +1365,7 @@ async function submitProjectReview(project: Project, action: 'approval' | 'revis
                                 </span>
                               </div>
                               <div className="fileActions">
-                                <ProjectFilePreview url={file.signed_url} fileName={file.file_name} mimeType={file.mime_type} />
+                                <ProjectFilePreview url={file.signed_url} fileName={file.file_name} mimeType={file.mime_type} projectId={file.project_id} fileId={file.id} fileType={file.file_type} annotationEditable={project.status === 'customer_review' && file.file_type !== 'reference' && file.file_type !== 'delivery'} />
             <ProjectFileShare fileId={file.id} projectId={file.project_id} fileType={file.file_type} />
             {file.signed_url ? (
                                   <a href={file.signed_url} target="_blank" rel="noreferrer">
@@ -1391,10 +1420,12 @@ async function submitProjectReview(project: Project, action: 'approval' | 'revis
                       <strong>制作内容をご確認ください</strong>
                       <p>
                         確認用ファイルを開き、問題なければ承認してください。
-                        修正が必要な場合は内容を入力して修正依頼を送信してください。
+                        修正が必要な場合は内容を入力して修正依頼を送信してください。{annotationsEnabled ? ' 画像の修正指示は下書き保存後、この画面から修正を依頼してください。' : ''}
                       </p>
                     </div>
 
+                    {annotationsEnabled && reviewContext.error && <p role="alert">{reviewContext.error}</p>}
+                    {annotationsEnabled && reviewContext.context && !currentReviewBatch && <p role="alert">確認対象が未設定です。管理者へお問い合わせください。</p>}
                     <div className="fileList">
                       {reviewFiles.length ? (
                         reviewFiles.map((file) => (
@@ -1403,7 +1434,7 @@ async function submitProjectReview(project: Project, action: 'approval' | 'revis
                               <strong>{file.file_name}</strong>
                               <span>{formatDate(file.created_at)}</span>
                             </div>
-                            <ProjectFilePreview url={file.signed_url} fileName={file.file_name} mimeType={file.mime_type} />
+                            <ProjectFilePreview url={file.signed_url} fileName={file.file_name} mimeType={file.mime_type} projectId={file.project_id} fileId={file.id} fileType={file.file_type} annotationEditable={project.status === 'customer_review' && file.file_type !== 'reference' && file.file_type !== 'delivery'} />
             <ProjectFileShare fileId={file.id} projectId={file.project_id} fileType={file.file_type} />
             {file.signed_url ? (
                               <a
@@ -1502,6 +1533,7 @@ async function submitProjectReview(project: Project, action: 'approval' | 'revis
                             <span>{formatDate(item.created_at)}</span>
                           </div>
                           <p>{item.message}</p>
+                          <ReviewHistoryAnnotations context={reviewContext.context} projectId={project.id} messageId={item.id} />
                         </div>
                       </div>
                     ))}
@@ -1579,7 +1611,7 @@ async function submitProjectReview(project: Project, action: 'approval' | 'revis
                           <strong>{file.file_name}</strong>
                           <span>{formatDate(file.created_at)}</span>
                         </div>
-                        <ProjectFilePreview url={file.signed_url} fileName={file.file_name} mimeType={file.mime_type} />
+                        <ProjectFilePreview url={file.signed_url} fileName={file.file_name} mimeType={file.mime_type} projectId={file.project_id} fileId={file.id} fileType={file.file_type} annotationEditable={project.status === 'customer_review' && file.file_type !== 'reference' && file.file_type !== 'delivery'} />
             <ProjectFileShare fileId={file.id} projectId={file.project_id} fileType={file.file_type} />
             {file.signed_url ? (
                           <a
