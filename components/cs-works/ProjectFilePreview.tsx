@@ -30,18 +30,23 @@ export default function ProjectFilePreview({ url, fileName, mimeType }: Props) {
   }, [open]);
 
   if (!url) return null;
-  if (!kind) return <span style={{ fontSize: 12, color: '#64748b' }}>プレビュー非対応（ファイルを開く・ダウンロードをご利用ください）</span>;
+  const downloadUrl = new URL(url);
+  downloadUrl.searchParams.set('download', fileName);
 
   return (
     <>
-      <button
+      <a href={downloadUrl.toString()} download={fileName} target="_blank" rel="noopener noreferrer"
+        style={{ display: 'inline-flex', flex: '0 0 auto', width: 'auto', marginRight: 10, padding: '6px 12px', borderRadius: 7, border: '1px solid #cbd5e1', background: '#fff', color: '#1e40af', fontSize: 13, whiteSpace: 'nowrap', textDecoration: 'none' }}>
+        ダウンロード
+      </a>
+      {kind ? <button
         type="button"
         onClick={() => setOpen(true)}
         style={{ display: 'inline-flex', flex: '0 0 auto', width: 'auto', alignItems: 'center', justifyContent: 'center', marginRight: 10, padding: '6px 12px', borderRadius: 7, border: '1px solid #cbd5e1', background: '#fff', color: '#1e40af', cursor: 'pointer', fontSize: 13, whiteSpace: 'nowrap' }}
       >
         プレビュー
-      </button>
-      {open && (
+      </button> : <span style={{ fontSize: 12, color: '#64748b' }}>プレビュー非対応（ダウンロードをご利用ください）</span>}
+      {open && kind && (
         <div
           role="presentation"
           onMouseDown={(event) => { if (event.target === event.currentTarget) setOpen(false); }}
