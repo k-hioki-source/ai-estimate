@@ -1416,7 +1416,7 @@ async function submitProjectReview(project: Project, action: 'approval' | 'revis
 
                 {project.status === 'customer_review' ? (
                   <div className="reviewArea">
-                    <div className="stateCard attention">
+                    <div className="stateCard attention reviewPrompt">
                       <strong>制作内容をご確認ください</strong>
                       <p>
                         確認用ファイルを開き、問題なければ承認してください。
@@ -1962,6 +1962,10 @@ async function submitProjectReview(project: Project, action: 'approval' | 'revis
         .fileDeleteButton { padding: 0; border: 0; background: transparent; color: #b91c1c; font-size: 13px; font-weight: 800; cursor: pointer; }
         .fileDeleteButton:hover { text-decoration: underline; }
         .fileDeleteButton:disabled { color: #94a3b8; cursor: default; text-decoration: none; }
+        .reviewArea { margin-top: 16px; }
+        .stateCard.reviewPrompt { background: #fff3d6; border: 2px solid #f59e0b; border-left: 6px solid #ea580c; }
+        .stateCard.reviewPrompt strong { color: #9a3412; font-size: 18px; }
+        .stateCard.reviewPrompt p { color: #78350f; }
         .reviewTextarea { width: 100%; box-sizing: border-box; margin-top: 14px; }
         .reviewActions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
         .reviewActions button { width: auto !important; }
