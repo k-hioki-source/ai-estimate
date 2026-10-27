@@ -1,4 +1,7 @@
 'use client';
+import { formalQuotesEnabled, type QuoteContext } from '../../../../../lib/cs-works/formal-quotes';
+import { formalQuoteRequest } from '../../../../../lib/cs-works/formal-quotes-client';
+import FormalQuoteDetails from '../../../../../components/cs-works/FormalQuoteDetails';
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
@@ -11,6 +14,7 @@ type QuoteProject = {
   title: string;
   description: string | null;
   status: string;
+  formal_quote_id?: string | null;
   quoted_amount: number | null;
   quoted_hours: number | null;
   confirmed_deadline: string | null;
@@ -52,6 +56,7 @@ export default function ProjectQuotePage() {
   const [project, setProject] = useState<QuoteProject | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [quoteDetailsReady, setQuoteDetailsReady] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -68,7 +73,7 @@ export default function ProjectQuotePage() {
         supabase.from('projects') as any
       )
         .select(
-          'id, project_code, user_id, title, description, status, quoted_amount, quoted_hours, confirmed_deadline, quote_presented_at'
+          '*'
         )
         .eq('id', projectId)
         .maybeSingle();
@@ -87,6 +92,22 @@ export default function ProjectQuotePage() {
       }
 
       const loadedProject = projectData as QuoteProject;
+      let quotedProfile: Profile | null = null;
+      if (loadedProject.formal_quote_id) {
+        try {
+          if (!formalQuotesEnabled) throw Error('正式見積り明細の表示設定を確認してください。');
+          const context = await formalQuoteRequest<QuoteContext>(projectId);
+          const requested = new URLSearchParams(window.location.search).get('quoteId') || loadedProject.formal_quote_id;
+          const quote = context.history.find(q => q.id === requested);
+          if (!quote) throw Error('対象の正式見積りを取得できません。');
+          quotedProfile = quote.customer ? quote.customer as Profile : null;
+          loadedProject.formal_quote_id = quote.id;
+          loadedProject.title = quote.title; loadedProject.description = quote.description;
+          loadedProject.quoted_amount = quote.subtotal; loadedProject.quoted_hours = quote.hours;
+          loadedProject.confirmed_deadline = quote.deadline;
+          loadedProject.quote_presented_at = (quote as typeof quote & { presented_at: string }).presented_at;
+        } catch (e) { setError((e as Error).message); setLoading(false); return; }
+      }
 
       if (
         loadedProject.quoted_amount == null ||
@@ -114,7 +135,7 @@ export default function ProjectQuotePage() {
       }
 
       setProject(loadedProject);
-      setProfile((profileData ?? null) as Profile | null);
+      setProfile(quotedProfile ?? (profileData ?? null) as Profile | null);
       setLoading(false);
     })();
   }, [projectId, router]);
@@ -161,7 +182,7 @@ export default function ProjectQuotePage() {
         <button
           type="button"
           className="printButton"
-          onClick={() => window.print()}
+          disabled={!!project.formal_quote_id && !quoteDetailsReady} onClick={() => window.print()}
         >
           印刷・PDF保存
         </button>
@@ -234,6 +255,8 @@ export default function ProjectQuotePage() {
           <h2>作業内容・制作条件</h2>
           <p>{project.description || '特記事項なし'}</p>
         </section>
+
+        {project.formal_quote_id && <FormalQuoteDetails projectId={projectId} quoteId={project.formal_quote_id} onReadinessChange={setQuoteDetailsReady} />}
 
         <section className="priceSection">
           <table className="priceTable">

@@ -1,6 +1,7 @@
+import { illustrationsEnabled } from '../../../../lib/cs-works/illustrations';
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { annotationsEnabled, validateAnnotations } from '../../../../lib/cs-works/image-annotations';
+import { annotationsEnabled, validateAnnotations, type ReviewBatch } from '../../../../lib/cs-works/image-annotations';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 const uuid = (x: unknown): x is string => typeof x === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(x);
@@ -30,9 +31,10 @@ export async function GET(req: NextRequest) {
     const { db } = who;
     const { data: project, error: projectError } = await db.from('projects').select('id').eq('id', projectId).maybeSingle();
     if (projectError || !project) return reply({ error: '案件が見つかりません。' }, 404);
-    const { data: batches, error: bError } = await db.from('project_review_batches').select('id,project_id,round_number,state,message_id').eq('project_id', projectId).order('round_number', { ascending: false }).limit(101);
+    const { data: rawBatches, error: bError } = await db.from('project_review_batches').select('id,project_id,round_number,state,message_id' + (illustrationsEnabled ? ',illustration_id,illustration_revision,illustration_label' : '')).eq('project_id', projectId).order('round_number', { ascending: false }).limit(illustrationsEnabled ? 10001 : 101);
     if (bError) return rpcError(bError);
-    if ((batches?.length ?? 0) > 100) return reply({ error: '確認履歴が多いため管理者へお問い合わせください。' }, 409);
+    const batches = rawBatches as unknown as ReviewBatch[] | null;
+    if ((batches?.length ?? 0) > (illustrationsEnabled ? 10000 : 100)) return reply({ error: '確認履歴が多いため管理者へお問い合わせください。' }, 409);
     if (!batches?.length) return reply({ batches: [], members: [], annotations: [], files: [] });
     const ids = batches.map(b => b.id);
     const [m, a] = await Promise.all([

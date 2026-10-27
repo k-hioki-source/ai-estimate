@@ -1,11 +1,12 @@
 'use client';
+import FormalQuoteDetails from '../../../../../components/cs-works/FormalQuoteDetails';
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { getSupabaseBrowserClient } from '../../../../../lib/supabase/client';
 
 type Invoice = {
-  id: string; project_id: string; invoice_code: string; project_code: string;
+  id: string; formal_quote_id?: string | null; project_id: string; invoice_code: string; project_code: string;
   project_title: string; project_description: string | null;
   customer_company_name: string | null; customer_department_name: string | null;
   customer_contact_name: string | null; customer_postal_code: string | null;
@@ -30,6 +31,7 @@ export default function InvoicePage() {
   const params=useParams<{id:string}>();
   const [invoice,setInvoice]=useState<Invoice|null>(null);
   const [loading,setLoading]=useState(true);
+  const [quoteDetailsReady, setQuoteDetailsReady] = useState(false);
   const [error,setError]=useState('');
 
   useEffect(()=>{
@@ -53,7 +55,7 @@ export default function InvoicePage() {
     <main className="screen">
       <div className="toolbar">
         <button onClick={()=>router.push(`/mypage/projects/${params.id}`)}>案件詳細へ戻る</button>
-        <button className="print" onClick={()=>window.print()}>印刷・PDF保存</button>
+        <button className="print" disabled={!!invoice.formal_quote_id && !quoteDetailsReady} onClick={()=>window.print()}>印刷・PDF保存</button>
       </div>
 
       <article className="paper">
@@ -101,15 +103,17 @@ export default function InvoicePage() {
           {invoice.project_description ? <div className="wide"><span>制作内容</span><strong>{invoice.project_description}</strong></div> : null}
         </section>
 
+        {invoice.formal_quote_id && <FormalQuoteDetails projectId={params.id} quoteId={invoice.formal_quote_id} onReadinessChange={setQuoteDetailsReady} />}
+
         <table>
-          <thead><tr><th>内容</th><th>数量</th><th>税率</th><th>金額</th></tr></thead>
+          {!invoice.formal_quote_id && <thead><tr><th>内容</th><th>数量</th><th>税率</th><th>金額</th></tr></thead>}
           <tbody>
-            <tr>
+            {!invoice.formal_quote_id && <tr>
               <td>{invoice.project_title}</td>
               <td>1式</td>
               <td>{Number(invoice.tax_rate)}%</td>
               <td>{yen(invoice.subtotal_amount)}</td>
-            </tr>
+            </tr>}
           </tbody>
           <tfoot>
             <tr><th colSpan={3}>小計</th><td>{yen(invoice.subtotal_amount)}</td></tr>

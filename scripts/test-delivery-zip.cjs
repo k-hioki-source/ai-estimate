@@ -1,0 +1,22 @@
+const assert=require('node:assert/strict'),fs=require('fs'),os=require('os'),path=require('path');
+const{build}=require('/tmp/csworks-quote-tests/node_modules/esbuild'),{unzipSync,strFromU8}=require('fflate');
+const dir=fs.mkdtempSync(path.join(os.tmpdir(),'csworks-delivery-zip-'));
+(async()=>{
+ await build({entryPoints:['lib/cs-works/delivery-client.ts'],bundle:true,platform:'node',format:'cjs',outfile:path.join(dir,'client.cjs'),plugins:[{name:'synthetic',setup(b){b.onResolve({filter:/supabase\/client$/},()=>({path:'client',namespace:'mock'}));b.onLoad({filter:/.*/,namespace:'mock'},()=>({contents:`exports.getSupabaseBrowserClient=()=>global.__client;`}))}}]});
+ await build({entryPoints:['lib/cs-works/delivery.ts'],bundle:true,platform:'node',format:'cjs',outfile:path.join(dir,'domain.cjs')});
+ const{buildDeliveryZip,MAX_ZIP_BYTES}=require(path.join(dir,'client.cjs'));const{deliveryReady,deliveryArchiveEntries,safeZipName}=require(path.join(dir,'domain.cjs'));
+ const files=[{id:'f1',file_name:'最終.ai',storage_path:'p/1',file_size:3},{id:'f2',file_name:'最終.ai',storage_path:'p/2',file_size:3},{id:'f3',file_name:'../CON',storage_path:'p/3',file_size:3},{id:'f4',file_name:'最終.ai',storage_path:'p/4',file_size:3}];
+ const m={project:{id:'p',project_code:'TEST/案件'},published:true,items:[{id:'i1',number:'01',name:'全体図',state:'approved'},{id:'i2',number:'02',name:'分解図',state:'approved'}],assets:files.map((file,i)=>({file,illustration_id:i===2?null:i===3?'i2':'i1'}))};
+ let calls=[],mode='',n=0;const check=async(name,fn)=>{await fn();n++;console.log('PASS',name)};
+ global.__client={storage:{from:()=>({createSignedUrl:async(p)=>{calls.push(p);return mode==='signfail'?{error:{}}:{data:{signedUrl:'https://synthetic.invalid/'+p}}}})}};
+ global.fetch=async(url,{signal})=>{signal.throwIfAborted();if(mode==='httpfail')return new Response('denied',{status:403});return new Response(new ReadableStream({start(c){c.enqueue(new Uint8Array(mode==='short'?[65,66]:[65,66,67]));c.close()}}))};
+ await check('all-point readiness excludes common-only attachments',async()=>{assert.equal(deliveryReady(m),true);assert.equal(deliveryReady({...m,assets:[m.assets[2]]}),false)});
+ await check('safe names preserve Japanese and remove traversal/reserved paths',async()=>{assert.equal(safeZipName('CON.txt'),'_CON.txt');assert.equal(safeZipName('../a\\b'),'_a_b');assert.equal(safeZipName('全体図'),'全体図');const long=safeZipName('全体図😀'.repeat(100)+'.ai');assert.ok(new TextEncoder().encode(long).length<=180);assert.ok(long.endsWith('.ai'))});
+ await check('archive has separate numbered folders and duplicate filenames preserved',async()=>{const entries=deliveryArchiveEntries(m);assert.equal(new Set(entries.map(x=>x.name)).size,4);assert.ok(entries[0].name.startsWith('001_01 全体図/'));assert.ok(entries[1].name.endsWith('最終 (2).ai'));assert.ok(entries[2].name.startsWith('案件共通/'));assert.ok(entries[3].name.startsWith('002_02 分解図/'))});
+ await check('real streaming ZIP unpacks every file with byte-exact content',async()=>{const progress=[];const result=await buildDeliveryZip(m,new AbortController().signal,(a,b)=>progress.push([a,b]));const entries=unzipSync(new Uint8Array(await result.blob.arrayBuffer()));assert.equal(Object.keys(entries).length,4);for(const value of Object.values(entries))assert.equal(strFromU8(value),'ABC');assert.deepEqual(progress.at(-1),[4,4]);assert.equal(result.name,'TEST_案件_納品ファイル.zip');assert.equal(calls.length,4)});
+ await check('unpublished and empty manifests cannot export',async()=>{await assert.rejects(()=>buildDeliveryZip({...m,published:false},new AbortController().signal,()=>{}));await assert.rejects(()=>buildDeliveryZip({...m,assets:[]},new AbortController().signal,()=>{}))});
+ await check('declared total over 200MB refused before signing',async()=>{calls=[];await assert.rejects(()=>buildDeliveryZip({...m,assets:[{...m.assets[0],file:{...files[0],file_size:MAX_ZIP_BYTES+1}}]},new AbortController().signal,()=>{}));assert.equal(calls.length,0)});
+ for(const value of ['signfail','httpfail','short'])await check(value+' fails entire ZIP without returning partial archive',async()=>{mode=value;await assert.rejects(()=>buildDeliveryZip(m,new AbortController().signal,()=>{}))});
+ mode='';await check('cancel aborts ZIP without returning a partial archive',async()=>{const c=new AbortController();c.abort();await assert.rejects(()=>buildDeliveryZip(m,c.signal,()=>{}))});
+ console.log(n+' delivery ZIP checks passed.');
+})().catch(e=>{console.error(e);process.exit(1)});

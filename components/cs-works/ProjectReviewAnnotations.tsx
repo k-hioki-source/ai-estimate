@@ -51,13 +51,15 @@ export function ReviewAnnotationButton({ projectId, fileId, fileName, mimeType, 
 }
 export function ReviewHistoryAnnotations({ context, projectId, messageId }: { context: ReviewContext | null; projectId: string; messageId: string }) {
   if (!annotationsEnabled || !context) return null;
-  const batch = context.batches.find(b => b.message_id === messageId); if (!batch) return null;
-  const annotations = context.annotations.filter(a => a.batch_id === batch.id && (a.document.pins.length || a.document.strokes.length));
-  return <div style={{ marginTop: 8 }}>
-    <small>第{batch.round_number}回の確認結果（保存済み・閲覧専用）</small>
-    {annotations.map(a => { const f = context.files.find(f => f.id === a.file_id); return f ? <div key={f.id} style={{ marginTop: 6 }}><span>{f.file_name}：{a.document.pins.length}件のコメント・{a.document.strokes.length}本の赤線 </span><ReviewAnnotationButton projectId={projectId} batchId={batch.id} fileId={f.id} fileName={f.file_name} mimeType={f.mime_type} storagePath={f.storage_path} /></div> : <p key={a.file_id}>対象画像を取得できません。</p>; })}
-    {!annotations.length && <span> ／ 画像の修正指示なし</span>}
-  </div>;
+  const batches = context.batches.filter(b => b.message_id === messageId); if (!batches.length) return null;
+  return <>{batches.map(batch => {
+    const annotations = context.annotations.filter(a => a.batch_id === batch.id && (a.document.pins.length || a.document.strokes.length));
+    return <div key={batch.id} style={{ marginTop: 8 }}>
+      <small>{batch.illustration_label ? `${batch.illustration_label} 第${batch.illustration_revision}稿` : `第${batch.round_number}回`}の確認結果（保存済み・閲覧専用）</small>
+      {annotations.map(a => { const f = context.files.find(f => f.id === a.file_id); return f ? <div key={f.id} style={{ marginTop: 6 }}><span>{f.file_name}：{a.document.pins.length}件のコメント・{a.document.strokes.length}本の赤線 </span><ReviewAnnotationButton projectId={projectId} batchId={batch.id} fileId={f.id} fileName={f.file_name} mimeType={f.mime_type} storagePath={f.storage_path} /></div> : <p key={a.file_id}>対象画像を取得できません。</p>; })}
+      {!annotations.length && <span> ／ 画像の修正指示なし</span>}
+    </div>;
+  })}</>;
 }
 export function ReviewTargetPicker({ files, selected, onChange }: { files: Pick<ReviewFile, 'id' | 'file_name'>[]; selected: string[]; onChange: (ids: string[]) => void }) {
   if (!annotationsEnabled) return null;

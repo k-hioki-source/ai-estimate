@@ -1,4 +1,10 @@
 'use client';
+import IllustrationDelivery from '../../../../components/cs-works/IllustrationDelivery';
+import IllustrationWorkflow from '../../../../components/cs-works/IllustrationWorkflow';
+import { illustrationsEnabled } from '../../../../lib/cs-works/illustrations';
+import { formalQuotesEnabled, type QuoteContext } from '../../../../lib/cs-works/formal-quotes';
+import { formalQuoteRequest } from '../../../../lib/cs-works/formal-quotes-client';
+import { QuoteItemsTable } from '../../../../components/cs-works/FormalQuoteDetails';
 
 import ProjectFilePreview from '../../../../components/cs-works/ProjectFilePreview';
 import ProjectFileShare from '../../../../components/cs-works/ProjectFileShare';
@@ -21,6 +27,8 @@ type Project = Omit<Database['public']['Tables']['projects']['Row'], 'status'> &
     | 'invoice_requested'
     | 'invoiced';
   archived_at?: string | null;
+  formal_quote_id?: string | null;
+  illustration_workflow?: boolean;
 };
 
 type ProjectFile = {
@@ -183,6 +191,15 @@ export default function MyPage() {
   const projectId = params.id;
 
   const [user, setUser] = useState<User | null>(null);
+  const [formalQuoteContext, setFormalQuoteContext] = useState<QuoteContext | null>(null);
+  const [formalQuoteError, setFormalQuoteError] = useState('');
+  const formalOrderRequest = useRef<string | null>(null);
+  useEffect(() => {
+    if (!formalQuotesEnabled || !user) return;
+    let active = true; setFormalQuoteContext(null); setFormalQuoteError(''); formalOrderRequest.current = null;
+    formalQuoteRequest<QuoteContext>(projectId).then(c => { if (active) { setFormalQuoteContext(c); setFormalQuoteError(''); } }).catch(e => { if (active) setFormalQuoteError(e.message); });
+    return () => { active = false; };
+  }, [projectId, user]);
   // Fail closed until the signed-in user's customer role has been verified.
   const [canEditImageAnnotations, setCanEditImageAnnotations] = useState(false);
   const reviewContext = useReviewContext(projectId, !!user);
@@ -558,6 +575,9 @@ async function orderProject(project: Project) {
     return;
   }
 
+  if (project.formal_quote_id && (!formalQuotesEnabled || formalQuoteError || formalQuoteContext?.current?.id !== project.formal_quote_id)) {
+    setOrderError('正式見積り明細を確認できません。再読み込みして最新の内容を確認してください。'); return;
+  }
   const confirmed = window.confirm(
     `案件「${project.project_code}」を正式に発注しますか？\n\n` +
       `金額：${project.quoted_amount.toLocaleString()}円\n` +
@@ -573,22 +593,28 @@ async function orderProject(project: Project) {
 
   const supabase = getSupabaseBrowserClient();
 
-  const { data, error: updateError } = await (supabase as any)
-    .rpc('order_project', {
-      p_project_id: project.id,
-    })
-    .single();
+  let data: Project | null = null, updateError: unknown = null, replayed = false;
+  if (project.formal_quote_id) {
+    formalOrderRequest.current ||= crypto.randomUUID();
+    try {
+      const result = await formalQuoteRequest<{ project: Project; replayed: boolean }>(project.id, { action: 'order', quoteId: project.formal_quote_id, requestId: formalOrderRequest.current });
+      data = result.project; replayed = result.replayed; formalOrderRequest.current = null;
+    } catch (e) { updateError = e; }
+  } else {
+    const result = await (supabase as any).rpc('order_project', { p_project_id: project.id }).single();
+    data = result.data; updateError = result.error;
+  }
 
   setOrderingProjectId(null);
 
-  if (updateError) {
+  if (updateError || !data) {
     console.error(
       'Project order error:',
       updateError
     );
 
     setOrderError(
-      '発注処理を完了できませんでした。'
+      project.formal_quote_id && updateError instanceof Error ? updateError.message : '発注処理を完了できませんでした。'
     );
     return;
   }
@@ -596,7 +622,7 @@ async function orderProject(project: Project) {
   setProjects((current) =>
     current.map((item) =>
       item.id === project.id
-        ? data
+        ? data!
         : item
     )
   );
@@ -612,7 +638,7 @@ async function orderProject(project: Project) {
     setProjectOrder((generatedOrder ?? null) as ProjectOrder | null);
   }
 
-  const mailSent = await sendCsWorksNotification(
+  const mailSent = replayed || await sendCsWorksNotification(
     supabase,
     'ordered',
     project.id
@@ -1229,6 +1255,10 @@ async function submitProjectReview(project: Project, action: 'approval' | 'revis
                   </div>
                 ) : null}
 
+                {project.formal_quote_id && <div>
+                  {formalQuoteContext?.current?.id === project.formal_quote_id ? <QuoteItemsTable quote={formalQuoteContext.current} /> : <p role="alert">{formalQuoteError || '正式見積り明細を読み込み中です。'}</p>}
+                </div>}
+
                 {project.status === 'quote_presented' ? (
                   <div className="stateCard attention">
                     <strong>正式見積りをご確認ください</strong>
@@ -1405,6 +1435,7 @@ async function submitProjectReview(project: Project, action: 'approval' | 'revis
                   </div>
                 ) : null}
 
+                {(project.illustration_workflow || (illustrationsEnabled && !!project.formal_quote_id && !['quote_requested', 'quote_reviewing', 'quote_presented', 'cancelled'].includes(project.status))) ? <IllustrationWorkflow project={project} customerEditor={canEditImageAnnotations && project.user_id === user?.id} onProject={updated => { setProjects(xs => xs.map(x => x.id === updated.id ? { ...x, ...updated } : x)); void reviewContext.reload(); }} /> : <>
                 {project.status === 'in_production' ? (
                   <div className="stateCard progress">
                     <strong>制作中です</strong>
@@ -1492,6 +1523,8 @@ async function submitProjectReview(project: Project, action: 'approval' | 'revis
                     </div>
                   </div>
                 ) : null}
+
+                </>}
 
                 {project.status === 'approved' ? (
                   <div className="stateCard success">
@@ -1608,7 +1641,7 @@ async function submitProjectReview(project: Project, action: 'approval' | 'revis
                   </div>
                 </div>
 
-                {deliveryFiles.length ? (
+                {project.illustration_workflow ? <IllustrationDelivery projectId={project.id} status={project.status} /> : deliveryFiles.length ? (
                   <div className="fileList deliveryList">
                     {deliveryFiles.map((file) => (
                       <div className="fileRow" key={file.id}>

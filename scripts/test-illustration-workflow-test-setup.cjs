@@ -1,0 +1,26 @@
+const fs=require('fs'),assert=require('node:assert/strict');const{PGlite}=require(process.env.CSWORKS_PGLITE_PATH||'/tmp/csworks-quote-tests/node_modules/@electric-sql/pglite');
+const setup=fs.readFileSync('docs/sql/csworks-illustration-workflow-test-setup.sql','utf8'),uid=n=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`;let count=0;
+async function check(name,fn){await fn();count++;console.log('PASS',name)}
+(async()=>{const db=new PGlite();const q=async(s,p=[]) => (await db.query(s,p)).rows;
+ await db.exec(`create role anon;create role authenticated;create role service_role bypassrls;create schema auth;create schema storage;
+ create table auth.users(id uuid primary key,email text unique,email_confirmed_at timestamptz);create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
+ grant usage on schema auth,storage to authenticated,anon,service_role;grant execute on function auth.uid() to public;
+ create table storage.buckets(id text primary key,name text not null,public boolean not null default false);create table storage.objects(id uuid primary key default gen_random_uuid(),bucket_id text references storage.buckets(id),name text not null);alter table storage.objects enable row level security;grant select,insert,delete on storage.objects to authenticated;`);
+ await check('workflow test setup rejects missing marker',async()=>{await assert.rejects(()=>db.exec(setup));await db.exec('rollback')});
+ await db.exec(fs.readFileSync('docs/sql/csworks-annotations-test-setup.sql','utf8'));
+ for(const [n,email]of [[1,'csworks-admin@example.com'],[2,'csworks-customer@example.com'],[3,'csworks-other@example.com']])await q('insert into auth.users values($1,$2,now())',[uid(n),email]);
+ await db.exec(fs.readFileSync('docs/sql/csworks-annotations-test-seed.sql','utf8'));
+ await check('workflow test setup rejects missing phase A',async()=>{await assert.rejects(()=>db.exec(setup));await db.exec('rollback')});
+ await db.exec(fs.readFileSync('docs/sql/csworks-formal-quotes-test-setup.sql','utf8'));
+ const pid='c5200000-0000-4000-8000-000000000001';await db.exec(`set role authenticated;select set_config('request.jwt.claim.sub','${uid(1)}',false)`);
+ const quote=(await q('select csworks_save_quote($1,null,null,0,$2,$3::jsonb,true,$4) r',[pid,'2026-12-31',JSON.stringify([1,2].map(n=>({item_key:uid(100+n),number:String(n),name:'Synthetic '+n,description:'',amount:3000*n,hours:n}))),uid(200)]))[0].r.quote;
+ await db.exec(`reset role;set role authenticated;select set_config('request.jwt.claim.sub','${uid(2)}',false)`);await q('select csworks_order_quote($1,$2,$3)',[pid,quote.id,uid(201)]);
+ await db.exec(`reset role;set role authenticated;select set_config('request.jwt.claim.sub','${uid(1)}',false)`);await q("update projects set status='in_production' where id=$1",[pid]);await db.exec('reset role');
+ const orderBefore=JSON.stringify(await q('select * from project_orders'));
+ await check('workflow test setup permits existing test orders without modifying them',async()=>{await db.exec(setup);assert.equal(JSON.stringify(await q('select * from project_orders')),orderBefore);assert.equal((await q('select status from projects where id=$1',[pid]))[0].status,'in_production')});
+ await check('migration does not implicitly rewrite existing projects or initialize items',async()=>{assert.equal((await q('select illustration_workflow from projects where id=$1',[pid]))[0].illustration_workflow,false);assert.equal((await q('select count(*)::int n from project_illustrations'))[0].n,0)});
+ await check('repeat setup rejected atomically',async()=>{await assert.rejects(()=>db.exec(setup));await db.exec('rollback');assert.equal(JSON.stringify(await q('select * from project_orders')),orderBefore)});
+ await db.exec(`set role authenticated;select set_config('request.jwt.claim.sub','${uid(1)}',false)`);
+ await check('admin can prepare the already-started phase A test project',async()=>{await q('select csworks_prepare_illustrations($1)',[pid]);assert.equal((await q('select csworks_get_illustrations($1) r',[pid]))[0].r.items.length,2)});
+ await db.close();console.log(count+' workflow setup checks passed.');
+})().catch(e=>{console.error(e);process.exit(1)});

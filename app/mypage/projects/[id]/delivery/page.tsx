@@ -1,4 +1,5 @@
 'use client';
+import FormalQuoteDetails from '../../../../../components/cs-works/FormalQuoteDetails';
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
@@ -6,6 +7,7 @@ import { getSupabaseBrowserClient } from '../../../../../lib/supabase/client';
 
 type DeliveryDocument = {
   id: string;
+  formal_quote_id?: string | null;
   project_id: string;
   delivery_code: string;
   project_code: string;
@@ -47,6 +49,7 @@ export default function DeliveryDocumentPage() {
 
   const [delivery, setDelivery] = useState<DeliveryDocument | null>(null);
   const [loading, setLoading] = useState(true);
+  const [quoteDetailsReady, setQuoteDetailsReady] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -109,7 +112,7 @@ export default function DeliveryDocumentPage() {
         <button type="button" onClick={() => router.push(`/mypage/projects/${projectId}`)}>
           ← 案件詳細へ戻る
         </button>
-        <button type="button" className="printButton" onClick={() => window.print()}>
+        <button type="button" className="printButton" disabled={!!delivery.formal_quote_id && !quoteDetailsReady} onClick={() => window.print()}>
           印刷・PDF保存
         </button>
       </div>
@@ -164,6 +167,8 @@ export default function DeliveryDocumentPage() {
             <p>{delivery.project_description}</p>
           </section>
         ) : null}
+
+        {delivery.formal_quote_id && <FormalQuoteDetails projectId={projectId} quoteId={delivery.formal_quote_id} onReadinessChange={setQuoteDetailsReady} />}
 
         <section className="priceSection">
           <table className="priceTable">
