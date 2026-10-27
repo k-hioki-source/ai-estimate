@@ -1,3 +1,4 @@
+import { hasRequestedAngleChange } from './estimateScope';
 export type MasterEstimateInput = {
   sourceType: string;
   usage: string;
@@ -151,7 +152,7 @@ function chooseCategory(input: MasterEstimateInput, userText: string, aiText: st
   if (includesAny(text, ['ポンチ絵', 'ラフ', '手描き指示']) && sourceType === 'reference_drawing') {
     return { key: 'rough_drawing', label: 'ポンチ絵から作図', baseHours: 8, reason: '手描き指示＋写真から整ったイラストにする基準' };
   }
-  if (includesAny(userText, ['写真にない', 'カバーを外', '別状態', '見えない部分', '別アングル', '視点変更'])) {
+  if (includesAny(userText, ['写真にない', 'カバーを外', '別状態', '見えない部分']) || hasRequestedAngleChange(userText)) {
     return { key: 'new_state', label: '写真にない状態を作図', baseHours: 8, reason: 'ユーザー指示に写真にない状態・別アングル等が明示されたため' };
   }
 
@@ -290,7 +291,7 @@ export function calculateMasterEstimate(input: MasterEstimateInput) {
   add('two_panels', '2コマ化', 1, includesAny(text, ['2コマ', '2 コマ', '二コマ']));
   add('three_panels', '3コマ化', 4, includesAny(text, ['3コマ', '3 コマ', '三コマ']));
   add('angle', '別アングル作図', 2,
-    category.key !== 'new_state' && includesAny(text, ['別アングル', '視点変更', '背面', '側面']));
+    category.key !== 'new_state' && hasRequestedAngleChange(userText));
   add('detail', '部分拡大図追加', 2, includesAny(text, ['拡大図', '詳細図', '部分図']));
 
   const isCharacterIllustration =

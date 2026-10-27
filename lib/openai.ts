@@ -34,6 +34,8 @@ export async function analyzeImage({
   style,
   usage,
   notes,
+  combinedScope = false,
+  isReferenceSample = false,
 }: {
   imageBase64: string;
   mimeType?: string;
@@ -41,6 +43,8 @@ export async function analyzeImage({
   style: 'line' | 'color' | 'real';
   usage: 'manual' | 'parts' | 'sales';
   notes?: string;
+  combinedScope?: boolean;
+  isReferenceSample?: boolean;
 }) {
   const prompt = `
 あなたは30年以上工業系イラストの見積りを行っているベテランテクニカルイラストレーターです。
@@ -58,6 +62,7 @@ export async function analyzeImage({
 - 用途: ${usage}
 - 表現: ${style}
 - 備考: ${notes || 'なし'}
+${isReferenceSample ? '添付画像は参考サンプルです。お客様の実際の制作写真ではありません。サンプルの形状や線量を実物の確定情報として扱わず、依頼文から仮定した概算であることと、実写真確認後に変わり得ることを説明してください。' : ''}
 
 【個別見積り（要相談）の判定】
 通常のイラスト制作だけではなく、次の制作工程を実際の依頼内容として含む場合は
@@ -591,6 +596,11 @@ difficultyScore は
 estimatedHoursMin / estimatedHours / estimatedHoursMax は、
 経験豊富なイラストレーターが実際に制作する場合の想定制作時間です。
 
+${combinedScope
+  ? '今回は側面図1点と部分拡大図1点の計2点です。estimatedHoursMin / estimatedHours / estimatedHoursMax は2点合計の工数を返してください。各図の作業量を別々に評価して合算し、点数倍を重ねないでください。'
+  : 'estimatedHoursMin / estimatedHours / estimatedHoursMax は代表となるイラスト1点あたりの工数を返してください。点数分の合計にはしないでください。'}
+側面図・背面図という名称だけで、写真と異なる角度への変更と判断しないでください。
+実写真がない場合は仮定に基づく推定であることを説明し、単純な平面線画と複雑な部品図・展開図を区別してください。金額や工数を固定せず描き込み量に応じて評価してください。
 最小・標準・最大の3段階で返してください。
 
 例：
