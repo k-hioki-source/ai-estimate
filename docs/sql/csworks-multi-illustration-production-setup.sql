@@ -2,6 +2,7 @@
 -- Run the complete script once in that project's SQL Editor. Never remove a failed guard.
 -- Adds formal quote items, per-illustration reviews and final-delivery mapping.
 -- Preserves existing customer/project/document/file rows. No test seeds or invoice-RPC replacement.
+-- Fingerprints normalize CRLF to LF; all other source content must match.
 begin;
 set local lock_timeout='5s';
 set local statement_timeout='120s';
@@ -19,7 +20,7 @@ begin
  if to_regclass('storage.objects') is null or to_regclass('public.project_review_one_open') is null or not exists(select 1 from pg_catalog.pg_constraint where conrelid='public.project_review_batches'::regclass and conname='project_review_batches_message_id_key' and contype='u') then raise exception 'STOP: annotation schema differs from reviewed prerequisites'; end if;
  for item in select * from jsonb_to_recordset($fingerprints$[{"signature":"public.order_project(uuid)","source_md5":"c919c39cde06a5ab2726200b056d4d0d"},{"signature":"public.deliver_project(uuid)","source_md5":"69186528ef8cde7ef7637261359d7318"},{"signature":"public.complete_project(uuid)","source_md5":"334705de0b9d11d71715c8f495246f70"},{"signature":"public.confirm_project_payment(uuid)","source_md5":"65f55c4ba9cf8c2843e6b277e49b165b"},{"signature":"public.request_project_invoice(uuid)","source_md5":"5106f97f24b589e781d5cf53ec7de2d1"},{"signature":"public.approve_project(uuid)","source_md5":"93a4eea334ece415ac729daa96d63132"},{"signature":"public.request_project_revision(uuid)","source_md5":"407411f5ed4c7422f0c67fa25e803cb2"},{"signature":"public.is_admin()","source_md5":"6bb67c176d2c5f42f2cd630cc251556b"},{"signature":"public.csworks_can_read_review(uuid)","source_md5":"75894066613527767b67831e4f93c584"},{"signature":"public.csworks_track_review_status()","source_md5":"f628415105f18108fe9680987b768a78"}]$fingerprints$::jsonb) as x(signature text,source_md5 text) loop
   if to_regprocedure(item.signature) is null then raise exception 'STOP: required function % is missing',item.signature; end if;
-  if (select md5(p.prosrc) from pg_catalog.pg_proc p where p.oid=to_regprocedure(item.signature)) is distinct from item.source_md5 then raise exception 'STOP: definition of % changed; repeat metadata review',item.signature; end if;
+  if (select md5(replace(p.prosrc,E'\r\n',E'\n')) from pg_catalog.pg_proc p where p.oid=to_regprocedure(item.signature)) is distinct from item.source_md5 then raise exception 'STOP: definition of % changed; repeat metadata review',item.signature; end if;
  end loop;
  if not has_function_privilege('authenticated','public.request_project_invoice(uuid)','EXECUTE') or has_function_privilege('anon','public.request_project_invoice(uuid)','EXECUTE') then raise exception 'STOP: invoice request privileges differ from reviewed configuration'; end if;
 end $$;

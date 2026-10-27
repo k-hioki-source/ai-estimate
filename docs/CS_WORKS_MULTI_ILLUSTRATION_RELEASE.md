@@ -65,3 +65,11 @@ order_project、deliver_project、complete_project、confirm_project_payment、a
 生成元: `scripts/build-multi-illustration-production-setup.cjs`。先述の追加3migrationだけを1トランザクションに統合し、旧赤入れmigration・テスト用関数/行を含めない。
 確認済み既存10関数の本文ハッシュ、既存の前提テーブル・赤入れ制約、新テーブル未適用、テストマーカー不在、請求依頼の権限を確認してから追加する。確認後に関数が変わっていれば停止し、再照合する。lock_timeout=5秒、statement_timeout=120秒。成功時は `MULTI_ILLUSTRATION_PRODUCTION_READY`。
 SQLの実行先は本番cs-works / tnswnyegvepundtepfqn。すでに一部適用済みやガードで停止した場合は、削除やガード除去で進めず、結果を確認する。適用後のコード反映と3フラグのProduction有効化はまだ未実施。
+
+## 改行差によるガードの誤検知修正（2026-10-27）
+
+ユーザーが本番SQLを実行したところ、order_projectの本文hashガードで停止。ガードは追加DDLより前のため、今回の新テーブル/列/関数はこの実行では作られていない。
+受領CSVをnewlineを保持して読み直すと、order_project本文に110か所のCRLFがあり、生成時はCSVの読み取りでLFへ変換していた。旧ガードは保存済み本文のraw hashとLFのhashを比較していたため、同じ内容でも拒否した。
+本文比較をCRLF→LFだけ正規化してから行うよう修正。その他の文字・空白・処理内容を無視する変更はしていない。既存関数を置換せず、ガードも除去しない。
+Windows改行の関数を実際に作って旧方式の不一致を再現し、修正版での適用、実内容変更時の拒否、既存データ維持までbundle11項目が成功。
+**次は修正版の同名本番SQLを全文実行し、MULTI_ILLUSTRATION_PRODUCTION_READYを確認する。** 以前のガード部分だけ削って実行しない。本番コード反映とフラグ有効化は引き続き未実施。

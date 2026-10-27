@@ -42,5 +42,6 @@
       "signature": "public.csworks_track_review_status()",
       "source_md5": "f628415105f18108fe9680987b768a78"
     }
-  ]
+  ],
+  "source_normalization": "CRLF to LF only"
 }

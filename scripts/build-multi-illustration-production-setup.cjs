@@ -5,6 +5,7 @@ const guard=`-- PRODUCTION: cs-works / tnswnyegvepundtepfqn. Reviewed metadata 2
 -- Run the complete script once in that project's SQL Editor. Never remove a failed guard.
 -- Adds formal quote items, per-illustration reviews and final-delivery mapping.
 -- Preserves existing customer/project/document/file rows. No test seeds or invoice-RPC replacement.
+-- Fingerprints normalize CRLF to LF; all other source content must match.
 begin;
 set local lock_timeout='5s';
 set local statement_timeout='120s';
@@ -22,7 +23,7 @@ begin
  if to_regclass('storage.objects') is null or to_regclass('public.project_review_one_open') is null or not exists(select 1 from pg_catalog.pg_constraint where conrelid='public.project_review_batches'::regclass and conname='project_review_batches_message_id_key' and contype='u') then raise exception 'STOP: annotation schema differs from reviewed prerequisites'; end if;
  for item in select * from jsonb_to_recordset($fingerprints$${JSON.stringify(snapshot.functions)}$fingerprints$::jsonb) as x(signature text,source_md5 text) loop
   if to_regprocedure(item.signature) is null then raise exception 'STOP: required function % is missing',item.signature; end if;
-  if (select md5(p.prosrc) from pg_catalog.pg_proc p where p.oid=to_regprocedure(item.signature)) is distinct from item.source_md5 then raise exception 'STOP: definition of % changed; repeat metadata review',item.signature; end if;
+  if (select md5(replace(p.prosrc,E'\\r\\n',E'\\n')) from pg_catalog.pg_proc p where p.oid=to_regprocedure(item.signature)) is distinct from item.source_md5 then raise exception 'STOP: definition of % changed; repeat metadata review',item.signature; end if;
  end loop;
  if not has_function_privilege('authenticated','public.request_project_invoice(uuid)','EXECUTE') or has_function_privilege('anon','public.request_project_invoice(uuid)','EXECUTE') then raise exception 'STOP: invoice request privileges differ from reviewed configuration'; end if;
 end $$;

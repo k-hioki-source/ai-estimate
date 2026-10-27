@@ -1,7 +1,7 @@
 # CS Works — 開発引き継ぎ（Work / ChatGPT Project 共通）
 
 更新日: 2026-10-27
-状態: プレビュー・共有・ダウンロード・画像赤入れは本番公開済み。最新アプリ修正は08c2df8。複数枚の正式見積り・イラスト別確認は専用Previewでユーザー確認済み。最終納品の突合せ・一括ZIPを同じ開発ブランチに追加し、専用環境の確認待ち。第22節が最新進捗で、過去の進捗記述より優先。**実装・DB・デプロイの現状は毎回確認すること。**
+状態: プレビュー・共有・ダウンロード・画像赤入れは本番公開済み。最新アプリ修正は08c2df8。複数枚の正式見積り・イラスト別確認は専用Previewでユーザー確認済み。最終納品の突合せ・一括ZIPを同じ開発ブランチに追加し、専用環境の確認待ち。第23節が最新進捗で、過去の進捗記述より優先。**実装・DB・デプロイの現状は毎回確認すること。**
 
 ## 1. 目的と事業上の前提
 - CS Works は株式会社クリエイトサポートが窓口となる、製造業向けテクニカルイラスト制作の BtoB 受発注サービス。
@@ -259,3 +259,10 @@ Productionの既存接続先とメール/APIキーは維持し、新Config3つ�
 実定義の依頼RPCを使ったDB63項目と、本番Storageポリシー/既存確認中・完了済みの架空案件でのbundle10項目が成功。既存データ・赤入れ・文書金額・権限の維持と、従来フローの継続を確認。
 **次は本番cs-works（tnswnyegvepundtepfqn）のSQL Editorで `docs/sql/csworks-multi-illustration-production-setup.sql` を全文実行し `MULTI_ILLUSTRATION_PRODUCTION_READY` を確認する。** 追加3段階を1トランザクションに統合。テスト用SQL/旧赤入れmigrationを含めず、元の請求関数を置換しない。既存案件を自動変換・削除しない。確認済み関数の本文hash、前提構造、未適用をガードする。
 詳細は [CS_WORKS_MULTI_ILLUSTRATION_RELEASE.md](CS_WORKS_MULTI_ILLUSTRATION_RELEASE.md)。ユーザーの本番反映承認は継続しており、再承認は不要。現在は本番SQLの実行結果待ち。本番DB適用・mainマージ・Productionの新フラグ3つの有効化はまだ行っていない。CSVの秘密値や顧客行は保存せず、関数/Storageポリシー/ハッシュのメタデータだけをfixture化した。
+
+
+## 23. 本番SQLの改行ガード修正（2026-10-27、最新）
+
+ユーザーが本番SQLを実行し、order_project本文hashガードで停止。追加DDL前のガードなので新機能は未適用。CSVの本文はCRLFだが生成時にLFへ変換していたため、同じ定義でもraw hashが異なる不具合だった。
+生成スクリプトと本番SQLを修正し、CRLF→LFだけを正規化して本文hashを比較する。関数内容の変化やテストDB/適用済みの拒否は維持する。CRLF関数を作って旧不一致を再現し、修正版での適用を含むbundle11項目が成功。
+**次の操作は修正版 `docs/sql/csworks-multi-illustration-production-setup.sql` 全文を本番cs-worksで実行し、MULTI_ILLUSTRATION_PRODUCTION_READYを確認すること。** 本番コード・main・新フラグはまだ変更していない。本番反映のユーザー承認は継続中。
