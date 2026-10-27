@@ -13,7 +13,7 @@ export default function IllustrationDelivery({ projectId, status, isAdmin = fals
  const [files, setFiles] = useState<Record<string, File[]>>({});
  const pending = useRef(new Map<File, { id: string; uploaded: boolean; target: string }>()), inputs = useRef<Record<string, HTMLInputElement | null>>({}), abort = useRef<AbortController | null>(null);
  const reload = useCallback(async () => { const m = await deliveryRequest<DeliveryManifest>(projectId); setManifest(m); return m; }, [projectId]);
- useEffect(() => { let active = true; setManifest(null); setError(''); setFiles({}); pending.current.clear(); if (illustrationDeliveryEnabled) deliveryRequest<DeliveryManifest>(projectId).then(m => { if (active) setManifest(m); }).catch(e => { if (active) setError(e.message); }); return () => { active = false; abort.current?.abort(); }; }, [projectId, status]);
+ useEffect(() => { let active = true; setManifest(null); setError(''); setNotice(''); setFiles({}); pending.current.clear(); if (illustrationDeliveryEnabled) deliveryRequest<DeliveryManifest>(projectId).then(m => { if (active) setManifest(m); }).catch(e => { if (active) setError(e.message); }); return () => { active = false; abort.current?.abort(); }; }, [projectId, status]);
  useEffect(() => {
   if (!manifest?.assets.length) { setUrls({}); return; }
   let active = true;
@@ -69,6 +69,7 @@ export default function IllustrationDelivery({ projectId, status, isAdmin = fals
   <h4 style={{ margin: '0 0 10px', fontSize: 21, color: '#166534' }}>イラスト別の最終納品</h4>
   {!manifest ? <p role={error ? 'alert' : 'status'}>{error || '納品一覧を読み込み中…'}</p> : !isAdmin && !manifest.published ? <p>全点の最終ファイルを準備しています。納品後、個別・一括でダウンロードできます。</p> : <>
    {isAdmin && !manifest.published && !editable && <p>全イラストの承認後に、最終納品ファイルを登録できます。</p>}
+   {manifest.published && <div aria-label="納品状況" style={{ padding: 14, marginBottom: 16, border: '1px solid #86cda0', borderRadius: 10, background: '#dcfce7', color: '#166534' }}><strong>✓ 納品済み</strong><p style={{ margin: '6px 0 0' }}>最終納品ファイルをお客様に公開しています。</p></div>}
    <p style={{ fontWeight: 700, lineHeight: 1.8 }}>{manifest.items.length ? <>全{manifest.items.length}点 ／ 納品ファイル登録済み{done}点 ／ 未登録{manifest.items.length - done}点</> : '従来方式の納品ファイル（案件共通）'}</p>
    {editable && <p>各イラストに最終データを登録してください（1ファイル50MBまで・複数選択可）。共通ZIPなどは「案件共通」に登録できます。全点にファイルがそろうと納品できます。</p>}
    {manifest.published && manifest.assets.length > 0 && <div style={{ margin: '16px 0' }}><button style={primary} disabled={!!busy} onClick={downloadAll}>納品ファイルを一括ダウンロード（ZIP）</button><p style={{ fontSize: 13, color: '#475569' }}>イラストごとのフォルダーにまとめます。合計200MBまで。作成中は画面を閉じないでください。</p></div>}

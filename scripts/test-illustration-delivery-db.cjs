@@ -4,6 +4,8 @@ let source=fs.readFileSync('scripts/test-illustration-workflow-db.cjs','utf8');
 const install=" await actor(3);\n await check('migration leaves existing accepted projects untouched'";
 source=source.replace(install,` await exec(\`grant usage on schema storage to authenticated;grant select,insert,update,delete on storage.objects to authenticated;alter table storage.objects enable row level security;create policy synthetic_storage on storage.objects for all to authenticated using(true) with check(true);\`);
  await exec(fs.readFileSync('supabase/migrations/20261027020000_illustration_delivery.sql','utf8'));
+ await exec(\`alter table auth.users add column email text;update auth.users set email=case id when '\${uid(1)}' then 'csworks-customer@example.com' when '\${uid(2)}' then 'csworks-other@example.com' else 'csworks-admin@example.com' end;create table public.csworks_annotation_test_environment(project_ref text);insert into public.csworks_annotation_test_environment values('jjiebuuasaimaqemhiua');\`);
+ await exec(fs.readFileSync('docs/sql/csworks-test-invoice-request-fix.sql','utf8'));
  await actor(3);
  await check('uninitialized project cannot register delivery files',()=>reject('select csworks_register_delivery_file($1,$2,$3,$4,$5,$6,100)',[uid(11),null,uid(900),'x.zip','bad','application/zip'],'42501'));
  await check('migration leaves existing accepted projects untouched'`);
@@ -35,8 +37,15 @@ source=source.slice(0,start)+`
  await check('all items can have multiple formats and common attachments',async()=>{await attach(ids[1],11,'final.pdf');assert.equal((await manifest()).assets.length,5)});
  await check('direct status jump cannot bypass delivery document',()=>reject("update projects set status='delivered' where id=$1",[uid(11)],'40001'));
  await check('missing Storage bytes block delivery and preserve approved state',async()=>{await exec('reset role');await q('delete from storage.objects where name=$1',[d3.path]);await actor(3);await reject('select deliver_project($1)',[uid(11)],'40001');assert.equal((await manifest()).published,false);await exec('reset role');await q("insert into storage.objects(bucket_id,name) values('project-files',$1)",[d3.path]);await actor(3)});
+ await actor(1);
+ await check('owner cannot request invoice before delivery',()=>reject('select * from request_project_invoice($1)',[uid(11)],'40001'));
+ await actor(3);
  await check('delivery RPC freezes complete list and retains frozen order amount',async()=>{await q('select deliver_project($1)',[uid(11)]);assert.equal((await manifest()).published,true);assert.equal((await q('select total_amount from project_deliveries where project_id=$1',[uid(11)]))[0].total_amount,19800)});
  await check('delivered mapping cannot be removed or extended',async()=>{await reject('select csworks_remove_delivery_file($1,$2)',[uid(11),d1.id],'40001');await assert.rejects(()=>attach(ids[0]),{code:'40001'})});
+ await actor(3);
+ await check('admin cannot submit customer invoice request',()=>reject('select * from request_project_invoice($1)',[uid(11)],'42501'));
+ await actor(2);
+ await check('other customer cannot request an invoice for this project',()=>reject('select * from request_project_invoice($1)',[uid(11)],'42501'));
  await actor(1);
  await check('owner can download published files but removed files remain hidden',async()=>{assert.equal((await manifest()).assets.length,5);assert.equal((await q('select * from project_files where id=$1',[d1.id])).length,1);assert.equal((await q('select * from storage.objects where name=$1',[d1.path])).length,1);assert.equal((await q("select * from project_files where project_id=$1 and file_type='delivery'",[uid(11)])).length,5)});
  await actor(2);
@@ -46,7 +55,10 @@ source=source.slice(0,start)+`
 // Use a concrete out-of-project illustration ID, sourced from the existing second project.
 source=source.replace("(b.ordered.project.id===uid(12)?(async()=>null):null)","(await context(12)).items[0].id");
 source=source.replace(" await check('helper and direct table writes denied to authenticated'",` await actor(3);
- await check('delivery/invoice/payment transitions retain frozen total and manifest',async()=>{await q("update projects set status='invoice_requested' where id=$1",[uid(11)]);await q('select complete_project($1)',[uid(11)]);assert.equal((await q('select total_amount from project_invoices where project_id=$1',[uid(11)]))[0].total_amount,19800);await q('select confirm_project_payment($1)',[uid(11)]);assert.equal((await manifest()).published,true);assert.equal((await manifest()).project.status,'completed')});
+ await check('delivery/invoice/payment transitions retain frozen total and manifest',async()=>{await actor(1);const requested=await q('select * from request_project_invoice($1)',[uid(11)]);assert.equal(requested.length,1);assert.equal(requested[0].status,'invoice_requested');const messageCount=(await q("select count(*)::int n from project_messages where project_id=$1",[uid(11)]))[0].n;await q('select * from request_project_invoice($1)',[uid(11)]);assert.equal((await q("select count(*)::int n from project_messages where project_id=$1",[uid(11)]))[0].n,messageCount);await actor(3);await q('select complete_project($1)',[uid(11)]);assert.equal((await q('select total_amount from project_invoices where project_id=$1',[uid(11)]))[0].total_amount,19800);await q('select confirm_project_payment($1)',[uid(11)]);assert.equal((await manifest()).published,true);assert.equal((await manifest()).project.status,'completed')});
+ await actor(1);
+ await check('completed project cannot request a second invoice',()=>reject('select * from request_project_invoice($1)',[uid(11)],'40001'));
+ await actor(3);
  await check('delivered project cannot reopen staging to change frozen manifest',()=>reject("update projects set status='approved' where id=$1",[uid(11)],'42501'));
  await check('legacy approved project can still deliver without per-item mappings',async()=>{await q("update projects set quoted_amount=3000,quoted_hours=1 where id=$1",[uid(13)]);await q("insert into project_files(project_id,uploaded_by,file_name,storage_path,file_type) values($1,$2,'legacy-final.zip','legacy/final.zip','delivery')",[uid(13),uid(3)]);await q('select deliver_project($1)',[uid(13)]);assert.equal((await q('select total_amount from project_deliveries where project_id=$1',[uid(13)]))[0].total_amount,3300)});
  await check('helper and direct table writes denied to authenticated'`);
