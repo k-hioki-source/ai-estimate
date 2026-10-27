@@ -8,6 +8,12 @@ import type { ReviewFile } from '../../lib/cs-works/image-annotations';
 import ProjectFilePreview from './ProjectFilePreview';
 import ProjectFileShare from './ProjectFileShare';
 const labels = { in_production: '制作中', customer_review: 'お客様確認中', revision: '修正対応中', approved: '承認済み' };
+const stateStyles = {
+ in_production: { color: '#334155', background: '#f1f5f9', border: '#94a3b8' },
+ customer_review: { color: '#92400e', background: '#fffbeb', border: '#f59e0b' },
+ revision: { color: '#9a3412', background: '#fff7ed', border: '#f97316' },
+ approved: { color: '#166534', background: '#f0fdf4', border: '#22c55e' },
+};
 const current = (i: Illustration) => i.versions.find(v => v.id === i.current_version_id);
 const reviewKey = (i: Illustration) => current(i)?.id || i.id;
 function FileActions({ file, editable = false, url: initial }: { file: ReviewFile; editable?: boolean; url?: string }) {
@@ -77,26 +83,31 @@ export default function IllustrationWorkflow({ project, isAdmin = false, custome
  }
  const editableProject = context && ['in_production', 'revision', 'customer_review'].includes(context.project.status);
  const selectable = (i: Illustration) => isAdmin ? !!editableProject && ['in_production', 'revision'].includes(i.state) && !!current(i) && !current(i)?.review_batch_id : customerEditor && i.state === 'customer_review' && current(i)?.review?.state === 'open';
- return <div>
-  <h4 style={{ margin: '8px 0 12px' }}>イラスト別の制作・確認</h4>
+ return <section aria-label="イラスト別の制作・確認" style={{ marginTop: 20, padding: 'clamp(12px, 3vw, 24px)', border: '2px solid #93b4fb', borderRadius: 18, background: '#f1f6ff', boxShadow: '0 4px 18px rgba(30, 64, 175, .08)' }}>
+  <header style={{ marginBottom: 20 }}>
+   <h4 style={{ margin: '0 0 8px', color: '#173d9a', fontSize: 22, fontWeight: 800, lineHeight: 1.5 }}>イラスト別の制作・確認</h4>
+   <p style={{ margin: 0, color: '#334155', fontSize: 14, lineHeight: 1.8 }}>{isAdmin ? 'イラストごとに稿を登録し、お客様へ確認を依頼します。' : customerEditor ? '各イラストのファイルを確認し、承認または修正依頼を送信してください。' : 'イラストごとの制作状況と確認履歴を表示しています。'}</p>
+  </header>
   {!context ? <p role={error ? 'alert' : 'status'}>{error || '制作一覧を読み込み中…'}</p> : !context.project.illustration_workflow ? <div>
     {isAdmin && ['ordered', 'in_production'].includes(context.project.status) ? <><p>発注が確定したイラスト明細を制作一覧へ引き継ぎます。</p><button type="button" disabled={!!busy} onClick={() => setup('prepare')}>発注明細から制作一覧を準備</button></> : <p>管理者が制作一覧を準備しています。</p>}
   </div> : <>
-   <p style={{ padding: 12, background: '#eff6ff', borderRadius: 10 }}>全{context.items.length}点 ／ 承認済み{context.items.filter(i => i.state === 'approved').length}点 ／ 確認中{context.items.filter(i => i.state === 'customer_review').length}点 ／ 修正中{context.items.filter(i => i.state === 'revision').length}点 ／ 制作中{context.items.filter(i => i.state === 'in_production').length}点</p>
+   <div aria-label="制作状況の集計" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: 10, marginBottom: 22 }}>
+    {[{ label: '全イラスト', count: context.items.length, color: '#1e40af', background: '#e0ebff', border: '#93b4fb' }, ...(['approved', 'customer_review', 'revision', 'in_production'] as const).map(state => ({ label: labels[state], count: context.items.filter(i => i.state === state).length, ...stateStyles[state] }))].map(stat => <div key={stat.label} style={{ padding: '12px 14px', border: `1px solid ${stat.border}`, borderRadius: 12, background: stat.background, color: stat.color }}><span style={{ display: 'block', fontSize: 13, fontWeight: 700 }}>{stat.label}</span><strong style={{ display: 'block', marginTop: 4, fontSize: 26, lineHeight: 1.3 }}>{stat.count}<span style={{ fontSize: 14, marginLeft: 4 }}>点</span></strong></div>)}
+   </div>
    {isAdmin && context.project.status === 'ordered' && <button type="button" disabled={!!busy} onClick={() => setup('begin')}>制作開始</button>}
-   <div style={{ display: 'grid', gap: 14 }}>
-   {context.items.map(i => { const v = current(i); const canSelect = selectable(i); const canUpload = isAdmin && editableProject && ['in_production', 'revision'].includes(i.state); return <article key={i.id} style={{ minWidth: 0, padding: 16, border: '1px solid #dbe3ec', borderRadius: 12, background: '#fff' }}>
-    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
-     {canSelect && <input type="checkbox" aria-label={`${i.number} ${i.name}を選択`} checked={selected.includes(i.id)} disabled={!!busy} onChange={e => setSelected(xs => e.target.checked ? [...xs, i.id] : xs.filter(id => id !== i.id))} />}
-     <strong style={{ overflowWrap: 'anywhere' }}>{i.number} {i.name}</strong><span style={{ background: i.state === 'approved' ? '#dcfce7' : '#fff3d6', padding: '4px 9px', borderRadius: 8 }}>{labels[i.state]}</span>{v && <span>第{v.revision}稿</span>}
+   <div style={{ display: 'grid', gap: 22 }}>
+   {context.items.map(i => { const v = current(i); const canSelect = selectable(i); const canUpload = isAdmin && editableProject && ['in_production', 'revision'].includes(i.state); return <article key={i.id} style={{ minWidth: 0, padding: 'clamp(14px, 3vw, 22px)', border: `2px solid ${selected.includes(i.id) ? '#2563eb' : stateStyles[i.state].border}`, borderLeft: `6px solid ${stateStyles[i.state].border}`, borderRadius: 14, background: '#fff', boxShadow: '0 3px 10px rgba(15, 23, 42, .06)' }}>
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', paddingBottom: 14, marginBottom: 14, borderBottom: '1px solid #dbe3ec' }}>
+     {canSelect && <input type="checkbox" style={{ width: 20, height: 20, accentColor: '#2563eb', flexShrink: 0 }} aria-label={`${i.number} ${i.name}を選択`} checked={selected.includes(i.id)} disabled={!!busy} onChange={e => setSelected(xs => e.target.checked ? [...xs, i.id] : xs.filter(id => id !== i.id))} />}
+     <strong style={{ overflowWrap: 'anywhere', fontSize: 18, color: '#0f172a' }}>{i.number} {i.name}</strong><span style={{ background: stateStyles[i.state].background, color: stateStyles[i.state].color, border: `1px solid ${stateStyles[i.state].border}`, fontWeight: 700, fontSize: 13, padding: '5px 10px', borderRadius: 999 }}>{labels[i.state]}</span>{v && <span>第{v.revision}稿</span>}
     </div>
     {v ? <FileActions key={v.file_id} file={v.file} url={urls[v.file.storage_path]} editable={customerEditor && !isAdmin && i.state === 'customer_review' && v.review?.state === 'open'} /> : <p>確認用ファイルはまだありません。</p>}
     {canUpload && <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 12 }}><input type="file" ref={node => { fileInputs.current[i.id] = node; }} aria-label={`${i.number} ${i.name}のファイル`} accept="image/png,image/jpeg,application/pdf" disabled={!!busy} onChange={e => setFiles(xs => ({ ...xs, [i.id]: e.target.files?.[0] || null }))} /><button type="button" disabled={!!busy || !files[i.id]} onClick={() => upload(i)}>{busy === i.id ? '処理中…' : '新しい稿をアップロード'}</button></div>}
     {canSelect && isAdmin && <button type="button" disabled={!!busy} onClick={() => send('start', [i.id])} style={{ marginTop: 12 }}>このイラストの確認を依頼</button>}
-    {canSelect && !isAdmin && <fieldset disabled={!!busy} style={{ marginTop: 12, border: '1px solid #cbd5e1', borderRadius: 8, minWidth: 0 }}><legend>このイラストの確認結果</legend>
-     <label>結果 <select aria-label={`${i.number} ${i.name}の確認結果`} value={decisions[reviewKey(i)] || 'approval'} onChange={e => setDecisions(xs => ({ ...xs, [reviewKey(i)]: e.target.value as 'approval' | 'revision_request' }))}><option value="approval">承認する</option><option value="revision_request">修正を依頼する</option></select></label>
-     <textarea aria-label={`${i.number} ${i.name}のコメント`} placeholder="修正依頼の場合はコメントを入力してください。赤入れは画像から下書き保存して送信します。" value={comments[reviewKey(i)] || ''} maxLength={2000} rows={3} onChange={e => setComments(xs => ({ ...xs, [reviewKey(i)]: e.target.value }))} style={{ display: 'block', width: '100%', boxSizing: 'border-box', margin: '10px 0' }} />
-     <button type="button" onClick={() => send('submit', [i.id])}>このイラストの確認結果を送信</button>
+    {canSelect && !isAdmin && <fieldset disabled={!!busy} style={{ marginTop: 20, padding: 16, border: '2px solid #93b4fb', borderRadius: 12, minWidth: 0, background: '#f1f6ff' }}><legend style={{ padding: '0 6px', fontWeight: 800, color: '#173d9a' }}>このイラストの確認結果</legend>
+     <label>結果 <select style={{ marginLeft: 8, padding: '8px 10px', maxWidth: '100%', border: '1px solid #94a3b8', borderRadius: 8, background: '#fff', color: '#0f172a', font: 'inherit' }} aria-label={`${i.number} ${i.name}の確認結果`} value={decisions[reviewKey(i)] || 'approval'} onChange={e => setDecisions(xs => ({ ...xs, [reviewKey(i)]: e.target.value as 'approval' | 'revision_request' }))}><option value="approval">承認する</option><option value="revision_request">修正を依頼する</option></select></label>
+     <textarea aria-label={`${i.number} ${i.name}のコメント`} placeholder="修正依頼の場合はコメントを入力してください。赤入れは画像から下書き保存して送信します。" value={comments[reviewKey(i)] || ''} maxLength={2000} rows={3} onChange={e => setComments(xs => ({ ...xs, [reviewKey(i)]: e.target.value }))} style={{ display: 'block', width: '100%', boxSizing: 'border-box', margin: '12px 0', padding: 12, border: '1px solid #94a3b8', borderRadius: 8, background: '#fff', color: '#0f172a', font: 'inherit', lineHeight: 1.7 }} />
+     <button type="button" style={{ background: '#1d4ed8', color: '#fff', border: 0, borderRadius: 10, padding: '12px 16px', fontWeight: 700, lineHeight: 1.6 }} onClick={() => send('submit', [i.id])}>このイラストの確認結果を送信</button>
     </fieldset>}
     {i.versions.length > 0 && <details style={{ marginTop: 12 }}><summary>稿・修正指示の履歴</summary>{i.versions.map(old => <div key={old.id} style={{ marginTop: 12, paddingTop: 8, borderTop: '1px solid #e2e8f0' }}><strong>第{old.revision}稿</strong><span> ／ {old.review?.state === 'approval' ? '承認済み' : old.review?.state === 'revision_request' ? '修正依頼済み' : old.review?.state === 'open' ? '確認中' : '確認依頼前'}</span><FileActions file={old.file} /></div>)}</details>}
    </article>; })}
@@ -105,5 +116,5 @@ export default function IllustrationWorkflow({ project, isAdmin = false, custome
   </>}
   {error && context && <p role="alert" style={{ color: '#b91c1c' }}>{error}</p>}{notice && <p role="status">{notice}</p>}
   <button type="button" disabled={!!busy} onClick={() => { setError(''); reload().catch(e => setError(e.message)); }} style={{ marginTop: 14 }}>最新の状態を取得</button>
- </div>;
+ </section>;
 }
