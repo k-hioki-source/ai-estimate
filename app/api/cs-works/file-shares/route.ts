@@ -31,7 +31,7 @@ async function actor(request: NextRequest) {
   const { data, error } = await client.auth.getUser(token);
   if (error || !data.user) return null;
   const admin = createClient(url, secret, { auth: { persistSession: false, autoRefreshToken: false } });
-  return { user: data.user, admin };
+  return { user: data.user, admin, client };
 }
 type ShareAdminClient = NonNullable<Awaited<ReturnType<typeof actor>>>['admin'];
 async function allowedAccess(admin: ShareAdminClient, userId: string, projectId: string) {
@@ -54,6 +54,10 @@ export async function POST(request: NextRequest) {
     const { data: file, error: fileError } = await admin.from('project_files')
       .select('id,project_id,storage_path,file_type').eq('id', body.fileId).eq('project_id', body.projectId).maybeSingle();
     if (fileError || !file || !ALLOWED.has(file.file_type)) return reply({ error: 'このファイルは共有できません。' }, 400);
+    if (file.storage_path.includes('/delivery-final/')) {
+      const { data: manifest, error: deliveryError } = await identity.client.rpc('csworks_get_delivery_manifest', { p_project_id: body.projectId });
+      if (deliveryError || !manifest?.published || !manifest.assets?.some((asset: { file: { id: string } }) => asset.file.id === file.id)) return reply({ error: '納品済み一覧にあるファイルだけ共有できます。' }, 403);
+    }
     const token = randomBytes(32).toString('base64url');
     const expiresAt = new Date(Date.now() + DAYS * 86400_000).toISOString();
     const { data: share, error } = await admin.from('project_file_shares')

@@ -1,4 +1,5 @@
 'use client';
+import IllustrationDelivery from '../../../../components/cs-works/IllustrationDelivery';
 import IllustrationWorkflow from '../../../../components/cs-works/IllustrationWorkflow';
 import { illustrationsEnabled } from '../../../../lib/cs-works/illustrations';
 import { formalQuotesEnabled, type QuoteContext } from '../../../../lib/cs-works/formal-quotes';
@@ -1640,7 +1641,7 @@ async function submitProjectReview(project: Project, action: 'approval' | 'revis
                   </div>
                 </div>
 
-                {deliveryFiles.length ? (
+                {project.illustration_workflow ? <IllustrationDelivery projectId={project.id} status={project.status} /> : deliveryFiles.length ? (
                   <div className="fileList deliveryList">
                     {deliveryFiles.map((file) => (
                       <div className="fileRow" key={file.id}>

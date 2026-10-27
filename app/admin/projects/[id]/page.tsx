@@ -1,4 +1,5 @@
 'use client';
+import IllustrationDelivery from '../../../../components/cs-works/IllustrationDelivery';
 import IllustrationWorkflow from '../../../../components/cs-works/IllustrationWorkflow';
 import { illustrationsEnabled } from '../../../../lib/cs-works/illustrations';
 import FormalQuoteEditor from '../../../../components/cs-works/FormalQuoteEditor';
@@ -1394,7 +1395,7 @@ export default function AdminPage() {
                   </div>
                 </div>
 
-                {project.status === 'approved' ? (
+                {project.illustration_workflow ? <IllustrationDelivery projectId={project.id} status={project.status} isAdmin delivering={changingStatusId === project.id} onDeliver={() => changeProjectStatus(project, 'delivered')} /> : project.status === 'approved' ? (
                   <div className="deliveryPanel">
                     <div className="stateCard success">
                       <strong>✓ お客様承認済み</strong>

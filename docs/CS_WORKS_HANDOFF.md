@@ -1,7 +1,7 @@
 # CS Works — 開発引き継ぎ（Work / ChatGPT Project 共通）
 
 更新日: 2026-10-27
-状態: プレビュー・共有・ダウンロード・画像赤入れは本番公開済み。最新アプリ修正は08c2df8。複数枚対応の正式見積り・発注明細は開発ブランチで第1段階を実装。第18節が最新進捗で、過去の進捗記述より優先。**実装・DB・デプロイの現状は毎回確認すること。**
+状態: プレビュー・共有・ダウンロード・画像赤入れは本番公開済み。最新アプリ修正は08c2df8。複数枚の正式見積り・イラスト別確認は専用Previewでユーザー確認済み。最終納品の突合せ・一括ZIPを同じ開発ブランチに追加し、専用環境の確認待ち。第19節が最新進捗で、過去の進捗記述より優先。**実装・DB・デプロイの現状は毎回確認すること。**
 
 ## 1. 目的と事業上の前提
 - CS Works は株式会社クリエイトサポートが窓口となる、製造業向けテクニカルイラスト制作の BtoB 受発注サービス。
@@ -223,3 +223,12 @@ C. 専用テストDB・Previewで一連の受け入れ確認後、別途本番�
 **次の操作はテストDBへの新SQL適用。** `docs/sql/csworks-illustration-workflow-test-setup.sql` をcs-works-test（jjiebuuasaimaqemhiua）で実行し `ILLUSTRATION_WORKFLOW_TEST_READY` を確認する。既存発注と制作状態を保持する。第1段階のセットアップを再実行しない。
 その後、既存7環境変数を維持し、このPreviewブランチだけに8個目のConfig `NEXT_PUBLIC_CSWORKS_ILLUSTRATION_WORKFLOW=true` を追加して再デプロイ。管理者でTEST-QUOTE-Aの「発注明細から制作一覧を準備」を押し、2点の混在確認・再稿・最終承認を検証する。
 実DB適用・Preview受け入れは未完了。実メール配送未検証。本番適用やPRマージは未承認・未実施。秘密鍵やパスワードは記録しない。
+
+
+## 19. 最終納品の突合せ・一括ダウンロード（2026-10-27、最新）
+
+第2段階の実Preview受け入れ：ユーザーが1点承認・1点修正→修正点だけ第2稿・確認依頼→全点承認を確認。管理者側の状態、納品へ進める表示、旧稿と修正指示の保存・閲覧専用もすべてOK。TEST-QUOTE-Aは承認済み、最終納品は止めている。
+ユーザーが最終ファイルを明細と突き合わせること、お客様側のZIP一括ダウンロードを要望し「進めて」と実装を承認。同じ開発ブランチ・Draft PR #3に追加。本番・main・本番DBは未変更。
+詳細は [CS_WORKS_ILLUSTRATION_DELIVERY.md](CS_WORKS_ILLUSTRATION_DELIVERY.md)。イラスト別に複数形式、案件共通添付、全点登録必須、準備中非公開、納品後固定、個別とブラウザーZIP（合計200MB）を実装。ローカルDB59・API21・ZIP10・ブラウザー10・共有5・セットアップ9とON/OFFビルドを検証。
+**次はcs-works-testのSQL Editorで `docs/sql/csworks-illustration-delivery-test-setup.sql` を一度だけ実行し `ILLUSTRATION_DELIVERY_TEST_READY` を確認する。** 既存の承認状態・履歴・見積り・発注をリセットしない。
+その後、このPreviewブランチだけに9個目のConfig `NEXT_PUBLIC_CSWORKS_ILLUSTRATION_DELIVERY=true` を追加し再デプロイ。各点へ最終ファイルを登録し、未登録時の納品不可、納品後の顧客ZIP全件・帳票9900円・別顧客拒否を実環境で確認する。これらの追加分の実DB/Preview受け入れは未完了。
