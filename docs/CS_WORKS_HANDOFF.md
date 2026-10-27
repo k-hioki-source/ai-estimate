@@ -1,7 +1,7 @@
 # CS Works — 開発引き継ぎ（Work / ChatGPT Project 共通）
 
 更新日: 2026-10-27
-状態: プレビュー・共有・ダウンロード・画像赤入れは本番公開済み。最新アプリ修正は08c2df8。複数枚の正式見積り・イラスト別確認は専用Previewでユーザー確認済み。最終納品の突合せ・一括ZIPを同じ開発ブランチに追加し、専用環境の確認待ち。第23節が最新進捗で、過去の進捗記述より優先。**実装・DB・デプロイの現状は毎回確認すること。**
+状態: 複数枚の正式見積り・点別確認・最終納品・一括ZIPをPR #3でmainへ反映。ユーザーが本番SQL適用成功とProductionの新Config3つの保存を確認済み。本記録のpushでフラグ反映の最終再ビルドを行い、対象デプロイと公開APIを確認する。第24節が最新進捗で、過去の進捗記述より優先。**実装・DB・デプロイの現状は毎回確認すること。**
 
 ## 1. 目的と事業上の前提
 - CS Works は株式会社クリエイトサポートが窓口となる、製造業向けテクニカルイラスト制作の BtoB 受発注サービス。
@@ -266,3 +266,12 @@ Productionの既存接続先とメール/APIキーは維持し、新Config3つ�
 ユーザーが本番SQLを実行し、order_project本文hashガードで停止。追加DDL前のガードなので新機能は未適用。CSVの本文はCRLFだが生成時にLFへ変換していたため、同じ定義でもraw hashが異なる不具合だった。
 生成スクリプトと本番SQLを修正し、CRLF→LFだけを正規化して本文hashを比較する。関数内容の変化やテストDB/適用済みの拒否は維持する。CRLF関数を作って旧不一致を再現し、修正版での適用を含むbundle11項目が成功。
 **次の操作は修正版 `docs/sql/csworks-multi-illustration-production-setup.sql` 全文を本番cs-worksで実行し、MULTI_ILLUSTRATION_PRODUCTION_READYを確認すること。** 本番コード・main・新フラグはまだ変更していない。本番反映のユーザー承認は継続中。
+
+
+## 24. 本番反映と有効化の実行記録（2026-10-27、最新）
+
+ユーザーが修正版の本番SQLを実行し `MULTI_ILLUSTRATION_PRODUCTION_READY` を確認。PR #3をReadyへ変更し、確認済みhead97a65c3をmainへマージした。マージSHAは **f29c7f2397cf50080499fb22e753d7af2042ae1a**。比較時mainはfe62df8で独自変更なし。正常な旧アプリへ戻す必要がある場合はこの比較元を参照するが、新方式データを消す切り戻しは行わない。
+対象Vercel **ai-estimate-rwxr** の初回Productionは成功し、デプロイURLは `https://vercel.com/create-support/ai-estimate-rwxr/4uXR61SSY3wZ2xuoZgR6AMSACyzm`。複数の別Vercelプロジェクトは失敗/成功が混在しており、対象と区別する。
+ユーザーがProduction限定Configとして次の3つのtrue保存を報告：NEXT_PUBLIC_CSWORKS_FORMAL_QUOTES / NEXT_PUBLIC_CSWORKS_ILLUSTRATION_WORKFLOW / NEXT_PUBLIC_CSWORKS_ILLUSTRATION_DELIVERY。既存の本番Supabase・Resend・OpenAIキーをテスト値へ変更しない。既存画像赤入れフラグも維持する。
+この記録コミットをmainへpushし、保存済みフラグを取り込んだ最終Productionビルドを起動する。対象デプロイ成功後、本番URLのlogin/estimateが200、新3API（formal-quotes/illustrations/delivery）が未認証で401 JSONを返すことを読み取りで確認する。401はフラグ有効・認証境界維持の確認であり、サインイン後の新方式の本番受注を実行した証拠ではない。
+実案件を検証目的で更新・発注・納品・入金処理しない。管理者による未提示案件の新方式選択欄の表示や従来案件/帳票の読み取り確認を最後に行う。テストの正式見積り～入金完了は既に専用DB/Previewで確認済み。本番の既存案件は自動変換していない。
