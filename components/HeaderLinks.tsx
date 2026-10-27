@@ -6,6 +6,7 @@ export default function HeaderLinks() {
     <div className="headerRight">
       <nav className="headerLinks">
         <a href="https://www.create-support.co.jp/" target="_blank" rel="noopener noreferrer">会社サイト</a>
+        <a href="https://www.create-support.co.jp/cs-works/cs-works-customer-manual.html" target="_blank" rel="noopener noreferrer">ご利用ガイド</a>
         <Link href="/terms">利用規約</Link>
         <Link href="/privacy-policy">プライバシーポリシー</Link>
       </nav>
