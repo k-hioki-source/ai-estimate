@@ -1631,7 +1631,7 @@ async function handleFormalQuoteRequest() {
 ) : null}
     
     <p className="confidenceComment">
-      概算制作時間：{result.estimate.estimatedHours}時間
+      概算制作時間：1点あたり{result.estimate.estimatedHours}時間 ／ 全{result.estimate.quantity}点合計{Number((result.estimate.estimatedHours * result.estimate.quantity).toFixed(2))}時間
     </p>
   </div>
 ) : null}
@@ -1659,7 +1659,7 @@ async function handleFormalQuoteRequest() {
               <div className="badge">計算内訳</div>
               <ul className="list cleanList">
                <li>
-  <span>想定制作時間</span>
+  <span>想定制作時間（1点あたり／組み合わせは平均）</span>
   <strong>{result.estimate.estimatedHours}時間</strong>
 </li>
 <li>

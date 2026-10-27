@@ -1,3 +1,4 @@
+import { isSideAndDetailPair, priceEstimateHours } from '../../../lib/estimateScope';
 import { sendNotificationEmail } from '../../../lib/email';
 import { NextRequest, NextResponse } from 'next/server';
 import { analyzeImage } from '../../../lib/openai';
@@ -321,7 +322,10 @@ if (file && file.size > 0) {
     // -----------------------------
     // AI解析（分類＋難易度）
     // -----------------------------
+    const combinedScope = isSideAndDetailPair(input.notes, input.quantity, input.style);
     const rawAnalysis = await analyzeImage({
+  combinedScope,
+  isReferenceSample: !(file && file.size > 0),
   imageBase64: base64,
   mimeType,
   sourceType: input.sourceType,
@@ -583,6 +587,7 @@ if (isHighDensityLineTrace) {
 // 単体・外形中心の簡単な取説用線画は、AIが難易度をやや高めに出しても
 // 5時間補正へ入れず、最低価格帯（約1時間・3,000円）を維持する。
 const isSimpleManualLineTrace =
+  !combinedScope &&
   input.sourceType === 'photo_trace' &&
   input.usage === 'manual' &&
   input.style === 'line' &&
@@ -835,6 +840,13 @@ if (minimumHours > 0 && estimate.hours < minimumHours) {
 // 第3エンジン：クリサポ工数マスター
 // 現行・AI・工数マスターを並走させ、統合工数を顧客表示価格に採用する。
 // -----------------------------
+// Earlier legacy floors describe a single illustration. Keep the AI's explicit
+// combined-scope estimate rather than replacing it with those unit-hour floors.
+if (combinedScope) {
+  analysis.estimatedHoursMin = rawAnalysis.estimatedHoursMin;
+  analysis.estimatedHours = rawAnalysis.estimatedHours;
+  analysis.estimatedHoursMax = rawAnalysis.estimatedHoursMax;
+}
 const masterEstimate = calculateMasterEstimate({
   sourceType: input.sourceType,
   usage: input.usage,
@@ -854,21 +866,43 @@ const masterEstimate = calculateMasterEstimate({
 });
 
 const integratedEstimate = calculateIntegratedEstimate({
-  systemHours: estimate.hours,
+  // The master already includes the detail drawing. The fixed engine estimates
+  // the base drawing only; add the detail allowance once, then integrate totals.
+  systemHours: combinedScope ? estimate.hours + (masterEstimate.adjustments.find(a => a.key === 'detail')?.hours || 0) : estimate.hours,
   aiHours: analysis.estimatedHours,
   masterHours: masterEstimate.hours,
   masterMatchScore: masterEstimate.matchScore,
-  verifiedComplexFloorHours: masterEstimate.categoryKey === 'manual_shape_complex' ? 4 : undefined,
-  verifiedSimpleCeilingHours: masterEstimate.categoryKey === 'manual_simple' ? 2.5 : undefined,
+  verifiedComplexFloorHours: !combinedScope && masterEstimate.categoryKey === 'manual_shape_complex' ? 4 : undefined,
+  verifiedSimpleCeilingHours: !combinedScope && masterEstimate.categoryKey === 'manual_simple' ? 2.5 : undefined,
 });
 
 // -----------------------------
 // 顧客表示：3エンジン統合工数を正式採用
 // -----------------------------
-const customerEstimatedHours = integratedEstimate.hours;
-const customerUnitPrice =
-  Math.round((customerEstimatedHours * estimate.hourlyRate) / 100) * 100;
-const customerTotalPrice = customerUnitPrice * input.quantity;
+const pricedHours = priceEstimateHours(
+  integratedEstimate.hours * (combinedScope ? 1 : input.quantity),
+  input.quantity,
+  estimate.hourlyRate
+);
+const customerEstimatedHours = pricedHours.unitHours;
+const customerUnitPrice = pricedHours.unitPrice;
+const customerTotalPrice = pricedHours.totalPrice;
+// Keep saved hours, email and comparison engines consistently per illustration.
+if (combinedScope) {
+  estimate.hours = (estimate.hours + (masterEstimate.adjustments.find(a => a.key === 'detail')?.hours || 0)) / input.quantity;
+  analysis.estimatedHoursMin /= input.quantity;
+  analysis.estimatedHours /= input.quantity;
+  analysis.estimatedHoursMax /= input.quantity;
+  masterEstimate.baseHours /= input.quantity;
+  masterEstimate.adjustmentHours /= input.quantity;
+  masterEstimate.adjustments = masterEstimate.adjustments.map(a => ({ ...a, hours: a.hours / input.quantity }));
+  masterEstimate.hours /= input.quantity;
+  masterEstimate.minHours /= input.quantity;
+  masterEstimate.maxHours /= input.quantity;
+  integratedEstimate.hours /= input.quantity;
+  masterEstimate.reason += '。側面図と部分拡大図の合計を算出後、1点平均へ換算';
+  analysis.summary += ` 側面図1点と部分拡大図1点の合計${pricedHours.totalHours}時間の概算です。画面の1点あたり工数・単価は2点の平均です。`;
+}
 
 // estimateMatchはここで1回だけ
 const estimateMatch = calculateEstimateMatch({

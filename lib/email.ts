@@ -136,7 +136,8 @@ ${isFormal ? '正式見積り依頼' : 'AI概算見積りフォーム'}から送
 ■AI判定
 作業タイプ：${payload.workType || '-'}
 難易度スコア：${difficultyScore ?? '-'}
-想定制作時間：${payload.estimatedHours ?? '-'}時間
+想定制作時間（1点あたり／組み合わせの場合は平均）：${payload.estimatedHours ?? '-'}時間
+全点合計の想定制作時間：${payload.estimatedHours == null ? '-' : Number((payload.estimatedHours * (payload.quantity || 1)).toFixed(2))}時間
 概算金額：${payload.totalPrice?.toLocaleString() ?? '-'}円
 
 AI判定コメント：
@@ -215,7 +216,8 @@ ${isFormal ? '正式見積り依頼' : 'AI概算見積りフォーム'}から送
 ■AI判定
 作業タイプ：${payload.workType || '-'}
 難易度スコア：${difficultyScore ?? '-'}
-想定制作時間：${payload.estimatedHours ?? '-'}時間
+想定制作時間（1点あたり／組み合わせの場合は平均）：${payload.estimatedHours ?? '-'}時間
+全点合計の想定制作時間：${payload.estimatedHours == null ? '-' : Number((payload.estimatedHours * (payload.quantity || 1)).toFixed(2))}時間
 概算金額：${payload.totalPrice?.toLocaleString() ?? '-'}円
 
 AI判定コメント：
@@ -301,7 +303,8 @@ ${payload.name || ''} 様
 ■AI判定
 作業タイプ：${payload.workType || '未判定'}
 難易度スコア：${difficultyScore ?? '-'}
-想定制作時間：${payload.estimatedHours ?? '-'}時間
+想定制作時間（1点あたり／組み合わせの場合は平均）：${payload.estimatedHours ?? '-'}時間
+全点合計の想定制作時間：${payload.estimatedHours == null ? '-' : Number((payload.estimatedHours * (payload.quantity || 1)).toFixed(2))}時間
 AI概算金額：約 ${payload.totalPrice?.toLocaleString() ?? '-'} 円
 
 ■AI判定コメント
