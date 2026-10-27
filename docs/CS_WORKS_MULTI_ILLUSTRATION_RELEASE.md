@@ -12,7 +12,7 @@
 - 本番Supabase: **cs-works / tnswnyegvepundtepfqn**。テストDB **cs-works-test / jjiebuuasaimaqemhiua** と区別する。
 
 ユーザーが専用テストDB/Previewで、正式見積り・発注、点ごとの承認/修正・第2稿・全点承認、過去履歴の固定、納品ファイルの突合せ・納品、顧客ZIP、請求書発行依頼・請求書の2点明細/税込9900円、入金確認・完了まで確認済み。
-テストDBの請求書依頼関数が不足し、専用の互換関数を補完して確認した。本番関数の実定義との照合は未完了。納品書そのものの2点明細/税込9900円は、ユーザーから明示確認を得ていないため、請求書確認と混同しない。
+テストDBの請求書依頼関数が不足し、専用の互換関数を補完して確認した。本番関数は後段のメタデータで照合し、実定義による回帰検証も完了。納品書そのものの2点明細/税込9900円は、ユーザーから明示確認を得ていないため、請求書確認と混同しない。
 実際の通知メール送信はテスト用の無効キーで抑止していたため、配送の受け入れ確認には含めない。ZIPはブラウザー生成、合計200MBまで。
 
 ## 最初に必要な本番メタデータ
@@ -48,5 +48,20 @@ DBに作った見積り・稿・確認履歴・納品対応表は保持する。
 
 ## まだ行っていないこと
 
-本番メタデータの受領、3段階の本番用SQLの確定/適用、PRマージ、Productionフラグ設定、有効化後確認。
-現在は本番メタデータの提供待ち。これは再承認待ちではなく、互換性検証に必要な情報の取得待ち。
+本番用SQLの実環境への適用、PRマージ、Productionフラグ設定、有効化後確認。
+メタデータの受領・照合と本番用SQLの作成/ローカル検証は後段のとおり完了。
+
+## 本番メタデータの照合完了（2026-10-27）
+
+ユーザー提供の `Supabase Snippet Untitled query(8).csv`（353行、顧客行なし）を確認した。テストマーカーはなく、旧画像赤入れの3テーブルは存在し、見積り/点別制作/最終納品の新テーブルは未作成。
+order_project、deliver_project、complete_project、confirm_project_payment、approve_project、request_project_revision、is_admin の本文は従来fixtureと一致した。
+本番request_project_invoiceは `RETURNS projects` のSECURITY DEFINER・search_path=public、所有者=auth.uidをFOR UPDATEで取得し、deliveredからinvoice_requestedへ更新して1案件を返す。authenticatedだけに実行権限がある。テスト互換版とは異なり、再実行の冪等応答や新規メッセージ挿入は行わない。この既存動作を維持し、関数の置換はしない。
+本番関数とproject-files用Storageポリシーのメタデータだけをfixtureへ追加。銀行初期値や顧客データは追加していない。
+
+- `CSWORKS_PRODUCTION_INVOICE_FIXTURE=true node scripts/test-illustration-delivery-db.cjs`: 本番の依頼RPCを使って、新しい見積り→点別確認→納品→請求依頼→請求→入金まで63項目成功。再依頼拒否も本番定義どおり検証。
+- `node scripts/test-multi-illustration-production-setup.cjs`: 本番用bundle10項目成功。確認中の赤入れと完了済み帳票を持つ架空の従来案件を配置し、データ維持・旧レビュー継続・旧納品の本人閲覧/別顧客拒否を検証。関数差異・テストDB・再実行の拒否も確認。
+
+本番用SQL: `docs/sql/csworks-multi-illustration-production-setup.sql`。
+生成元: `scripts/build-multi-illustration-production-setup.cjs`。先述の追加3migrationだけを1トランザクションに統合し、旧赤入れmigration・テスト用関数/行を含めない。
+確認済み既存10関数の本文ハッシュ、既存の前提テーブル・赤入れ制約、新テーブル未適用、テストマーカー不在、請求依頼の権限を確認してから追加する。確認後に関数が変わっていれば停止し、再照合する。lock_timeout=5秒、statement_timeout=120秒。成功時は `MULTI_ILLUSTRATION_PRODUCTION_READY`。
+SQLの実行先は本番cs-works / tnswnyegvepundtepfqn。すでに一部適用済みやガードで停止した場合は、削除やガード除去で進めず、結果を確認する。適用後のコード反映と3フラグのProduction有効化はまだ未実施。

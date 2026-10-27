@@ -1,7 +1,7 @@
 # CS Works — 開発引き継ぎ（Work / ChatGPT Project 共通）
 
 更新日: 2026-10-27
-状態: プレビュー・共有・ダウンロード・画像赤入れは本番公開済み。最新アプリ修正は08c2df8。複数枚の正式見積り・イラスト別確認は専用Previewでユーザー確認済み。最終納品の突合せ・一括ZIPを同じ開発ブランチに追加し、専用環境の確認待ち。第21節が最新進捗で、過去の進捗記述より優先。**実装・DB・デプロイの現状は毎回確認すること。**
+状態: プレビュー・共有・ダウンロード・画像赤入れは本番公開済み。最新アプリ修正は08c2df8。複数枚の正式見積り・イラスト別確認は専用Previewでユーザー確認済み。最終納品の突合せ・一括ZIPを同じ開発ブランチに追加し、専用環境の確認待ち。第22節が最新進捗で、過去の進捗記述より優先。**実装・DB・デプロイの現状は毎回確認すること。**
 
 ## 1. 目的と事業上の前提
 - CS Works は株式会社クリエイトサポートが窓口となる、製造業向けテクニカルイラスト制作の BtoB 受発注サービス。
@@ -251,3 +251,11 @@ C. 専用テストDB・Previewで一連の受け入れ確認後、別途本番�
 準備計画: [CS_WORKS_MULTI_ILLUSTRATION_RELEASE.md](CS_WORKS_MULTI_ILLUSTRATION_RELEASE.md)。今回の適用候補は正式見積り・点別確認・最終納品の追加3migrationだけ。旧画像赤入れmigrationやテスト用セットアップ/請求互換SQLを本番へ一括適用しない。
 **次は本番cs-works（tnswnyegvepundtepfqn）のSQL Editorで `docs/sql/csworks-multi-illustration-production-preflight.sql` を実行し結果CSVを受領。** 顧客行のない読み取り専用確認。request_project_invoice の本文/戻り値/権限、既存文書・トリガー/RLS・Storageポリシー、追加機能の存在を照合して、本番用SQLを確定する。
 Productionの既存接続先とメール/APIキーは維持し、新Config3つだけを後段で有効化する。テストPreviewの9変数は本番へコピーしない。納品書の明細/9900円は明示確認未取得だが請求書は確認済み。本番で実案件を試験のために更新しない。
+
+
+## 22. 本番SQLの準備完了（2026-10-27、最新）
+
+ユーザー提供の本番メタデータ353行を照合。旧画像赤入れは適用済み、新6テーブルは未適用、テストマーカーなし。発注・納品・請求・入金等の主要7関数本文は既存fixtureと一致。本番request_project_invoiceはRETURNS projects、本人案件をロックしてdeliveredからinvoice_requestedへ変更する既存関数。authenticatedの実行権限あり、anonなし。テスト互換関数は本番へ移植せず、既存関数を維持する。
+実定義の依頼RPCを使ったDB63項目と、本番Storageポリシー/既存確認中・完了済みの架空案件でのbundle10項目が成功。既存データ・赤入れ・文書金額・権限の維持と、従来フローの継続を確認。
+**次は本番cs-works（tnswnyegvepundtepfqn）のSQL Editorで `docs/sql/csworks-multi-illustration-production-setup.sql` を全文実行し `MULTI_ILLUSTRATION_PRODUCTION_READY` を確認する。** 追加3段階を1トランザクションに統合。テスト用SQL/旧赤入れmigrationを含めず、元の請求関数を置換しない。既存案件を自動変換・削除しない。確認済み関数の本文hash、前提構造、未適用をガードする。
+詳細は [CS_WORKS_MULTI_ILLUSTRATION_RELEASE.md](CS_WORKS_MULTI_ILLUSTRATION_RELEASE.md)。ユーザーの本番反映承認は継続しており、再承認は不要。現在は本番SQLの実行結果待ち。本番DB適用・mainマージ・Productionの新フラグ3つの有効化はまだ行っていない。CSVの秘密値や顧客行は保存せず、関数/Storageポリシー/ハッシュのメタデータだけをfixture化した。
