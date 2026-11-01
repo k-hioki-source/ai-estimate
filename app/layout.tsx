@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Script from 'next/script';
+import Analytics from '@/components/Analytics';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -51,18 +52,8 @@ export default function RootLayout({
   return (
     <html lang="ja">
       <body>
-        <Script
-          src="https://www.googletagmanager.com/gtag/js?id=G-9GPFX64DXX"
-          strategy="afterInteractive"
-        />
-        <Script id="google-analytics" strategy="afterInteractive">
-          {`
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
-            gtag('config', 'G-9GPFX64DXX');
-          `}
-        </Script>
+        <Script id="protect-invitation-fragment" strategy="beforeInteractive">{`if(location.pathname==='/invite'&&/^[A-Za-z0-9_-]{43}$/.test(location.hash.slice(1))){try{sessionStorage.setItem('csworks.pendingInvitation',JSON.stringify({token:location.hash.slice(1),until:Date.now()+604800000}));history.replaceState(null,'','/invite');}catch(e){}}`}</Script>
+        <Analytics />
 
         {children}
       </body>

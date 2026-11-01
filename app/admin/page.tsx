@@ -15,7 +15,7 @@ type Project = Omit<Database['public']['Tables']['projects']['Row'], 'status'> &
 type Consultation = { id:string; starts_at:string; ends_at:string; title:string; status:string; google_meet_url:string|null; company_name:string|null; contact_name:string|null; customer_email:string|null };
 type Profile = { id:string; company_name:string|null; contact_name:string|null; email:string|null };
 type ProjectInvoice = { project_id:string; payment_due_date:string|null; total_amount:number };
-type ProjectWithData = Project & { customer?: Profile|null; unread_messages?: number; invoice?: ProjectInvoice|null };
+type ProjectWithData = Project & { customer?: Profile|null; unread_messages?: number; unread_materials?: number; invoice?: ProjectInvoice|null };
 
 function fmt(v:string|null){ if(!v)return '―'; return new Intl.DateTimeFormat('ja-JP',{year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(v)); }
 function label(s:Project['status']){ return ({quote_requested:'正式見積り依頼',quote_reviewing:'見積り確認中',quote_presented:'正式見積り提示済み',ordered:'発注済み',in_production:'制作中',customer_review:'お客様確認中',revision:'修正対応中',approved:'承認済み・納品待ち',delivered:'納品済み・請求書発行待ち',invoice_requested:'請求書発行依頼あり',invoiced:'請求済み・入金待ち',completed:'完了',cancelled:'発注見送り'} as Record<string,string>)[s]||s; }
@@ -96,6 +96,19 @@ export default function AdminPage(){
     }
   }
 
+  const materialsByProject:Record<string,number>={};
+  if(projectIds.length){
+    const [{data:files,error:fileError},{data:receipts,error:receiptError}]=await Promise.all([
+      (supabase.from('project_files' as any) as any).select('id,project_id,uploaded_by').in('project_id',projectIds).eq('file_type','reference'),
+      (supabase.from('project_material_receipts' as any) as any).select('file_id')
+    ]);
+    if(fileError||receiptError) setError('資料の確認状況を取得できませんでした。各案件の制作資料をご確認ください。');
+    else {
+      const reviewed=new Set((receipts??[]).map((r:{file_id:string})=>r.file_id));
+      const owners=new Map(ps.map(p=>[p.id,p.user_id]));
+      for(const file of files??[]) if(file.uploaded_by===owners.get(file.project_id)&&!reviewed.has(file.id)) materialsByProject[file.project_id]=(materialsByProject[file.project_id]??0)+1;
+    }
+  }
   const invoiceByProject:Record<string,ProjectInvoice>={};
   if(projectIds.length){
     const {data:invoiceData,error:invoiceError}=await (supabase.from('project_invoices' as any) as any)
@@ -109,13 +122,14 @@ export default function AdminPage(){
     ...p,
     customer:profiles.find(x=>x.id===p.user_id)??null,
     unread_messages:unreadByProject[p.id]??0,
+    unread_materials:materialsByProject[p.id]??0,
     invoice:invoiceByProject[p.id]??null
   })));
   setLoading(false);
  })()},[router]);
- const actionItems=useMemo(()=>{const items:{key:string;projectId:string;projectCode:string;company:string;title:string;detail:string;kind:string}[]=[];for(const p of projects){const company=p.customer?.company_name||p.customer?.contact_name||'お客様';if((p.unread_messages??0)>0)items.push({key:`msg-${p.id}`,projectId:p.id,projectCode:p.project_code,company,title:'新しいメッセージがあります',detail:`未読 ${p.unread_messages}件`,kind:'message'});if(p.status==='quote_requested')items.push({key:`quote-${p.id}`,projectId:p.id,projectCode:p.project_code,company,title:'正式見積り依頼が届いています',detail:p.title??'',kind:'quote'});if(p.status==='revision')items.push({key:`revision-${p.id}`,projectId:p.id,projectCode:p.project_code,company,title:'修正対応が必要です',detail:p.title??'',kind:'revision'});if(p.status==='approved')items.push({key:`approved-${p.id}`,projectId:p.id,projectCode:p.project_code,company,title:'お客様が制作内容を承認しました',detail:'納品対応を進めてください',kind:'approved'});if(p.status==='invoice_requested')items.push({key:`invoice-${p.id}`,projectId:p.id,projectCode:p.project_code,company,title:'請求書発行依頼があります',detail:'請求書を発行してください',kind:'invoice'});}return items},[projects]);
+ const actionItems=useMemo(()=>{const items:{key:string;projectId:string;projectCode:string;company:string;title:string;detail:string;kind:string}[]=[];for(const p of projects){const company=p.customer?.company_name||p.customer?.contact_name||'お客様';if((p.unread_materials??0)>0)items.push({key:`materials-${p.id}`,projectId:p.id,projectCode:p.project_code,company,title:'お客様から制作資料が届いています',detail:`未確認 ${p.unread_materials}件`,kind:'material'});if((p.unread_messages??0)>0)items.push({key:`msg-${p.id}`,projectId:p.id,projectCode:p.project_code,company,title:'新しいメッセージがあります',detail:`未読 ${p.unread_messages}件`,kind:'message'});if(p.status==='quote_requested')items.push({key:`quote-${p.id}`,projectId:p.id,projectCode:p.project_code,company,title:'正式見積り依頼が届いています',detail:p.title??'',kind:'quote'});if(p.status==='revision')items.push({key:`revision-${p.id}`,projectId:p.id,projectCode:p.project_code,company,title:'修正対応が必要です',detail:p.title??'',kind:'revision'});if(p.status==='approved')items.push({key:`approved-${p.id}`,projectId:p.id,projectCode:p.project_code,company,title:'お客様が制作内容を承認しました',detail:'納品対応を進めてください',kind:'approved'});if(p.status==='invoice_requested')items.push({key:`invoice-${p.id}`,projectId:p.id,projectCode:p.project_code,company,title:'請求書発行依頼があります',detail:'請求書を発行してください',kind:'invoice'});}return items},[projects]);
  const counts=useMemo(()=>Object.fromEntries(filters.map(([v])=>[v,v==='all'?projects.length:v==='active'?projects.filter(p=>active.has(p.status)).length:projects.filter(p=>p.status===v).length])),[projects]);
- const visible=useMemo(()=>{const q=search.trim().toLowerCase();return projects.filter(p=>(filter==='all'||(filter==='active'?active.has(p.status):filter==='needs_action'?(p.status==='quote_requested'||p.status==='revision'||p.status==='approved'||p.status==='invoice_requested'):p.status===filter))&&(!q||[p.project_code,p.title,p.customer?.company_name,p.customer?.contact_name,p.customer?.email].some(v=>(v??'').toLowerCase().includes(q))))},[projects,search,filter]);
+ const visible=useMemo(()=>{const q=search.trim().toLowerCase();return projects.filter(p=>(filter==='all'||(filter==='active'?active.has(p.status):filter==='needs_action'?(needsAdminAction(p.status)||(p.unread_materials??0)>0||(p.unread_messages??0)>0):p.status===filter))&&(!q||[p.project_code,p.title,p.customer?.company_name,p.customer?.contact_name,p.customer?.email].some(v=>(v??'').toLowerCase().includes(q))))},[projects,search,filter]);
  if(loading)return <main className="authPage"><section className="authCard"><p>管理画面を読み込んでいます…</p></section></main>;
  return <main className="myPageShell">
   <header className="myPageHeader cswAdminHeader"><div className="cswAdminTitle"><div className="authBrand">CS Works ADMIN</div><h1>案件管理</h1></div><div className="adminHeaderActions"><button className="supportButton" onClick={()=>router.push('/admin/estimates')}>AI見積り</button><button className="supportButton" onClick={()=>router.push('/admin/site')}>トップページ管理</button><button className="supportButton" onClick={()=>router.push('/admin/email')}>メール配信</button><button className="supportButton" onClick={()=>router.push('/admin/consultations')}>相談予約</button><button className="supportButton" onClick={()=>router.push('/admin/calendar')}>Googleカレンダー</button><button className="supportButton" onClick={()=>router.push('/admin/file-retention')}>ファイル保管管理</button><button className="supportButton" onClick={()=>router.push('/admin/support')}>お問い合わせ{supportUnread>0?<span className="supportUnread">{supportUnread}</span>:null}</button><button className="logoutButton" onClick={()=>router.push('/mypage')}>My Page</button></div></header>
@@ -127,20 +141,20 @@ export default function AdminPage(){
      {consultations.filter(b=>b.status==='confirmed'&&new Date(b.ends_at).getTime()>Date.now()).slice(0,5).map(b=><div className="consultationRow" key={b.id}><div><strong>{new Intl.DateTimeFormat('ja-JP',{timeZone:'Asia/Tokyo',month:'2-digit',day:'2-digit',weekday:'short',hour:'2-digit',minute:'2-digit'}).format(new Date(b.starts_at))}　{b.title}</strong><div>{b.company_name||'会社名未登録'} ／ {b.contact_name||'氏名未登録'}　{b.customer_email||''}</div></div><div className="consultationActions">{b.google_meet_url?<a href={b.google_meet_url} target="_blank" rel="noopener noreferrer">Meet参加 ↗</a>:null}<button type="button" onClick={()=>router.push('/admin/consultations')}>詳細 →</button></div></div>)}
      {!consultations.some(b=>b.status==='confirmed'&&new Date(b.ends_at).getTime()>Date.now())&&!consultationError?<p className="consultationEmpty">現在、今後の確定予約はありません。</p>:null}
    </section>
-   {actionItems.length>0?<section className="actionCenter"><div className="actionCenterHead"><div><div className="authBrand">ACTION</div><h2>新着・要対応</h2><p>現在、確認・対応が必要な内容をまとめています。</p></div><span className="actionCountBadge">{actionItems.length}件</span></div><div className="actionItems">{actionItems.map(item=><button type="button" key={item.key} className="actionItem" onClick={()=>router.push(`/admin/projects/${item.projectId}`)}><span className={`actionIcon ${item.kind}`}>{item.kind==='message'?'💬':item.kind==='quote'?'見積':item.kind==='revision'?'修正':item.kind==='approved'?'承認':'請求'}</span><span className="actionText"><strong>{item.title}</strong><span>{item.company}　{item.projectCode}　{item.detail}</span></span><strong className="actionArrow">確認する →</strong></button>)}</div></section>:null}
+   {actionItems.length>0?<section className="actionCenter"><div className="actionCenterHead"><div><div className="authBrand">ACTION</div><h2>新着・要対応</h2><p>現在、確認・対応が必要な内容をまとめています。</p></div><span className="actionCountBadge">{actionItems.length}件</span></div><div className="actionItems">{actionItems.map(item=><button type="button" key={item.key} className="actionItem" onClick={()=>router.push(`/admin/projects/${item.projectId}${item.kind==='material'?'#customer-materials':''}`)}><span className={`actionIcon ${item.kind}`}>{item.kind==='material'?'資料':item.kind==='message'?'💬':item.kind==='quote'?'見積':item.kind==='revision'?'修正':item.kind==='approved'?'承認':'請求'}</span><span className="actionText"><strong>{item.title}</strong><span>{item.company}　{item.projectCode}　{item.detail}</span></span><strong className="actionArrow">確認する →</strong></button>)}</div></section>:null}
   {error?<div className="errorBox" style={{marginTop:20}}>{error}</div>:null}
   <section className="adminProjectList">
-   <div style={{display:'flex',justifyContent:'space-between',gap:16,flexWrap:'wrap',alignItems:'end'}}><div><div className="authBrand">PROJECTS</div><h2>案件一覧</h2><p className="muted">全{projects.length}件 ／ 表示{visible.length}件</p></div><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="案件番号・会社名・案件名で検索" style={{width:'min(360px, 100%)'}}/></div>
+   <div style={{display:'flex',justifyContent:'space-between',gap:16,flexWrap:'wrap',alignItems:'end'}}><div><div className="authBrand">PROJECTS</div><h2>案件一覧</h2>{process.env.NEXT_PUBLIC_CSWORKS_INVITATIONS === 'true' && <p><button type="button" className="primaryButton" onClick={()=>router.push('/admin/intakes')}>＋ 新規案件登録・顧客招待</button></p>}<p className="muted">全{projects.length}件 ／ 表示{visible.length}件</p></div><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="案件番号・会社名・案件名で検索" style={{width:'min(360px, 100%)'}}/></div>
    <div className="desktopFilters adminFilters">
      <button type="button" onClick={()=>setFilter('active')} className={`adminFilterButton ${filter==='active'?'isActive':''}`}>進行中 <span>{counts.active}</span></button>
-     <button type="button" onClick={()=>setFilter('needs_action')} className={`adminFilterButton ${filter==='needs_action'?'isActive':''}`}>要対応 <span>{projects.filter(p=>p.status==='quote_requested'||p.status==='revision'||p.status==='approved'||p.status==='invoice_requested').length}</span></button>
+     <button type="button" onClick={()=>setFilter('needs_action')} className={`adminFilterButton ${filter==='needs_action'?'isActive':''}`}>要対応 <span>{projects.filter(p=>needsAdminAction(p.status)||(p.unread_materials??0)>0||(p.unread_messages??0)>0).length}</span></button>
      <button type="button" onClick={()=>setFilter('all')} className={`adminFilterButton ${filter==='all'?'isActive':''}`}>すべて <span>{counts.all}</span></button>
      {filters.filter(([v])=>!['active','all'].includes(v) && counts[v]>0).map(([v,l])=><button key={v} type="button" onClick={()=>setFilter(v)} className={`adminFilterButton ${filter===v?'isActive':''}`}>{l} <span>{counts[v]}</span></button>)}
    </div>
    <div className="mobileControls">
      <div className="mobileQuickFilters">
        <button type="button" onClick={()=>setFilter('active')} className={`adminFilterButton ${filter==='active'?'isActive':''}`}>進行中 {counts.active}</button>
-       <button type="button" onClick={()=>setFilter('needs_action')} className={`adminFilterButton ${filter==='needs_action'?'isActive':''}`}>要対応 {projects.filter(p=>p.status==='quote_requested'||p.status==='revision'||p.status==='approved'||p.status==='invoice_requested').length}</button>
+       <button type="button" onClick={()=>setFilter('needs_action')} className={`adminFilterButton ${filter==='needs_action'?'isActive':''}`}>要対応 {projects.filter(p=>needsAdminAction(p.status)||(p.unread_materials??0)>0||(p.unread_messages??0)>0).length}</button>
        <button type="button" onClick={()=>setFilter('completed')} className={`adminFilterButton ${filter==='completed'?'isActive':''}`}>完了 {counts.completed}</button>
      </div>
      <label className="mobileSelectLabel">ステータス

@@ -11,7 +11,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    setReturnTo(params.get('returnTo') === '/' ? '/' : '/mypage');
+    setReturnTo(['/', '/invite'].includes(params.get('returnTo') || '') ? params.get('returnTo')! : '/mypage');
   }, []);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -89,7 +89,7 @@ export default function LoginPage() {
         </p>
 
         <p className="authFoot">
-          初めての方は <Link href={returnTo === '/' ? '/signup?returnTo=/' : '/signup'}>無料会員登録</Link>
+          初めての方は <Link href={returnTo === '/invite' ? '/signup?returnTo=/invite' : returnTo === '/' ? '/signup?returnTo=/' : '/signup'}>無料会員登録</Link>
         </p>
 
         <Link className="backLink" href="/">

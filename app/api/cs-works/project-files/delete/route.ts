@@ -95,6 +95,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: false, error: 'この制作資料は削除できません。' }, { status: 403 });
     }
 
+    if (!file.storage_path.startsWith(projectId + '/') || /(^|\/)\.\.?(\/|$)|\\|\/\//.test(file.storage_path)) {
+      return NextResponse.json({ ok: false, error: '保存先と案件が一致しません。' }, { status: 403 });
+    }
+
     // 所有権確認後だけservice roleを使用する。
     const admin = createClient(url, serviceRoleKey, {
       auth: { persistSession: false, autoRefreshToken: false },
