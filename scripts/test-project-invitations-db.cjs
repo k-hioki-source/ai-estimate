@@ -71,6 +71,25 @@ async function accept(hash='a'.repeat(64)){return (await q('select csworks_accep
  });
  await test('accepted intake cannot be edited',()=>deny('select csworks_save_intake($1,$2,$3::jsonb)',[i.id,i.version,JSON.stringify(fields)],'40001'));
  await test('legacy quote requires admin confirmation; existing quote can be re-presented',async()=>{await ex("reset role;select set_config('request.jwt.claim.sub','',false)");await q("update projects set status='quote_presented',quoted_amount=1000,confirmed_deadline='2026-12-01' where id=$1",[id(11)]);await actor(1);await deny('select order_project($1)',[id(11)]);await actor(3);await q("update projects set quote_presented_at=now() where id=$1",[id(11)]);await actor(1);await q('select order_project($1)',[id(11)])});
+ await test('legacy review rejects other customer and records revision atomically',async()=>{
+  await ex('reset role');await q("insert into projects(id,user_id,project_code,title,status) values($1,$2,$3,'Legacy pre-existing','customer_review')",[id(12),id(1),'LEGACY-REVIEW']);
+  await actor(2);await deny('select csworks_submit_legacy_review($1,$2,$3)',[id(12),'revision_request','修正']);
+  await actor(1);const r=(await q('select csworks_submit_legacy_review($1,$2,$3) r',[id(12),'revision_request','位置を修正']))[0].r;
+  assert.equal(r.project.status,'revision');assert.equal(r.message.message_type,'revision_request');assert.equal(r.message.user_id,id(1));
+ });
+ await test('legacy approval records approval and rejects replay',async()=>{
+  await ex('reset role');await q("insert into projects(id,user_id,project_code,title,status) values($1,$2,$3,'Legacy pre-existing','customer_review')",[id(13),id(1),'LEGACY-APPROVAL']);
+  await actor(1);const r=(await q('select csworks_submit_legacy_review($1,$2,$3) r',[id(13),'approval','']))[0].r;
+  assert.equal(r.project.status,'approved');assert.equal(r.message.message_type,'approval');
+  await deny('select csworks_submit_legacy_review($1,$2,$3)',[id(13),'approval','']);
+ });
+ await test('customer read marker cannot mark another customer project',async()=>{
+  await actor(3);await q("insert into project_messages(project_id,user_id,message,message_type,sender_type) values($1,$2,'reply','message','admin')",[id(11),id(3)]);
+  await actor(2);await q('select csworks_mark_messages_read($1::uuid[])',[[id(11)]]);
+  await actor(3);assert.equal((await q("select read_by_customer_at from project_messages where project_id=$1 and message_type='message' and sender_type='admin'",[id(11)]))[0].read_by_customer_at,null);
+  await actor(1);await q('select csworks_mark_messages_read($1::uuid[])',[[id(11)]]);
+  assert.ok((await q("select read_by_customer_at from project_messages where project_id=$1 and message_type='message' and sender_type='admin'",[id(11)]))[0].read_by_customer_at);
+ });
  await test('edit revokes earlier URL',async()=>{await actor(3);let next=await create();let inv=await issue(next,'d'.repeat(64));await finish(inv);await actor(3);await q('select csworks_save_intake($1,$2,$3::jsonb)',[next.id,next.version,JSON.stringify({...fields,title:'Changed'})]);await actor(1);assert.equal((await accept('d'.repeat(64))).error,'invalid_invitation')});
  await test('expired token rejected',async()=>{await actor(3);let next=await create({...fields,email:'b@example.test'});let inv=await issue(next,'e'.repeat(64));await finish(inv);await ex('reset role');await q("update project_invitations set created_at=now()-interval '8 days',expires_at=now()-interval '1 day' where id=$1",[inv.id]);await actor(2);assert.equal((await accept('e'.repeat(64))).error,'invalid_invitation')});
  await test('no-quote invitation creates quote-requested project; explicit revoke blocks it first',async()=>{await actor(3);let next=await create({...fields,email:'b@example.test',quote_items:null,quote_deadline:''});let inv=await issue(next,'1'.repeat(64));await finish(inv);await actor(3);await q('select csworks_revoke_invitation($1)',[next.id]);await actor(2);assert.equal((await accept('1'.repeat(64))).error,'invalid_invitation');await ex("reset role");await q("update project_invitations set created_at=now()-interval '2 minutes' where id=$1",[inv.id]);inv=await issue(next,'2'.repeat(64));await finish(inv);await actor(2);await accept('2'.repeat(64));assert.equal((await q('select status from projects where id=$1',[next.project_id]))[0].status,'quote_requested')});
