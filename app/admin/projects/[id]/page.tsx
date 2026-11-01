@@ -161,6 +161,9 @@ export default function AdminPage() {
   const [projects, setProjects] = useState<ProjectWithData[]>([]);
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [reviewedMaterials, setReviewedMaterials] = useState<string[]>([]);
+  const [markingMaterials, setMarkingMaterials] = useState(false);
+  const [materialReceiptError, setMaterialReceiptError] = useState('');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [changingStatusId, setChangingStatusId] = useState<string | null>(null);
@@ -308,6 +311,9 @@ export default function AdminPage() {
             grouped[file.project_id] = [...(grouped[file.project_id] ?? []), item];
           }
           setProjectFiles(grouped);
+          const {data:receipts,error:receiptError}=await (supabase.from('project_material_receipts' as any) as any).select('file_id');
+          if(receiptError) setMaterialReceiptError('資料の確認状況を取得できませんでした。');
+          else setReviewedMaterials((receipts??[]).map((r:{file_id:string})=>r.file_id));
         }
       }
 
@@ -787,6 +793,20 @@ export default function AdminPage() {
   const form = project ? forms[project.id] : undefined;
   const invoice = project ? (projectInvoices[project.id] ?? null) : null;
 
+  async function markMaterialsReviewed() {
+    if(!project||markingMaterials) return;
+    const ids=files.filter(f=>f.file_type==='reference'&&f.uploaded_by===project.user_id&&!reviewedMaterials.includes(f.id)).map(f=>f.id);
+    if(!ids.length) return;
+    setMarkingMaterials(true);
+    setMaterialReceiptError('');
+    try {
+      const supabase=getSupabaseBrowserClient();
+      const {error}=await (supabase.from('project_material_receipts' as any) as any).upsert(ids.map(file_id=>({file_id})),{onConflict:'file_id',ignoreDuplicates:true});
+      if(error) throw error;
+      setReviewedMaterials(current=>[...current,...ids]);
+    } catch { setMaterialReceiptError('確認済みの保存に失敗しました。もう一度お試しください。'); }
+    finally { setMarkingMaterials(false); }
+  }
   const referenceFiles = files.filter((file) => file.file_type === 'reference');
   const reviewFiles = files.filter(
     (file) => file.file_type === 'review' || file.file_type === 'revision'
@@ -1029,8 +1049,8 @@ export default function AdminPage() {
                   </div>
                 </div>
 
-                {['ordered', 'in_production', 'customer_review', 'revision'].includes(project.status) ? (
-                  <div className="uploadPanel referencePanel">
+                {(referenceFiles.length>0 || ['ordered', 'in_production', 'customer_review', 'revision'].includes(project.status)) ? (
+                  <div id="customer-materials" className="uploadPanel referencePanel">
                     <div className="referencePanelHead">
                       <div>
                         <strong>お客様からの制作資料・指示原稿</strong>
@@ -1043,6 +1063,8 @@ export default function AdminPage() {
                     ) : (
                       <div className="emptyInline">お客様から追加された制作資料はまだありません。</div>
                     )}
+                    {materialReceiptError ? <p role="alert">{materialReceiptError}</p> : null}
+                    {referenceFiles.some(f=>f.uploaded_by===project.user_id&&!reviewedMaterials.includes(f.id)) ? <button type="button" className="primaryButton" disabled={markingMaterials} onClick={markMaterialsReviewed}>{markingMaterials?'保存中…':'資料を確認済みにする'}</button> : referenceFiles.length ? <p>資料は確認済みです。</p> : null}
                     <p className="referenceHint">
                       資料が不足している場合は、下の「お客様とのメッセージ」から追加資料をご依頼ください。
                     </p>

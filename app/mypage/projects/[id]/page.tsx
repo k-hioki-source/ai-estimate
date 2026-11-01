@@ -1140,6 +1140,7 @@ async function submitProjectReview(project: Project, action: 'approval' | 'revis
               <div className="projectEyebrow">PROJECT</div>
               <div className="projectCode">{project.project_code}</div>
               <h2>{project.title}</h2>
+              <a className="messageJump" href="#project-messages">担当者に相談・メッセージを送る ↓</a>
               <span className={`statusPill status-${project.status}`}>
                 {projectStatusLabel(project.status)}
               </span>
@@ -1591,16 +1592,16 @@ async function submitProjectReview(project: Project, action: 'approval' | 'revis
                 )}
               </section>
 
-              <section className="detailSection">
+              <section id="project-messages" className="detailSection messageSection">
                 <div className="sectionTitle">
                   <div>
                     <div className="sectionNumber">05</div>
-                    <h3>メッセージ</h3>
+                    <h3>クリエイトサポートへのご相談・メッセージ</h3>
                   </div>
                 </div>
 
                 <p className="sectionLead">
-                  この案件について、クリエイトサポートと直接やり取りできます。
+                  制作のご質問・追加のご指示はこちらへ。担当者とこの案件について直接やり取りできます。
                 </p>
 
                 <div className="chatList">
@@ -1626,6 +1627,7 @@ async function submitProjectReview(project: Project, action: 'approval' | 'revis
 
                 <div className="chatComposer">
                   <textarea
+                    aria-label="担当者へのメッセージ"
                     value={chatText}
                     onChange={(e) => setChatText(e.target.value)}
                     placeholder="この案件についての質問・連絡事項を入力してください。"
@@ -2028,6 +2030,14 @@ async function submitProjectReview(project: Project, action: 'approval' | 'revis
         .timelineItem p { margin: 5px 0 0; color: #475569; line-height: 1.65; white-space: pre-wrap; }
         .emptyInline { padding: 18px; border-radius: 11px; background: #f8fafc; color: #64748b; font-size: 13px; }
         .sectionLead { margin: -6px 0 16px; color: #64748b; font-size: 13px; line-height: 1.65; }
+        .messageJump { display: block; width: fit-content; margin: 0 0 14px; padding: 10px 14px; border-radius: 10px; background: #fff; color: #1746bb; font-weight: 800; text-decoration: none; }
+        .messageSection { padding: 24px; border: 2px solid #93b4ff; border-radius: 18px; background: #fff; box-shadow: 0 8px 24px rgba(37,99,235,.08); scroll-margin-top: 24px; }
+        .messageSection .sectionTitle h3 { color: #1746bb; font-size: 20px; }
+        .messageSection .sectionLead { color: #334155; font-size: 14px; }
+        .messageSection .chatRow.other .chatBubble { background: #eef4ff; border-left: 4px solid #2563eb; }
+        .messageSection .chatComposer { padding: 16px; border-radius: 12px; background: #eff5ff; }
+        .messageSection textarea:focus { outline: 2px solid #2563eb; outline-offset: 2px; }
+        @media(max-width:640px) { .messageSection { padding: 16px; } .messageSection .sectionTitle h3 { font-size: 17px; } }
         .chatList { display: grid; gap: 14px; }
         .chatRow { max-width: 82%; }
         .chatRow.mine { margin-left: auto; }
