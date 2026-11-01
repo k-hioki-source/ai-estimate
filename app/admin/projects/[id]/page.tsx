@@ -326,12 +326,12 @@ export default function AdminPage() {
           const groupedMessages: Record<string, ProjectMessage[]> = {};
 
           // 案件詳細を開いた時点で、お客様からの通常メッセージを既読にする
-          await (supabase.from('project_messages' as any) as any)
+          if (process.env.NEXT_PUBLIC_CSWORKS_ACCESS_HARDENING === 'true') { await (supabase as any).rpc('csworks_mark_messages_read', { p_project_ids: projectIds }); } else { await (supabase.from('project_messages' as any) as any)
             .update({ read_by_admin_at: new Date().toISOString() })
             .in('project_id', projectIds)
             .eq('message_type', 'message')
             .eq('sender_type', 'customer')
-            .is('read_by_admin_at', null);
+            .is('read_by_admin_at', null); }
 
           for (const item of ((messageData ?? []) as ProjectMessage[])) {
             groupedMessages[item.project_id] = [

@@ -398,12 +398,12 @@ const [orderError, setOrderError] = useState('');
     }
     if (me) console.error('Project messages load error:', me);
     else {
-      await (supabase.from('project_messages' as any) as any)
+      if (process.env.NEXT_PUBLIC_CSWORKS_ACCESS_HARDENING === 'true') { await (supabase as any).rpc('csworks_mark_messages_read', { p_project_ids: ids }); } else { await (supabase.from('project_messages' as any) as any)
         .update({ read_by_customer_at: new Date().toISOString() })
         .in('project_id', ids)
         .eq('message_type', 'message')
         .eq('sender_type', 'admin')
-        .is('read_by_customer_at', null);
+        .is('read_by_customer_at', null); }
 
       const grouped: Record<string, ProjectMessage[]> = {};
       for (const m of ((md ?? []) as ProjectMessage[])) grouped[m.project_id] = [...(grouped[m.project_id] ?? []), m];
@@ -727,7 +727,15 @@ async function submitProjectReview(project: Project, action: 'approval' | 'revis
       finally { setReviewingProjectId(null); }
       return;
     }
-    const { data: msg, error: msgError } = await (supabase.from('project_messages' as any) as any)
+    let msg: ProjectMessage;
+    if (process.env.NEXT_PUBLIC_CSWORKS_ACCESS_HARDENING === 'true') {
+    const { data: result, error: reviewError } = await (supabase as any).rpc('csworks_submit_legacy_review', { p_project_id: project.id, p_action: action, p_comment: comment });
+    if (reviewError || !result) { setReviewingProjectId(null); setReviewError('確認結果を送信できませんでした。再読み込みしてください。'); return; }
+    msg = result.message;
+    setProjects(cur => cur.map(p => p.id === project.id ? result.project : p));
+    await sendCsWorksNotification(supabase, action === 'approval' ? 'approved' : 'revision_requested', project.id, comment).catch(() => false);
+    } else {
+    const { data: legacyMsg, error: msgError } = await (supabase.from('project_messages' as any) as any)
       .insert({ project_id: project.id, user_id: user.id, message: action === 'approval' ? (comment || '確認内容を承認しました。') : comment, message_type: action })
       .select('*').single();
     if (msgError) {
@@ -771,6 +779,8 @@ async function submitProjectReview(project: Project, action: 'approval' | 'revis
       if (!mailSent) {
         console.error('Approval email notification failed.');
       }
+    }
+    msg = legacyMsg;
     }
     setProjectMessages((cur) => ({ ...cur, [project.id]: [...(cur[project.id] ?? []), msg as ProjectMessage] }));
     setReviewComments((cur) => ({ ...cur, [project.id]: '' }));
