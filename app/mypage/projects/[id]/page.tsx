@@ -1258,7 +1258,7 @@ async function submitProjectReview(project: Project, action: 'approval' | 'revis
 
                 {project.status === 'quote_requested' ||
                 project.status === 'quote_reviewing' ? (
-                  <div className="stateCard neutral">
+                  <div className="stateCard quotePreparing">
                     <strong>正式見積りを作成しています</strong>
                     <p>
                       ご依頼内容を確認のうえ、正式な金額・工数・納期をご案内します。
@@ -1989,6 +1989,9 @@ async function submitProjectReview(project: Project, action: 'approval' | 'revis
         .invoiceDocumentButton { margin-top: 14px; margin-left: 8px; width: auto !important; padding: 11px 16px; border: 1px solid #93c5fd; border-radius: 10px; background: #fff; color: #1d4ed8; font-weight: 900; cursor: pointer; }
         .invoiceDocumentButton:hover { background: #eff6ff; }
         .stateCard.neutral { background: #f8fafc; }
+        .stateCard.quotePreparing { padding: 22px; background: #eff6ff; border: 2px solid #93b4ff; border-left: 6px solid #2459ed; box-shadow: 0 6px 18px rgba(36,89,237,.08); }
+        .stateCard.quotePreparing strong { display: block; color: #1743b5; font-size: 20px; line-height: 1.5; }
+        .stateCard.quotePreparing p { margin-top: 10px; color: #1e3a5f; font-size: 14px; line-height: 1.8; }
         .stateCard.attention { background: #fffaf2; border-color: #fed7aa; }
         .stateCard.progress { background: #eff6ff; border-color: #bfdbfe; }
         .stateCard.success { background: #f0fdf4; border-color: #bbf7d0; color: #166534; }
