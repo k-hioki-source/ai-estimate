@@ -779,7 +779,7 @@ async function handleFormalQuoteRequest() {
   if (isLanding && (!authChecked || user)) return null;
 
   return (
-  <div className="stackLarge">
+  <div className={`stackLarge ${isLanding ? 'cswLanding' : ''}`}>
 
     {/* ヘッダー（ロゴ） */}
     <div className="header">
@@ -804,25 +804,17 @@ async function handleFormalQuoteRequest() {
     {/* CS Works v5: 最初に実際のAI概算見積り窓口を表示 */}
     {(isLanding || !result) && <section className={`cswTopHero ${!isLanding ? 'cswTopHeroLoggedIn' : ''}`} aria-label="CS Works AI概算見積り">
       {isLanding && <div className="cswTopHeroCopy">
-        <div className="eyebrow">CS WORKS｜CREATE SUPPORT</div>
-        {authChecked && user ? (
-          <h1 className="cswTopHeadline">AI概算見積り</h1>
-        ) : (
-          <h1 className="cswTopHeadline">そのイラスト、<span>いくらで作れる？</span></h1>
-        )}
-        <p className="cswTopLead">
-          写真・図面・文章から制作内容を整理。
-          概算見積りを入口に、正式見積り・発注・制作確認・納品まで。
-          技術イラストの制作依頼を、ひとつの場所で。
-        </p>
-        <div className="cswTopChips">
-          <span>登録なしで概算見積り</span>
-          <span>法人対応</span>
-          <span>技術イラスト制作30年以上</span>
+        <div className="cswHeroWords">
+          <div className="cswHeroEyebrow">CS Works <span>テクニカルイラストのオンライン見積り・制作依頼</span></div>
+          <h1 className="cswTopHeadline">テクニカルイラストの<br />見積りは、<span>待たない。</span></h1>
+          <p className="cswTopLead">要望を文章で書くと、AIがタッチや使用シーンを汲み取って自動で選択。あとは点数・サイズ感・納期感を選んで、画像を上げるだけ。ボタンを押せば、約3秒で概算が出ます。登録は不要です。</p>
+          <div className="cswHeroActions"><a href="#ai-estimate" className="cswHeroCta">無料でAI見積りを始める <span aria-hidden="true">↗</span></a><a href="#csw-how">使い方を見る ↓</a></div>
+          <p className="cswHeroNote">※ 算出時間は目安です。入力内容・通信状況により異なります。</p>
+          <div className="cswTopChips"><span>登録不要</span><span>概算見積り無料</span><span>PDFダウンロード対応</span></div>
         </div>
         <figure className="cswTopMainVisual">
           <img src="/images/hydraulic.png" alt="クリエイトサポート制作の油圧シリンダー・カットモデルイラスト" />
-          <figcaption>複雑な製品構造も、わかりやすい技術イラストに。</figcaption>
+          <figcaption><span>ILLUSTRATION BY CREATE SUPPORT</span>複雑な構造を、伝わるかたちに。</figcaption>
         </figure>
         <p className="cswTopCredit">制作・品質管理：株式会社クリエイトサポート</p>
         {user ? <Link href="/mypage" className="cswTopAccountLink">マイページへ →</Link> : null}
@@ -866,20 +858,16 @@ async function handleFormalQuoteRequest() {
     </section>}
 
 
-    {isLanding && (
-    <section className="updateBox" id="csw-announcements">
-      <div className="updateBadge">AI概算見積り</div>
-      <div>
-        <h2 className="updateTitle">画像がなくても、その場で概算を確認できます</h2>
-        <p className="updateText">
-          参考画像をアップロードするか、9種類のサンプルから近いイメージを選択。AIが制作内容を解析して概算金額を算出します。
-        </p>
+    {isLanding && <section className="cswHow" id="csw-how" aria-labelledby="csw-how-title">
+      <div className="cswSectionHeading"><p>HOW IT WORKS</p><h2 id="csw-how-title">見積りのやり取りを、<br />もっとシンプルに。</h2><span>作りたいものが決まったら、まずは制作費の目安を。</span></div>
+      <div className="cswSteps">
+        <article><span className="cswStepNumber">01</span><div className="cswStepVisual cswStepText">取扱説明書に使う<br /><strong>製品の白黒線画を作りたい</strong><span>✦ AIがタッチ・使用シーンを整理</span></div><h3>要望を、文章で伝える。</h3><p>用途や仕上がりのイメージを入力。AIが内容に合う条件を提案します。</p></article>
+        <article><span className="cswStepNumber">02</span><div className="cswStepVisual cswStepOptions"><span>点数 <b>1点</b></span><span>サイズ感 <b>選択</b></span><span>納期感 <b>選択</b></span><small>＋ 参考画像をアップロード</small></div><h3>条件と画像を、セット。</h3><p>点数・サイズ感・納期感を選び、参考画像を追加。画像がなければサンプルも使えます。</p></article>
+        <article><span className="cswStepNumber">03</span><div className="cswStepVisual cswStepResult"><span>AI概算見積り</span><strong>約 <b>3</b> 秒</strong><small>結果を確認・PDFでダウンロード</small></div><h3>その場で、概算を確認。</h3><p>見積りボタンを押すだけ。金額を確認してから、正式見積りの相談へ進めます。</p></article>
       </div>
-    </section>
-
-    )}
-
-
+      <p className="cswHeroNote">※ 算出時間は目安です。概算金額は正式見積りとは異なります。</p>
+      <a href="#ai-estimate" className="cswTextCta">登録なしで、見積りを試す ↗</a>
+    </section>}
 
     {isLanding ? (
       <section className="csWorksBridge card">
