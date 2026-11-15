@@ -475,12 +475,21 @@ sourceType が reference_drawing の場合はその意味を尊重し、単な�
 lineDifficulty も65以上を目安にしてください。
 単純な standard_trace にはしないでください。
 
-写真に沿って単体製品の外観を描く販促用リアルイラスト（例：電動工具1台）は、
-曲面・樹脂・金属・陰影があっても通常は14〜18時間、中心16時間（8時間×2日）です。
-sourceType が reference_drawing でも写真に沿うだけなら、この基準を優先します。
-高い部品密度や難易度スコアだけでconcept_diagramや26〜40時間にしないでください。
-概念図は構成・関係・情報設計の制作が実際に必要な場合だけです。
-以下の26時間基準は、写真にない形状や別アングルを再構成する依頼に限ります。
+【写真に沿った製品単体のリアルイラスト：工程別に見積もる】
+一律16時間・14〜18時間への丸めはしない。次の2工程を画像から独立に評価する。
+1. realLineHours：外形・分割線・開口・通気口・部品境界を描く線画の工数。
+2. realColorHours：色面・グラデーション・金属や樹脂の質感・反射・陰影を仕上げる彩色工数。
+coloringComplexity（0〜100）も、形状の複雑さとは別に返す。
+線画のスコア（partDensity/lineDifficulty/structureComplexity）は外形・可視部品の構造を評価し、
+赤い光沢や金属の反射だけで形状スコアを上げない。外観1点を内部機構の再設計と混同しない。
+基準例（商品名による固定値ではなく同程度の作業量を比較する）：
+・開いたヘアアイロン：大きな面と細長い輪郭、少数のボタン・ヒンジ・コード。
+  形状スコア45〜60、coloringComplexity45〜60、線画3h＋彩色5h＝8h前後。
+・バッテリー付きディスクグラインダー：握り部、モーター部、バッテリー、通気口、ガード、刃など。
+  形状スコア65〜75、coloringComplexity65〜75、線画5h＋彩色8h＝13h前後。
+さらに単純なら短く、細かな部品・複雑な材質・多い文字等があれば増やす。8hや13hに固定しない。
+estimatedHoursはrealLineHours＋realColorHoursの合計、最小・最大も工程に応じて変動させる。
+reference_drawingでも写真に沿う外観はこの基準を最優先。次の26h基準は別角度や写真にない形状の再構成だけ。
 
 販促用のリアルな工業製品を、写真・資料からオリジナルで新規作図する場合、
 通常の1点は estimatedHoursMin 24時間前後、estimatedHours 26時間前後、
@@ -628,6 +637,9 @@ JSONのみで出力してください。
   "hasLeaderLines": boolean,
   "hasPartNumbers": boolean,
   "isIndustrialProduct": boolean,
+  "realLineHours": number | null,
+  "realColorHours": number | null,
+  "coloringComplexity": number | null,
   "estimatedHoursMin": number,
   "estimatedHours": number,
   "estimatedHoursMax": number,
@@ -686,6 +698,9 @@ summaryは日本語で簡潔に書いてください。
     partDensity: clampNumber(parsed.partDensity, 50, 0, 100),
     lineDifficulty: clampNumber(parsed.lineDifficulty, 50, 0, 100),
     structureComplexity: clampNumber(parsed.structureComplexity, 50, 0, 100),
+    realLineHours: typeof parsed.realLineHours === 'number' && Number.isFinite(parsed.realLineHours) && parsed.realLineHours > 0 ? parsed.realLineHours : undefined,
+    realColorHours: typeof parsed.realColorHours === 'number' && Number.isFinite(parsed.realColorHours) && parsed.realColorHours > 0 ? parsed.realColorHours : undefined,
+    coloringComplexity: typeof parsed.coloringComplexity === 'number' && Number.isFinite(parsed.coloringComplexity) && parsed.coloringComplexity >= 0 && parsed.coloringComplexity <= 100 ? parsed.coloringComplexity : undefined,
     estimatedHoursMin: Number(parsed.estimatedHoursMin || 0),
 estimatedHours: Number(parsed.estimatedHours || 0),
     estimatedHoursMax: Number(parsed.estimatedHoursMax || 0),
@@ -729,4 +744,5 @@ function clampNumber(
   if (Number.isNaN(n)) return fallback;
   return Math.max(min, Math.min(max, Math.round(n)));
 }
+
 
