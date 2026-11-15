@@ -378,6 +378,11 @@ if (partMatch) {
     // ★ここ追加
 let workType = analysis.workType;
 
+// カラー選択時は参考画像の光沢をリアル制作の依頼と解釈しない。
+if (input.style === 'color' && workType === 'realistic_illustration') {
+  workType = 'standard_trace';
+}
+
 const normalizedNotes = input.notes
   .toLowerCase()
   .replace(/[３]/g, '3')
@@ -872,9 +877,13 @@ const integratedEstimate = calculateIntegratedEstimate({
   aiHours: analysis.estimatedHours,
   masterHours: masterEstimate.hours,
   masterMatchScore: masterEstimate.matchScore,
-  verifiedComplexFloorHours: !combinedScope && masterEstimate.categoryKey === 'manual_shape_complex' ? 4 : undefined,
-  verifiedSimpleCeilingHours: !combinedScope && masterEstimate.categoryKey === 'manual_simple' ? 2.5 : undefined,
+  verifiedComplexFloorHours: masterEstimate.categoryKey === 'color_simple' ? masterEstimate.hours : !combinedScope && masterEstimate.categoryKey === 'manual_shape_complex' ? 4 : undefined,
+  verifiedSimpleCeilingHours: masterEstimate.categoryKey === 'color_simple' ? masterEstimate.hours : !combinedScope && masterEstimate.categoryKey === 'manual_simple' ? 2.5 : undefined,
 });
+
+if (masterEstimate.categoryKey === 'color_simple') {
+  analysis.summary = `${analysis.summary || ''} 通常カラーとして、線画${masterEstimate.baseHours}時間＋着色1時間を基準に算出しています（簡単な陰影・グラデーションを含む）。`;
+}
 
 // -----------------------------
 // 顧客表示：3エンジン統合工数を正式採用

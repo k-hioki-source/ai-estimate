@@ -171,12 +171,29 @@ function chooseCategory(input: MasterEstimateInput, userText: string, aiText: st
   if (style === 'real') {
     return { key: 'real', label: 'リアルイラスト', baseHours: 10, reason: '資料から形状を構成するリアル表現（質感・光沢・陰影）基準' };
   }
-  if (workType === 'realistic_illustration') {
+  // 表現の選択を優先し、参考画像の光沢だけでカラーをリアルへ昇格しない。
+  if (workType === 'realistic_illustration' && style !== 'color') {
     return { key: 'real', label: 'リアルイラスト', baseHours: 10, reason: 'AIがリアル表現と判定した場合の基準' };
   }
 
   // v4: カラーは標準4h、高密度・複雑形状は5h。
   if (style === 'color') {
+    const simpleColorTrace = sourceType === 'photo_trace' && input.isIndustrialProduct === true &&
+      [input.difficultyScore, input.partDensity, input.lineDifficulty, input.structureComplexity]
+        .every(score => typeof score === 'number' && Number.isFinite(score) && score >= 0 && score <= 100) &&
+      difficulty < 65 && !dense &&
+      (input.structureComplexity || 0) < 65 &&
+      !input.hasLeaderLines && !input.hasPartNumbers &&
+      !hasExplicitCutaway(userText) &&
+      !includesAny(userText, ['背景込み', '背景を含', '背景あり', '背景も', '複数', 'キャラクター', '人物', '全要素', '完全パス']);
+    if (simpleColorTrace) {
+      const lineCategory = chooseCategory(
+        { ...input, style: 'line', workType: 'standard_trace' }, userText, aiText, text
+      );
+      return { key: 'color_simple', label: 'カラーイラスト・線画＋着色',
+        baseHours: lineCategory.baseHours,
+        reason: `${lineCategory.label}の線画工数に着色1時間を加算（簡単な陰影・グラデーションを含む）` };
+    }
     const complexColor =
       dense ||
       difficulty >= 65 ||
@@ -272,6 +289,8 @@ export function calculateMasterEstimate(input: MasterEstimateInput) {
   const add = (key: string, label: string, hours: number, condition: boolean) => {
     if (condition) adjustments.push({ key, label, hours });
   };
+
+  add('coloring', '着色（簡単な陰影を含む）', 1, category.key === 'color_simple');
 
   const categoryIncludesPerson = ['manual', 'rough_drawing'].includes(category.key);
   const categoryIncludesStructure = ['structure', 'vehicle_structure', '3dcg_structure', 'new_state'].includes(category.key);
