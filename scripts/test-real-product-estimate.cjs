@@ -25,7 +25,10 @@ async function run(overrides={}) {
  const simple=await run({analysis:{partDensity:20,lineDifficulty:20,structureComplexity:20,coloringComplexity:20,realLineHours:1.5,realColorHours:2}});assert.equal(simple.estimate.estimatedHours,3.5);
  const complex=await run({analysis:{partDensity:85,lineDifficulty:85,structureComplexity:85,coloringComplexity:85,realLineHours:7,realColorHours:12}});assert.equal(complex.estimate.estimatedHours,19);
  const fallback=await run({analysis:{realLineHours:undefined,realColorHours:undefined}});assert.equal(fallback.estimate.estimatedHours,8);
- const independent=await run({analysis:{realLineHours:4,realColorHours:6}});assert.ok(independent.estimate.estimatedHours>8);assert.ok(independent.estimate.estimatedHours<10.5);
+ const independent=await run({analysis:{realLineHours:4,realColorHours:6}});assert.equal(independent.estimate.estimatedHours,8);
+ const reported=await run({analysis:{partDensity:55,lineDifficulty:65,structureComplexity:50,coloringComplexity:75,realLineHours:7,realColorHours:8}});assert.equal(reported.estimate.estimatedHours,8);assert.equal(reported.estimate.total,24000);assert.match(reported.vision.reason,/線画3時間/);assert.match(reported.vision.reason,/陰影5時間/);assert.match(reported.vision.reason,/AI初期推定/);
+ const highAiTool=await run({analysis:{partDensity:70,lineDifficulty:75,structureComplexity:70,coloringComplexity:85,realLineHours:8,realColorHours:13}});assert.equal(highAiTool.estimate.estimatedHours,13);
+ const lowerAi=await run({analysis:{realLineHours:2,realColorHours:4}});assert.ok(lowerAi.estimate.estimatedHours<8);
  const scope=local(path.resolve('lib/realProductEstimate.ts'));
  const base={style:'real',usage:'sales',sourceType:'reference_drawing',notes:'製品の写真からリアルイラスト',isIndustrialProduct:true};
  for(const extra of ['背景込み','断面図','分解図','内部構造','別アングル','2台を横並び','概念図','3DCG','カバーを外す'])assert.equal(scope.isPhotoAlignedRealProduct({...base,notes:base.notes+extra}),false,extra);
@@ -34,4 +37,5 @@ async function run(overrides={}) {
  const cut=await run({fields:{notes:'製品の写真をもとに内部構造の断面図をリアルに新規作図する'}});assert.notEqual(cut.sent.masterCategory,r.sent.masterCategory);assert.ok(cut.estimate.estimatedHours>16);
  console.log('PASS variable real-product steps: 3+5=8h/24000; 5+8=13h/39000; simple3.5h/complex19h; AI-step differences, missing-step fallback, quantities and exclusions (AI/email mocked).');
 })().catch(e=>{console.error(e);process.exitCode=1});
+
 
