@@ -32,6 +32,7 @@ export type NotificationPayload = {
   integratedAgreementScore?: number;
   integratedAgreementLevel?: string;
   estimateId?: string;
+  qualityReviewMode?: boolean;
 
   imageAttachment?: {
     filename: string;
@@ -57,8 +58,8 @@ export async function sendNotificationEmail(payload: NotificationPayload) {
   const from = process.env.FROM_EMAIL || 'onboarding@resend.dev';
 
   if (!apiKey) {
-    console.log('RESEND_API_KEY is missing:', payload);
-    return { ok: false };
+    console.log('RESEND_API_KEY is missing');
+    return { ok: false, estimateId: payload.estimateId || createEstimateId() };
   }
 
   const resend = new Resend(apiKey);
@@ -66,6 +67,14 @@ export async function sendNotificationEmail(payload: NotificationPayload) {
   const isFormal = payload.requestFormalQuote === true;
 
   const estimateId = payload.estimateId || createEstimateId();
+  // Opt-in temporary review: no persistent mail copies of images, notes or AI free text.
+  if (payload.qualityReviewMode) {
+    const sent = await resend.emails.send({from,to:toAdmin,
+      subject:`【CS Works 見積り検証】${estimateId}`,
+      text:`匿名AI見積りの検証対象が送信されました。\n見積ID：${estimateId}\n概算：${payload.estimatedHours}時間／${payload.totalPrice}円\n管理者画面で画像・条件・判定を確認してください。\nhttps://estimate.create-support.co.jp/admin/estimate-quality\n保存に成功した検証記録は7日後に閲覧不可となり、15分ごとの処理で削除されます。\n画像・依頼文はこのメールに添付・転載していません。`,
+    });
+    return {ok:!sent.error,estimateId};
+  }
   const submittedAt = new Date().toISOString();
 
   const difficultyScore =
@@ -403,7 +412,7 @@ export async function sendCsWorksEmail(payload: CsWorksMailPayload) {
   const myPageUrl = 'https://estimate.create-support.co.jp/mypage';
 
   if (!apiKey) {
-    console.log('RESEND_API_KEY is missing:', payload);
+    console.log('RESEND_API_KEY is missing');
     return { ok: false };
   }
 
@@ -808,3 +817,4 @@ export async function sendSupportEmail(payload: SupportMailPayload) {
     return { ok: false, error: 'Mail send failed' };
   }
 }
+
