@@ -91,6 +91,23 @@ export default function EstimateForm({ mode = 'estimate' }: { mode?: 'landing' |
   const isLanding = mode === 'landing';
   const [user, setUser] = useState<User | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
+  const [announcement, setAnnouncement] = useState<{label:string;title:string;body:string}|null>(null);
+
+  useEffect(() => {
+    if (!isLanding || !authChecked || user) { setAnnouncement(null); return; }
+    let active = true;
+    const loadAnnouncement = async () => {
+      const {data,error} = await (getSupabaseBrowserClient().from('site_announcements' as any) as any)
+        .select('label,title,body').eq('is_active',true)
+        .order('created_at',{ascending:false}).limit(1).maybeSingle();
+      if (active) setAnnouncement(!error && data?.title?.trim() ? data : null);
+    };
+    void loadAnnouncement();
+    const refresh = () => { if (document.visibilityState === 'visible') void loadAnnouncement(); };
+    window.addEventListener('focus',refresh);
+    document.addEventListener('visibilitychange',refresh);
+    return () => { active=false; window.removeEventListener('focus',refresh); document.removeEventListener('visibilitychange',refresh); };
+  }, [isLanding,authChecked,user]);
   const [selectedSample, setSelectedSample] = useState<string | null>(null);
   const [showSamplePanel, setShowSamplePanel] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -857,6 +874,11 @@ async function handleFormalQuoteRequest() {
       </div>
     </section>}
 
+
+    {isLanding && !user && announcement && <section className="cswAnnouncement" aria-labelledby="csw-announcement-title">
+      <div className="cswAnnouncementLabel"><span aria-hidden="true">●</span>{announcement.label || '更新情報'}</div>
+      <div className="cswAnnouncementContent"><h2 id="csw-announcement-title">{announcement.title}</h2>{announcement.body && <p>{announcement.body}</p>}</div>
+    </section>}
 
     {isLanding && <section className="cswHow" id="csw-how" aria-labelledby="csw-how-title">
       <div className="cswSectionHeading"><p>HOW IT WORKS</p><h2 id="csw-how-title">見積りのやり取りを、<br />もっとシンプルに。</h2><span>作りたいものが決まったら、まずは制作費の目安を。</span></div>
