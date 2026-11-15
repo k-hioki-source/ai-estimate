@@ -1,3 +1,4 @@
+import { isPhotoAlignedRealProduct, calibrateRealProductHours, REAL_PRODUCT_HOURS } from '../../../lib/realProductEstimate';
 import { isSideAndDetailPair, priceEstimateHours } from '../../../lib/estimateScope';
 import { sendNotificationEmail } from '../../../lib/email';
 import { NextRequest, NextResponse } from 'next/server';
@@ -471,8 +472,7 @@ if (isReferenceSectionDrawing && workType !== '3d_conversion') {
     const conceptWords = ['概念図', 'システム図', '構成図', '製品説明図', '説明図', 'フロー図'];
 
 const isConceptRequest =
-  conceptWords.some((word) => input.notes.includes(word)) ||
-  (input.usage === 'sales' && input.style === 'real' && analysis.partDensity >= 60);
+  conceptWords.some((word) => input.notes.includes(word));
 
 if (isConceptRequest && workType !== '3d_conversion') {
   workType = 'concept_diagram';
@@ -836,6 +836,28 @@ if (minimumHours > 0 && estimate.hours < minimumHours) {
     estimate.unitPrice * input.quantity;
 }
 
+// Calibrate the narrow photo-aligned, single-product exterior scope before
+// integrating engines. Retain AI difficulty evidence; remove price inflation,
+// not observed visual detail. Extra composition/structural scope is excluded.
+const photoAlignedRealProduct = !combinedScope && isPhotoAlignedRealProduct({ ...input,
+  isIndustrialProduct: analysis.isIndustrialProduct,
+  isExplodedView: analysis.isExplodedView,
+  hasLeaderLines: analysis.hasLeaderLines,
+  hasPartNumbers: analysis.hasPartNumbers,
+});
+if (photoAlignedRealProduct) {
+  workType = 'realistic_illustration';
+  estimate.hours = calibrateRealProductHours(estimate.hours);
+  estimate.unitPrice = Math.round(estimate.hours * estimate.hourlyRate / 100) * 100;
+  estimate.totalPrice = estimate.unitPrice * input.quantity;
+  analysis.estimatedHoursMin = REAL_PRODUCT_HOURS.min;
+  analysis.estimatedHours = calibrateRealProductHours(analysis.estimatedHours);
+  analysis.estimatedHoursMax = REAL_PRODUCT_HOURS.max;
+  analysis.summary = '支給写真に沿って製品単体の外観を描く販促用リアルイラストです。' +
+    '曲面・金属や樹脂の質感・陰影を含め、標準16時間（8時間×2日）、目安14〜18時間で算出します。' +
+    '別アングルへの再構成、分解・断面、複数製品や背景の追加は別途確認します。';
+}
+
 // -----------------------------
 // 第3エンジン：クリサポ工数マスター
 // 現行・AI・工数マスターを並走させ、統合工数を顧客表示価格に採用する。
@@ -1115,3 +1137,4 @@ estimatedHoursMax: analysis.estimatedHoursMax,
   );
 }
 }
+

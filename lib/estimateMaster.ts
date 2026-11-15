@@ -1,3 +1,4 @@
+import { isPhotoAlignedRealProduct, REAL_PRODUCT_HOURS } from './realProductEstimate';
 import { hasRequestedAngleChange } from './estimateScope';
 export type MasterEstimateInput = {
   sourceType: string;
@@ -130,6 +131,10 @@ function chooseCategory(input: MasterEstimateInput, userText: string, aiText: st
   const explicitIsometric = includesAny(userText, ['アイソメ', 'アイソメトリック']);
   if (explicitIsometric && style === 'color' && sourceType === 'reference_drawing') {
     return { key: 'isometric_composition', label: 'アイソメ・構成イラスト', baseHours: 10, reason: '複数要素をアイソメ視点で整理・配置するカラー構成図の基準' };
+  }
+
+  if (isPhotoAlignedRealProduct(input)) {
+    return { key: 'real_product_photo', label: 'リアルイラスト・写真支給・製品単体', baseHours: REAL_PRODUCT_HOURS.standard, reason: '写真に沿った製品外観のリアル表現。標準16時間（8時間×2日）' };
   }
 
   // v4: 設備・製品の標準概念図は7.5h。研究・サイエンス系の高度な概念設計は別カテゴリ。
@@ -277,7 +282,7 @@ export function calculateMasterEstimate(input: MasterEstimateInput) {
   const categoryIncludesStructure = ['structure', 'vehicle_structure', '3dcg_structure', 'new_state'].includes(category.key);
   const categoryIncludesComplexity = [
     'photo_complex', 'exploded_complex', 'manual_dense', 'manual_shape_complex', '3dcg_modeling',
-    'color_complex', 'real_photo_complex', 'real_photo_standard'
+    'color_complex', 'real_photo_complex', 'real_photo_standard', 'real_product_photo'
   ].includes(category.key);
 
   add('person', '人物追加（1名）', 1,
@@ -285,7 +290,7 @@ export function calculateMasterEstimate(input: MasterEstimateInput) {
 
   add('new_drawing', '構造整理・新規作図', 0.5,
     !categoryIncludesStructure &&
-    !['color', 'color_complex', 'real', 'real_photo_simple', 'real_photo_standard', 'real_photo_complex'].includes(category.key) &&
+    !['real_product_photo', 'color', 'color_complex', 'real', 'real_photo_simple', 'real_photo_standard', 'real_photo_complex'].includes(category.key) &&
     includesAny(userText, ['構造整理', '新規作図', '簡略化']));
 
   add('two_panels', '2コマ化', 1, includesAny(text, ['2コマ', '2 コマ', '二コマ']));
@@ -324,7 +329,7 @@ export function calculateMasterEstimate(input: MasterEstimateInput) {
     (userMachineComplexity || (aiMachineComplexity && strongVisualComplexity));
   add('complex_machine', '複雑な機械構造', 5,
     !categoryIncludesComplexity &&
-    !['real', 'equipment_concept', 'science_concept', 'isometric_composition'].includes(category.key) &&
+    !['real_product_photo', 'real', 'equipment_concept', 'science_concept', 'isometric_composition'].includes(category.key) &&
     trulyComplexStructure);
 
   // サイエンス概念図のみ大きな情報設計補正を許可。
@@ -434,3 +439,4 @@ export function calculateIntegratedEstimate(input: {
 
   return { hours, agreementScore, level, spreadRate: round1(spreadRate * 100) };
 }
+
