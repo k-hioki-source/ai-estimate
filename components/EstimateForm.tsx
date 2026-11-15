@@ -779,7 +779,7 @@ async function handleFormalQuoteRequest() {
   if (isLanding && (!authChecked || user)) return null;
 
   return (
-  <div className="stackLarge">
+  <div className={`stackLarge ${isLanding ? 'cswLanding' : ''}`}>
 
     {/* ヘッダー（ロゴ） */}
     <div className="header">
@@ -804,25 +804,17 @@ async function handleFormalQuoteRequest() {
     {/* CS Works v5: 最初に実際のAI概算見積り窓口を表示 */}
     {(isLanding || !result) && <section className={`cswTopHero ${!isLanding ? 'cswTopHeroLoggedIn' : ''}`} aria-label="CS Works AI概算見積り">
       {isLanding && <div className="cswTopHeroCopy">
-        <div className="eyebrow">CS WORKS｜CREATE SUPPORT</div>
-        {authChecked && user ? (
-          <h1 className="cswTopHeadline">AI概算見積り</h1>
-        ) : (
-          <h1 className="cswTopHeadline">そのイラスト、<span>いくらで作れる？</span></h1>
-        )}
-        <p className="cswTopLead">
-          写真・図面・文章から制作内容を整理。
-          概算見積りを入口に、正式見積り・発注・制作確認・納品まで。
-          技術イラストの制作依頼を、ひとつの場所で。
-        </p>
-        <div className="cswTopChips">
-          <span>登録なしで概算見積り</span>
-          <span>法人対応</span>
-          <span>技術イラスト制作30年以上</span>
+        <div className="cswHeroWords">
+          <div className="cswHeroEyebrow">CS Works <span>テクニカルイラストのオンライン見積り・制作依頼</span></div>
+          <h1 className="cswTopHeadline">テクニカルイラストの<br />見積りは、<span>待たない。</span></h1>
+          <p className="cswTopLead">要望を文章で書くと、AIがタッチや使用シーンを汲み取って自動で選択。あとは点数・サイズ感・納期感を選んで、画像を上げるだけ。ボタンを押せば、約3秒で概算が出ます。登録は不要です。</p>
+          <div className="cswHeroActions"><a href="#ai-estimate" className="cswHeroCta">無料でAI見積りを始める <span aria-hidden="true">↗</span></a><a href="#csw-how">使い方を見る ↓</a></div>
+          <p className="cswHeroNote">※ 算出時間は目安です。入力内容・通信状況により異なります。</p>
+          <div className="cswTopChips"><span>登録不要</span><span>概算見積り無料</span><span>PDFダウンロード対応</span></div>
         </div>
         <figure className="cswTopMainVisual">
           <img src="/images/hydraulic.png" alt="クリエイトサポート制作の油圧シリンダー・カットモデルイラスト" />
-          <figcaption>複雑な製品構造も、わかりやすい技術イラストに。</figcaption>
+          <figcaption><span>ILLUSTRATION BY CREATE SUPPORT</span>複雑な構造を、伝わるかたちに。</figcaption>
         </figure>
         <p className="cswTopCredit">制作・品質管理：株式会社クリエイトサポート</p>
         {user ? <Link href="/mypage" className="cswTopAccountLink">マイページへ →</Link> : null}
@@ -866,20 +858,16 @@ async function handleFormalQuoteRequest() {
     </section>}
 
 
-    {isLanding && (
-    <section className="updateBox" id="csw-announcements">
-      <div className="updateBadge">AI概算見積り</div>
-      <div>
-        <h2 className="updateTitle">画像がなくても、その場で概算を確認できます</h2>
-        <p className="updateText">
-          参考画像をアップロードするか、9種類のサンプルから近いイメージを選択。AIが制作内容を解析して概算金額を算出します。
-        </p>
+    {isLanding && <section className="cswHow" id="csw-how" aria-labelledby="csw-how-title">
+      <div className="cswSectionHeading"><p>HOW IT WORKS</p><h2 id="csw-how-title">見積りのやり取りを、<br />もっとシンプルに。</h2><span>作りたいものが決まったら、まずは制作費の目安を。</span></div>
+      <div className="cswSteps">
+        <article><span className="cswStepNumber">01</span><div className="cswStepVisual cswStepText">取扱説明書に使う<br /><strong>製品の白黒線画を作りたい</strong><span>✦ AIがタッチ・使用シーンを整理</span></div><h3>要望を、文章で伝える。</h3><p>用途や仕上がりのイメージを入力。AIが内容に合う条件を提案します。</p></article>
+        <article><span className="cswStepNumber">02</span><div className="cswStepVisual cswStepOptions"><span>点数 <b>1点</b></span><span>サイズ感 <b>選択</b></span><span>納期感 <b>選択</b></span><small>＋ 参考画像をアップロード</small></div><h3>条件と画像を、セット。</h3><p>点数・サイズ感・納期感を選び、参考画像を追加。画像がなければサンプルも使えます。</p></article>
+        <article><span className="cswStepNumber">03</span><div className="cswStepVisual cswStepResult"><span>AI概算見積り</span><strong>約 <b>3</b> 秒</strong><small>結果を確認・PDFでダウンロード</small></div><h3>その場で、概算を確認。</h3><p>見積りボタンを押すだけ。金額を確認してから、正式見積りの相談へ進めます。</p></article>
       </div>
-    </section>
-
-    )}
-
-
+      <p className="cswHeroNote">※ 算出時間は目安です。概算金額は正式見積りとは異なります。</p>
+      <a href="#ai-estimate" className="cswTextCta">登録なしで、見積りを試す ↗</a>
+    </section>}
 
     {isLanding ? (
       <section className="csWorksBridge card">
@@ -2072,6 +2060,25 @@ async function handleFormalQuoteRequest() {
       <p className="cswSampleDisclaimer">※ 架空の表示例です。実際の見積り結果を保証するものではありません。</p>
     </div>
   </section>
+  <section className="cswGuide" aria-labelledby="csw-guide-title">
+    <div className="cswGuideCopy">
+      <p className="cswSampleEyebrow">FREE DOWNLOAD · 2026</p>
+      <h2 id="csw-guide-title">イラスト制作の料金、<br />どのくらい？</h2>
+      <p className="cswGuideLead">写真トレース・取扱説明書・分解図・カラーイラスト・3DCGなど、10点の制作サンプルをAIで概算見積り。</p>
+      <p className="cswGuideDescription">制作内容によって工数や費用はどう変わるのか。実際のイラストを使ったAI見積り結果を1冊のPDFにまとめました。制作依頼をご検討中の方におすすめの無料資料です。</p>
+      <div className="cswGuideTags"><span>10事例掲載</span><span>参考料金・工数</span><span>登録不要</span></div>
+      <a className="cswGuideButton" href="https://www.create-support.co.jp/wp-content/uploads/2026/10/CS_Works_AI見積り事例集_2026.pdf" target="_blank" rel="noopener noreferrer" data-cs-guide-download onClick={(event) => {
+        const analytics = window as typeof window & { dataLayer?: Array<Record<string, unknown>>; gtag?: (command: string, name: string, params: Record<string, unknown>) => void };
+        const params = { file_name: 'CS_Works_AI見積り事例集_2026.pdf', file_url: event.currentTarget.href, placement: 'csworks_home' };
+        if (typeof analytics.gtag === 'function') analytics.gtag('event', 'cs_pdf_download', params);
+        else { analytics.dataLayer = analytics.dataLayer || []; analytics.dataLayer.push({ event: 'cs_pdf_download', ...params }); }
+      }}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 3v12" /><path d="m7 10 5 5 5-5" /><path d="M5 17v4h14v-4" /></svg>無料PDFをダウンロード<span aria-hidden="true">↗</span></a>
+      <p className="cswGuideNote">メールアドレスの入力不要・どなたでも無料でご覧いただけます。</p>
+    </div>
+    <div className="cswGuideVisual" aria-hidden="true">
+      <div className="cswGuideBook"><div className="cswGuideBookTop"><span>CREATE SUPPORT</span><span>2026</span></div><div className="cswGuideBookMain"><span>AI ESTIMATE GUIDE</span><strong>イラスト制作<br />AI概算見積り<br />事例集</strong><small>製造業向け · 10事例収録</small></div><div className="cswGuideBookPrice"><span>制作工数と参考料金を公開</span><strong>¥3,000〜</strong><small>※掲載事例の一例</small></div><div className="cswGuideBookBottom">株式会社クリエイトサポート</div></div><div className="cswGuideFree">FREE<br />PDF</div>
+    </div>
+  </section>
   <section className="cswWhy" aria-label="CS Worksの強み">
     <div className="cswWhyInner">
       <div className="cswSampleEyebrow">WHY CS WORKS</div>
@@ -2187,6 +2194,20 @@ async function handleFormalQuoteRequest() {
 @media(max-width:1100px){.cswTopMainVisual img{width:78%!important;max-width:410px!important}}
 @media(max-width:760px){.cswTrustGrid{grid-template-columns:1fr;gap:16px;margin:30px 0 42px}.cswTopMainVisual img{width:90%!important;max-height:none!important}.cswTopHero{gap:18px!important}}
 `}</style>
+{isLanding && <section className="cswFaq" id="csw-faq" aria-labelledby="csw-faq-title">
+  <div className="cswSectionHeading"><p>FAQ</p><h2 id="csw-faq-title">よくある質問</h2><span>お見積りから制作のご相談まで。</span></div>
+  <div className="cswFaqList">
+    <details><summary>会員登録なしで見積りできますか？</summary><p>はい。AI概算見積りは、会員登録なしで無料でご利用いただけます。見積り結果のPDFダウンロードも可能です。</p></details>
+    <details><summary>参考画像がなくても利用できますか？</summary><p>はい。ご希望の内容を文章で入力し、用意されたサンプルから近いイメージを選んで概算を確認できます。制作する内容が具体的なほど、条件を整理しやすくなります。</p></details>
+    <details><summary>AI概算見積りの金額で、そのまま発注できますか？</summary><p>AIが算出する金額は目安です。正式な金額・制作内容・納期は、担当者が資料とご要望を確認したうえで正式見積りにてご案内します。</p></details>
+    <details><summary>見積りをすると、自動的に発注されますか？</summary><p>いいえ。概算見積りを実行しただけで発注や料金の発生はありません。正式見積りの内容をご確認いただいてから、発注をご検討いただけます。</p></details>
+    <details><summary>イラストの制作もAIが行うのですか？</summary><p>AIは概算見積りや入力条件の整理に活用しています。イラスト制作は、クリエイトサポートの制作チームがご依頼内容に合わせて対応します。</p></details>
+    <details><summary>無料会員登録をすると、何ができますか？</summary><p>概算見積りの保存に加え、正式見積りの依頼、発注、案件の進捗確認、メッセージのやり取り、制作資料や納品データの確認をCS Worksで行えます。</p></details>
+    <details><summary>機密情報を含む資料について相談できますか？</summary><p>はい。秘密保持契約（NDA）が必要な場合は、資料をアップロードする前に担当者へご相談ください。契約内容や締結方法を確認のうえ、ご案内します。</p></details>
+    <details><summary>制作後の修正はお願いできますか？</summary><p>はい。CS Worksからの正式発注では、制作内容を変えない範囲の軽微な修正について無料サポートがあります。対象範囲・回数等は正式見積り時にご案内します。構図変更や描き直し、追加制作などは別途ご相談となります。</p></details>
+  </div>
+  <p className="cswFaqContact">解決しない場合は、<a href="https://www.create-support.co.jp/contact/">お問い合わせ</a>からご相談ください。</p>
+</section>}
 <footer className="footer">
         <div className="footerInner">
           <div className="footerBrand">
