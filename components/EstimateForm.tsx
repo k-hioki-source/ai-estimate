@@ -2060,6 +2060,25 @@ async function handleFormalQuoteRequest() {
       <p className="cswSampleDisclaimer">※ 架空の表示例です。実際の見積り結果を保証するものではありません。</p>
     </div>
   </section>
+  <section className="cswGuide" aria-labelledby="csw-guide-title">
+    <div className="cswGuideCopy">
+      <p className="cswSampleEyebrow">FREE DOWNLOAD · 2026</p>
+      <h2 id="csw-guide-title">イラスト制作の料金、<br />どのくらい？</h2>
+      <p className="cswGuideLead">写真トレース・取扱説明書・分解図・カラーイラスト・3DCGなど、10点の制作サンプルをAIで概算見積り。</p>
+      <p className="cswGuideDescription">制作内容によって工数や費用はどう変わるのか。実際のイラストを使ったAI見積り結果を1冊のPDFにまとめました。制作依頼をご検討中の方におすすめの無料資料です。</p>
+      <div className="cswGuideTags"><span>10事例掲載</span><span>参考料金・工数</span><span>登録不要</span></div>
+      <a className="cswGuideButton" href="https://www.create-support.co.jp/wp-content/uploads/2026/10/CS_Works_AI見積り事例集_2026.pdf" target="_blank" rel="noopener noreferrer" data-cs-guide-download onClick={(event) => {
+        const analytics = window as typeof window & { dataLayer?: Array<Record<string, unknown>>; gtag?: (command: string, name: string, params: Record<string, unknown>) => void };
+        const params = { file_name: 'CS_Works_AI見積り事例集_2026.pdf', file_url: event.currentTarget.href, placement: 'csworks_home' };
+        if (typeof analytics.gtag === 'function') analytics.gtag('event', 'cs_pdf_download', params);
+        else { analytics.dataLayer = analytics.dataLayer || []; analytics.dataLayer.push({ event: 'cs_pdf_download', ...params }); }
+      }}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 3v12" /><path d="m7 10 5 5 5-5" /><path d="M5 17v4h14v-4" /></svg>無料PDFをダウンロード<span aria-hidden="true">↗</span></a>
+      <p className="cswGuideNote">メールアドレスの入力不要・どなたでも無料でご覧いただけます。</p>
+    </div>
+    <div className="cswGuideVisual" aria-hidden="true">
+      <div className="cswGuideBook"><div className="cswGuideBookTop"><span>CREATE SUPPORT</span><span>2026</span></div><div className="cswGuideBookMain"><span>AI ESTIMATE GUIDE</span><strong>イラスト制作<br />AI概算見積り<br />事例集</strong><small>製造業向け · 10事例収録</small></div><div className="cswGuideBookPrice"><span>制作工数と参考料金を公開</span><strong>¥3,000〜</strong><small>※掲載事例の一例</small></div><div className="cswGuideBookBottom">株式会社クリエイトサポート</div></div><div className="cswGuideFree">FREE<br />PDF</div>
+    </div>
+  </section>
   <section className="cswWhy" aria-label="CS Worksの強み">
     <div className="cswWhyInner">
       <div className="cswSampleEyebrow">WHY CS WORKS</div>
