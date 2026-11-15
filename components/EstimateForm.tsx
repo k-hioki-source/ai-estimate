@@ -2175,6 +2175,20 @@ async function handleFormalQuoteRequest() {
 @media(max-width:1100px){.cswTopMainVisual img{width:78%!important;max-width:410px!important}}
 @media(max-width:760px){.cswTrustGrid{grid-template-columns:1fr;gap:16px;margin:30px 0 42px}.cswTopMainVisual img{width:90%!important;max-height:none!important}.cswTopHero{gap:18px!important}}
 `}</style>
+{isLanding && <section className="cswFaq" id="csw-faq" aria-labelledby="csw-faq-title">
+  <div className="cswSectionHeading"><p>FAQ</p><h2 id="csw-faq-title">よくある質問</h2><span>お見積りから制作のご相談まで。</span></div>
+  <div className="cswFaqList">
+    <details><summary>会員登録なしで見積りできますか？</summary><p>はい。AI概算見積りは、会員登録なしで無料でご利用いただけます。見積り結果のPDFダウンロードも可能です。</p></details>
+    <details><summary>参考画像がなくても利用できますか？</summary><p>はい。ご希望の内容を文章で入力し、用意されたサンプルから近いイメージを選んで概算を確認できます。制作する内容が具体的なほど、条件を整理しやすくなります。</p></details>
+    <details><summary>AI概算見積りの金額で、そのまま発注できますか？</summary><p>AIが算出する金額は目安です。正式な金額・制作内容・納期は、担当者が資料とご要望を確認したうえで正式見積りにてご案内します。</p></details>
+    <details><summary>見積りをすると、自動的に発注されますか？</summary><p>いいえ。概算見積りを実行しただけで発注や料金の発生はありません。正式見積りの内容をご確認いただいてから、発注をご検討いただけます。</p></details>
+    <details><summary>イラストの制作もAIが行うのですか？</summary><p>AIは概算見積りや入力条件の整理に活用しています。イラスト制作は、クリエイトサポートの制作チームがご依頼内容に合わせて対応します。</p></details>
+    <details><summary>無料会員登録をすると、何ができますか？</summary><p>概算見積りの保存に加え、正式見積りの依頼、発注、案件の進捗確認、メッセージのやり取り、制作資料や納品データの確認をCS Worksで行えます。</p></details>
+    <details><summary>機密情報を含む資料について相談できますか？</summary><p>はい。秘密保持契約（NDA）が必要な場合は、資料をアップロードする前に担当者へご相談ください。契約内容や締結方法を確認のうえ、ご案内します。</p></details>
+    <details><summary>制作後の修正はお願いできますか？</summary><p>はい。CS Worksからの正式発注では、制作内容を変えない範囲の軽微な修正について無料サポートがあります。対象範囲・回数等は正式見積り時にご案内します。構図変更や描き直し、追加制作などは別途ご相談となります。</p></details>
+  </div>
+  <p className="cswFaqContact">解決しない場合は、<a href="https://www.create-support.co.jp/contact/">お問い合わせ</a>からご相談ください。</p>
+</section>}
 <footer className="footer">
         <div className="footerInner">
           <div className="footerBrand">
