@@ -1,4 +1,4 @@
-import { isPhotoAlignedRealProduct, calibrateRealProductHours, REAL_PRODUCT_HOURS } from '../../../lib/realProductEstimate';
+import { isPhotoAlignedRealProduct, estimateRealProductSteps } from '../../../lib/realProductEstimate';
 import { isSideAndDetailPair, priceEstimateHours } from '../../../lib/estimateScope';
 import { sendNotificationEmail } from '../../../lib/email';
 import { NextRequest, NextResponse } from 'next/server';
@@ -846,16 +846,22 @@ const photoAlignedRealProduct = !combinedScope && isPhotoAlignedRealProduct({ ..
   hasPartNumbers: analysis.hasPartNumbers,
 });
 if (photoAlignedRealProduct) {
+  const steps = estimateRealProductSteps(rawAnalysis);
   workType = 'realistic_illustration';
-  estimate.hours = calibrateRealProductHours(estimate.hours);
+  // Restore raw shape evidence before older real/concept rules raised scores.
+  analysis.partDensity = rawAnalysis.partDensity;
+  analysis.lineDifficulty = rawAnalysis.lineDifficulty;
+  analysis.structureComplexity = rawAnalysis.structureComplexity;
+  analysis.difficultyScore = rawAnalysis.difficultyScore;
+  estimate.hours = steps.hours;
   estimate.unitPrice = Math.round(estimate.hours * estimate.hourlyRate / 100) * 100;
   estimate.totalPrice = estimate.unitPrice * input.quantity;
-  analysis.estimatedHoursMin = REAL_PRODUCT_HOURS.min;
-  analysis.estimatedHours = calibrateRealProductHours(analysis.estimatedHours);
-  analysis.estimatedHoursMax = REAL_PRODUCT_HOURS.max;
-  analysis.summary = '支給写真に沿って製品単体の外観を描く販促用リアルイラストです。' +
-    '曲面・金属や樹脂の質感・陰影を含め、標準16時間（8時間×2日）、目安14〜18時間で算出します。' +
-    '別アングルへの再構成、分解・断面、複数製品や背景の追加は別途確認します。';
+  analysis.estimatedHours = steps.aiHours;
+  analysis.estimatedHoursMin = Math.min(steps.aiHours, Math.max(0.5, Math.round(steps.aiHours * 0.8 * 2) / 2));
+  analysis.estimatedHoursMax = Math.max(steps.aiHours, Math.round(steps.aiHours * 1.2 * 2) / 2);
+  analysis.summary = '支給写真に沿う製品単体のリアルイラストです。' +
+    `線画${steps.aiLineHours}時間＋彩色・質感・陰影${steps.aiColorHours}時間＝${steps.aiHours}時間を工程別の目安に算出しました。` +
+    (steps.hasAiSteps ? '画像から各工程を個別評価しています。' : 'AIの工程内訳がないため、形状・彩色の難易度別基準から補完しています。');
 }
 
 // -----------------------------
@@ -876,6 +882,7 @@ const masterEstimate = calculateMasterEstimate({
   quantity: input.quantity,
   notes: input.notes,
   workType,
+  coloringComplexity: rawAnalysis.coloringComplexity,
   difficultyScore: analysis.difficultyScore,
   partDensity: analysis.partDensity,
   lineDifficulty: analysis.lineDifficulty,
@@ -1137,4 +1144,5 @@ estimatedHoursMax: analysis.estimatedHoursMax,
   );
 }
 }
+
 
