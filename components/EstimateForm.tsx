@@ -2044,22 +2044,11 @@ async function handleFormalQuoteRequest() {
 <article><div className="cswV5Art"><img src="/images/power-tool.jpg" alt="制作実績：電動工具のカラー技術イラスト" /></div><b>3DCG・リアルイラスト</b><p>形状や質感をわかりやすく伝えるカラーイラストを制作。</p></article>
 </div></section>}
 {isLanding && <>
-  <section className="cswSampleResult" aria-label="AI概算見積り結果の表示例">
-    <div className="cswSampleCopy">
-      <div className="cswSampleEyebrow">SEE THE RESULT</div>
-      <h2>見積りの目安が、<br />すぐに分かる。</h2>
-      <p>制作方法、難易度、想定工数をAIが分析。概算を確認してから、正式見積りに進めます。複雑な3DCGや動画は個別相談にも対応します。</p>
-      <Link href="/estimate" className="cswSampleButton">無料で試してみる →</Link>
-    </div>
-    <div className="cswSampleResultCard">
-      <div className="cswSampleResultHead"><strong>AI概算見積り結果</strong><span>表示例</span></div>
-      <div className="cswSampleLine"><span>制作内容</span><strong>取扱説明書用の白黒線画</strong></div>
-      <div className="cswSampleLine"><span>制作点数</span><strong>2点</strong></div>
-      <div className="cswSampleLine"><span>想定工数</span><strong>5時間</strong></div>
-      <div className="cswSampleLine cswSamplePrice"><span>概算金額</span><strong>15,000円</strong></div>
-      <p className="cswSampleDisclaimer">※ 架空の表示例です。実際の見積り結果を保証するものではありません。</p>
-    </div>
-  </section>
+<section className="cswPricePrice" aria-labelledby="price-title"><p className="cswPriceEyebrow">SEE THE RESULT / PRICE GUIDE</p><div className="cswPriceHead"><h2 id="price-title">テクニカルイラストの<br />料金目安</h2><p>イラストの内容・資料の状態・表現方法によって費用は変わります。まずは下記を目安としてご確認ください。</p></div><div className="cswPriceGrid">
+<article className="cswPriceCard"><div className="cswPriceThumb"><img loading="lazy" src="https://www.create-support.co.jp/wp-content/uploads/2026/06/%E5%8F%96%E6%89%B1%E8%AA%AC%E6%98%8E%E6%9B%B8%E7%94%A8%E3%82%A4%E3%83%A9%E3%82%B9%E3%83%88.jpg" alt="取扱説明書用イラストの制作例" /></div><div className="cswPriceContent"><span className="cswPriceLabel">白黒線画</span><h3>取扱説明書用イラスト</h3><p className="cswPriceDesc">操作説明・注意喚起・手順図など、シンプルな線画表現。</p><div className="cswPriceAmount"><span>目安</span><strong>3,000<span>円〜</span></strong></div><p className="cswPriceNote">小さな手順図・簡易図の場合</p></div></article>
+<article className="cswPriceCard"><div className="cswPriceThumb"><img loading="lazy" src="https://www.create-support.co.jp/wp-content/uploads/2026/06/%E3%83%91%E3%83%BC%E3%83%84%E3%82%AB%E3%82%BF%E3%83%AD%E3%82%B0%E3%83%BB%E5%88%86%E8%A7%A3%E5%9B%B3-scaled.png" alt="パーツカタログ・分解図の制作例" /></div><div className="cswPriceContent"><span className="cswPriceLabel">XVL対応可</span><h3>パーツカタログ・分解図</h3><p className="cswPriceDesc">部品構成・分解状態・組付け関係をわかりやすく表現。</p><div className="cswPriceAmount"><span>目安</span><strong>10,000<span>円〜</span></strong></div><p className="cswPriceNote">部品点数・構造の複雑さにより変動</p></div></article>
+<article className="cswPriceCard"><div className="cswPriceThumb"><img loading="lazy" src="https://www.create-support.co.jp/wp-content/uploads/2026/06/%E8%A3%BD%E5%93%81%E8%AA%AC%E6%98%8E%E3%83%BB%E8%B2%A9%E4%BF%83%E7%94%A8%E3%82%A4%E3%83%A9%E3%82%B9%E3%83%88.jpg" alt="製品説明・販促用イラストの制作例" /></div><div className="cswPriceContent"><span className="cswPriceLabel">カラー対応</span><h3>製品説明・販促用イラスト</h3><p className="cswPriceDesc">WEB・カタログ・展示会資料向けの見栄えを重視した表現。</p><div className="cswPriceAmount"><span>目安</span><strong>20,000<span>円〜</span></strong></div><p className="cswPriceNote">カラー・質感表現・描き込み量により変動</p></div></article>
+</div><div className="cswPriceDetails"><div><h4>料金が変わる主な要素</h4><p>資料の状態、部品点数、線の細かさ、カラー有無、リアル表現の程度、修正範囲など。</p></div><div><h4>支給資料について</h4><p>写真、図面、CAD、ラフスケッチ、既存イラストなどから制作可能です。</p></div><div><h4>正式見積りについて</h4><p>内容確認後、制作範囲を整理したうえで正式なお見積りをご案内します。</p></div></div><div className="cswPriceBottom"><p><strong>ご希望の内容で、制作費を確認。</strong>登録不要。画像や条件からAIが概算を算出します。</p><a className="cswPriceCta" href="/estimate">無料でAI見積りを始める <span aria-hidden="true">↗</span></a></div><p className="cswPriceDisclaimer">※ 画像は制作例です。記載の料金は各制作区分の目安であり、画像のイラストそのものの制作価格を示すものではありません。正式な金額は内容確認後にご案内します。</p></section>
   <section className="cswGuide" aria-labelledby="csw-guide-title">
     <div className="cswGuideCopy">
       <p className="cswSampleEyebrow">FREE DOWNLOAD · 2026</p>
@@ -2238,3 +2227,4 @@ async function handleFormalQuoteRequest() {
        
   );
 }
+
