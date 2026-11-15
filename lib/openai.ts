@@ -556,9 +556,12 @@ workType は realistic_illustration を優先する。
 standard_trace は使用しない。
 
 style が color の場合：
-単純な色分けであれば standard_trace または technical_drawing。
-面が複雑な場合はtechnical_drawingを検討する。
-質感やグラデーションが必要な場合は realistic_illustration を検討する。
+通常カラーとして standard_trace または technical_drawing を使用し、参考画像の光沢やグラデーションだけで realistic_illustration にしない。
+単純な製品カラーは「同じ形状の線画工数＋着色1.0時間」。簡単な陰影・グラデーションも着色に含む。
+例：単体のコンパクトカメラ外観は線画1.5時間＋着色1.0時間＝2.5時間。
+partDensity、lineDifficulty、structureComplexity は描く形状・線量を評価し、色・光沢だけで高くしない。
+高密度な背景・多数部品・構成図は制作範囲に応じて別途評価する。
+この指定は上記の一般的なリアル判定より優先する。リアル仕上げを希望する場合は style=real を用いる。
 
 style が line の場合：
 線画トレース、構造図、分解図として判定する。
