@@ -1,3 +1,4 @@
+import { traceDetailHours } from '../../../lib/traceDetailEstimate';
 import { isPhotoAlignedRealProduct, estimateRealProductSteps } from '../../../lib/realProductEstimate';
 import { isSideAndDetailPair, priceEstimateHours } from '../../../lib/estimateScope';
 import { sendNotificationEmail } from '../../../lib/email';
@@ -558,6 +559,11 @@ const hasExplicitDenseLineRequest =
   requestNotesText.includes('配線') ||
   requestNotesText.includes('ハーネス');
 
+const componentTraceHours = !combinedScope && !!(file && file.size > 0) ? traceDetailHours({ ...input,
+  visibleComponentCount: rawAnalysis.visibleComponentCount,
+  repeatedDetailCount: rawAnalysis.repeatedDetailCount,
+}) : 0;
+
 const hasDenseVisualScores =
   analysis.partDensity >= 70 &&
   analysis.lineDifficulty >= 70 &&
@@ -567,21 +573,24 @@ const isHighDensityLineTrace =
   input.sourceType === 'photo_trace' &&
   input.usage === 'manual' &&
   input.style === 'line' &&
-  (hasExplicitDenseLineRequest || hasDenseVisualScores);
+  (componentTraceHours > 0 || hasExplicitDenseLineRequest || hasDenseVisualScores);
 
 if (isHighDensityLineTrace) {
+  const traceHours = componentTraceHours || 5;
   workType = 'standard_trace';
-  analysis.difficultyScore = Math.max(analysis.difficultyScore, 65);
-  analysis.partDensity = Math.max(analysis.partDensity, 70);
-  analysis.lineDifficulty = Math.max(analysis.lineDifficulty, 70);
-  analysis.estimatedHoursMin = Math.max(analysis.estimatedHoursMin || 0, 4);
-  analysis.estimatedHours = Math.max(analysis.estimatedHours || 0, 5);
-  analysis.estimatedHoursMax = Math.max(analysis.estimatedHoursMax || 0, 6.5);
-  minimumHours = Math.max(minimumHours, 5);
-
-  analysis.summary =
-    '写真をもとにした取扱説明書用の白黒線画で、画像内に多数の細かな線要素が確認できるため、' +
-    '高密度な写真トレースとして5時間前後を基準に工数を補正しました。';
+  if (!componentTraceHours) {
+    analysis.difficultyScore = Math.max(analysis.difficultyScore, 65);
+    analysis.partDensity = Math.max(analysis.partDensity, 70);
+    analysis.lineDifficulty = Math.max(analysis.lineDifficulty, 70);
+  }
+  analysis.estimatedHoursMin = Math.max(analysis.estimatedHoursMin || 0, traceHours * 0.8);
+  analysis.estimatedHours = Math.max(analysis.estimatedHours || 0, traceHours);
+  analysis.estimatedHoursMax = Math.max(analysis.estimatedHoursMax || 0, traceHours * 1.3);
+  minimumHours = Math.max(minimumHours, traceHours);
+  analysis.summary = componentTraceHours
+    ? `画像内の約${rawAnalysis.visibleComponentCount}ユニットと、通気穴・端子・ピン等の反復細部約${rawAnalysis.repeatedDetailCount}箇所を認識しました。` +
+      `外形だけの簡易トレースではなく、線の再作図と細部位置・パースの調整を含め${traceHours}時間前後を基準に評価しています。`
+    : '写真をもとにした取扱説明書用の白黒線画で、多数の細かな線要素がある高密度な写真トレースとして5時間前後を基準に工数を補正しました。';
 }
 
 // 単体・外形中心の簡単な取説用線画は、AIが難易度をやや高めに出しても
@@ -892,6 +901,8 @@ const masterEstimate = calculateMasterEstimate({
   hasPartNumbers: analysis.hasPartNumbers,
   isIndustrialProduct: analysis.isIndustrialProduct,
   aiSummary: analysis.summary,
+  visibleComponentCount: file && file.size > 0 ? rawAnalysis.visibleComponentCount : undefined,
+  repeatedDetailCount: file && file.size > 0 ? rawAnalysis.repeatedDetailCount : undefined,
 });
 
 const integratedEstimate = calculateIntegratedEstimate({
@@ -901,7 +912,7 @@ const integratedEstimate = calculateIntegratedEstimate({
   aiHours: analysis.estimatedHours,
   masterHours: masterEstimate.hours,
   masterMatchScore: masterEstimate.matchScore,
-  verifiedComplexFloorHours: !combinedScope && masterEstimate.categoryKey === 'manual_shape_complex' ? 4 : undefined,
+  verifiedComplexFloorHours: !combinedScope && (masterEstimate.categoryKey === 'manual_shape_complex' || masterEstimate.categoryKey === 'photo_component_detail') ? (componentTraceHours || 4) : undefined,
   verifiedSimpleCeilingHours: !combinedScope && masterEstimate.categoryKey === 'manual_simple' ? 2.5 : undefined,
 });
 
@@ -1144,6 +1155,7 @@ estimatedHoursMax: analysis.estimatedHoursMax,
   );
 }
 }
+
 
 
 
