@@ -861,7 +861,7 @@ if (photoAlignedRealProduct) {
   analysis.estimatedHoursMax = Math.max(steps.aiHours, Math.round(steps.aiHours * 1.2 * 2) / 2);
   analysis.summary = '支給写真に沿う製品単体のリアルイラストです。' +
     `線画${steps.aiLineHours}時間＋彩色・質感・陰影${steps.aiColorHours}時間＝${steps.aiHours}時間を工程別の目安に算出しました。` +
-    (steps.hasAiSteps ? '画像から各工程を個別評価しています。' : 'AIの工程内訳がないため、形状・彩色の難易度別基準から補完しています。');
+    (steps.corrected ? `AI初期推定（線画${steps.rawAiLineHours}時間＋彩色${steps.rawAiColorHours}時間）は、形状・部品量の基準を超えていたため工程別に補正しました。` : steps.hasAiSteps ? '画像から各工程を個別評価しています。' : 'AIの工程内訳がないため、形状・彩色の難易度別基準から補完しています。');
 }
 
 // -----------------------------
@@ -1144,5 +1144,6 @@ estimatedHoursMax: analysis.estimatedHoursMax,
   );
 }
 }
+
 
 
