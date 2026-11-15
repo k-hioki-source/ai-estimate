@@ -1,4 +1,4 @@
-import { isPhotoAlignedRealProduct, REAL_PRODUCT_HOURS } from './realProductEstimate';
+import { isPhotoAlignedRealProduct, estimateRealProductSteps } from './realProductEstimate';
 import { hasRequestedAngleChange } from './estimateScope';
 export type MasterEstimateInput = {
   sourceType: string;
@@ -8,6 +8,7 @@ export type MasterEstimateInput = {
   notes?: string;
   workType?: string;
   difficultyScore?: number;
+  coloringComplexity?: number;
   partDensity?: number;
   lineDifficulty?: number;
   structureComplexity?: number;
@@ -134,7 +135,8 @@ function chooseCategory(input: MasterEstimateInput, userText: string, aiText: st
   }
 
   if (isPhotoAlignedRealProduct(input)) {
-    return { key: 'real_product_photo', label: 'リアルイラスト・写真支給・製品単体', baseHours: REAL_PRODUCT_HOURS.standard, reason: '写真に沿った製品外観のリアル表現。標準16時間（8時間×2日）' };
+    const steps = estimateRealProductSteps(input);
+    return { key: 'real_product_photo', label: 'リアルイラスト・写真支給・工程別', baseHours: steps.hours, reason: `形状・可視部品による線画${steps.lineHours}時間＋材質・陰影による彩色${steps.colorHours}時間` };
   }
 
   // v4: 設備・製品の標準概念図は7.5h。研究・サイエンス系の高度な概念設計は別カテゴリ。
@@ -439,4 +441,5 @@ export function calculateIntegratedEstimate(input: {
 
   return { hours, agreementScore, level, spreadRate: round1(spreadRate * 100) };
 }
+
 

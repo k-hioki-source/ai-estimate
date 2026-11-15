@@ -19,9 +19,26 @@ export function isPhotoAlignedRealProduct(input: {
   return !/概念|構成図|システム図|フロー|説明図|分解|断面|内部|透過|背景|複数|横並び|組み合わせ|組合せ|オリジナル|新規形状|写真にない|写真と異なる|カバーを外|別状態|[2-9](?:台|両|製品)|3d|cg|アニメ|動画/i.test(positive);
 }
 
-export const REAL_PRODUCT_HOURS = { min: 14, standard: 16, max: 18 } as const;
-export function calibrateRealProductHours(hours: number) {
-  return hours >= REAL_PRODUCT_HOURS.min && hours <= REAL_PRODUCT_HOURS.max
-    ? hours
-    : REAL_PRODUCT_HOURS.standard;
+export type RealProductComplexity = {
+  partDensity?: number; lineDifficulty?: number; structureComplexity?: number;
+  difficultyScore?: number; coloringComplexity?: number;
+  realLineHours?: number; realColorHours?: number;
+};
+const score = (v: number | undefined, fallback = 50) =>
+  typeof v === 'number' && Number.isFinite(v) ? Math.min(100, Math.max(0, v)) : fallback;
+const half = (v: number) => Math.max(0.5, Math.round(v * 2) / 2);
+
+// Independent shape and finish rubrics. These anchors describe workload,
+// never a lookup by product name or a universal total-hour floor/ceiling.
+export function estimateRealProductSteps(input: RealProductComplexity) {
+  const shape = Math.max(score(input.partDensity), score(input.lineDifficulty), score(input.structureComplexity));
+  const finish = score(input.coloringComplexity, score(input.difficultyScore));
+  const lineHours = shape <= 25 ? 1.5 : shape <= 40 ? 2 : shape <= 60 ? 3 : shape <= 75 ? 5 : shape <= 90 ? 7 : 10;
+  const colorHours = finish <= 25 ? 2 : finish <= 40 ? 3 : finish <= 60 ? 5 : finish <= 75 ? 8 : finish <= 90 ? 12 : 18;
+  const valid = (v: number | undefined) => typeof v === 'number' && Number.isFinite(v) && v > 0;
+  const hasAiSteps = valid(input.realLineHours) && valid(input.realColorHours);
+  const aiLineHours = hasAiSteps ? half(input.realLineHours!) : lineHours;
+  const aiColorHours = hasAiSteps ? half(input.realColorHours!) : colorHours;
+  return { lineHours, colorHours, hours: lineHours + colorHours,
+    aiLineHours, aiColorHours, aiHours: aiLineHours + aiColorHours, hasAiSteps };
 }
