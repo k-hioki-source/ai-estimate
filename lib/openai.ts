@@ -64,6 +64,17 @@ export async function analyzeImage({
 - 備考: ${notes || 'なし'}
 ${isReferenceSample ? '添付画像は参考サンプルです。お客様の実際の制作写真ではありません。サンプルの形状や線量を実物の確定情報として扱わず、依頼文から仮定した概算であることと、実写真確認後に変わり得ることを説明してください。' : ''}
 
+【白黒トレース：画像全体の作業量を先に数える】
+visibleComponentCount：1枚の図に描く独立した製品/部品/ユニットの概数。
+repeatedDetailCount：通気穴、スリット、端子、ピン、ねじ、フィン、基板部品等、実際に描く細部の総数の概数。
+数量1点でも画像内の部品を1個とみなさない。マザーボード、電源、GPU、メモリー等が並ぶ1枚は複数ユニット。
+今回の基準例：基板＋穴の多い電源＋2ファンのGPU＋複数メモリーを1枚にトレースする場合は4時間前後。
+既存の線画でも細線を再作図する必要があり、白黒・背景白・既存線画だから1時間にしない。
+単体の外形中心、細部が少ない場合だけ0.8〜1.5時間の簡易トレースとする。
+繰り返し要素は複製できても、位置・パース・形状・線の重なりの調整工数が残る。
+カウントに基づきsummaryに何を認識したかを記載。工数は線量と部品数に応じて可変。
+参考サンプルしかない場合は、そのカウントを実制作の確定情報として加算しない。
+
 【個別見積り（要相談）の判定】
 通常のイラスト制作だけではなく、次の制作工程を実際の依頼内容として含む場合は
 requiresConsultation を true にしてください。
@@ -631,6 +642,8 @@ JSONのみで出力してください。
   "workType": "simple_trace" | "standard_trace" | "technical_drawing" | "realistic_illustration" | "concept_diagram" | "3d_conversion",
   "difficultyScore": number,
   "partDensity": number,
+  "visibleComponentCount": number,
+  "repeatedDetailCount": number,
   "lineDifficulty": number,
   "structureComplexity": number,
   "isExplodedView": boolean,
@@ -662,7 +675,7 @@ summaryは日本語で簡潔に書いてください。
           {
             type: 'input_image',
             image_url: `data:${mimeType || 'image/jpeg'};base64,${imageBase64}`,
-            detail: 'auto',
+            detail: usage === 'manual' && style === 'line' ? 'high' : 'auto',
           },
         ],
       },
@@ -692,10 +705,18 @@ summaryは日本語で簡潔に書いてください。
     throw new Error('AI画像解析の結果が不完全でした。再度お試しください。');
   }
 
+  const validCount = (v: unknown) => typeof v === 'number' && Number.isFinite(v) && v >= 0;
+  if (sourceType === 'photo_trace' && usage === 'manual' && style === 'line' && !isReferenceSample &&
+      (!validCount(parsed.visibleComponentCount) || parsed.visibleComponentCount < 1 || !validCount(parsed.repeatedDetailCount))) {
+    throw new Error('AIが部品数・細部量を確認できませんでした。再度お試しください。');
+  }
+
   return {
     workType: normalizeWorkType(parsed.workType),
     difficultyScore: clampNumber(parsed.difficultyScore, 50, 0, 100),
     partDensity: clampNumber(parsed.partDensity, 50, 0, 100),
+    visibleComponentCount: validCount(parsed.visibleComponentCount) ? Math.round(parsed.visibleComponentCount) : undefined,
+    repeatedDetailCount: validCount(parsed.repeatedDetailCount) ? Math.round(parsed.repeatedDetailCount) : undefined,
     lineDifficulty: clampNumber(parsed.lineDifficulty, 50, 0, 100),
     structureComplexity: clampNumber(parsed.structureComplexity, 50, 0, 100),
     realLineHours: typeof parsed.realLineHours === 'number' && Number.isFinite(parsed.realLineHours) && parsed.realLineHours > 0 ? parsed.realLineHours : undefined,
@@ -744,5 +765,6 @@ function clampNumber(
   if (Number.isNaN(n)) return fallback;
   return Math.max(min, Math.min(max, Math.round(n)));
 }
+
 
 

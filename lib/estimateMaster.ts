@@ -1,3 +1,4 @@
+import { traceDetailHours } from './traceDetailEstimate';
 import { isPhotoAlignedRealProduct, estimateRealProductSteps } from './realProductEstimate';
 import { hasRequestedAngleChange } from './estimateScope';
 export type MasterEstimateInput = {
@@ -10,6 +11,8 @@ export type MasterEstimateInput = {
   difficultyScore?: number;
   coloringComplexity?: number;
   partDensity?: number;
+  visibleComponentCount?: number;
+  repeatedDetailCount?: number;
   lineDifficulty?: number;
   structureComplexity?: number;
   isExplodedView?: boolean;
@@ -86,6 +89,12 @@ function chooseCategory(input: MasterEstimateInput, userText: string, aiText: st
   const sourceType = input.sourceType;
   const difficulty = input.difficultyScore || 0;
   const dense = (input.partDensity || 0) >= 70 || (input.lineDifficulty || 0) >= 70;
+
+  const detailHours = traceDetailHours(input);
+  if (detailHours && !input.isExplodedView && !includesAny(userText, ['分解図', '分解状態', '爆発図'])) {
+    return { key: 'photo_component_detail', label: '写真トレース・複数部品と反復細部', baseHours: detailHours,
+      reason: `画像内の${input.visibleComponentCount}ユニット・穴や端子など約${input.repeatedDetailCount}細部を考慮` };
+  }
 
   // 分解図はユーザー入力または明示フラグを優先。
   const userExplicitExploded = includesAny(userText, ['分解図', '分解状態', '爆発図']);
@@ -284,7 +293,7 @@ export function calculateMasterEstimate(input: MasterEstimateInput) {
   const categoryIncludesStructure = ['structure', 'vehicle_structure', '3dcg_structure', 'new_state'].includes(category.key);
   const categoryIncludesComplexity = [
     'photo_complex', 'exploded_complex', 'manual_dense', 'manual_shape_complex', '3dcg_modeling',
-    'color_complex', 'real_photo_complex', 'real_photo_standard', 'real_product_photo'
+    'photo_component_detail', 'color_complex', 'real_photo_complex', 'real_photo_standard', 'real_product_photo'
   ].includes(category.key);
 
   add('person', '人物追加（1名）', 1,
@@ -441,5 +450,6 @@ export function calculateIntegratedEstimate(input: {
 
   return { hours, agreementScore, level, spreadRate: round1(spreadRate * 100) };
 }
+
 
 
