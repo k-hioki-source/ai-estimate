@@ -1043,12 +1043,7 @@ let comment =
     // -----------------------------
     // レスポンス
     // -----------------------------
-    // An explicit, versioned opt-in is required. Never capture legacy requests silently.
-    const qualityReviewRequested = form.get('qualityReviewConsent') === 'quality-review-7d-v1' &&
-      !input.requestFormalQuote && !getString(form.get('email')).trim();
-    let qualityReviewSaved = false;
     const notificationResult = await sendNotificationEmail({
-  qualityReviewMode: qualityReviewRequested,
   company: getString(form.get('companyName')),
   name: getString(form.get('customerName')),
   email: getString(form.get('email')),
@@ -1085,20 +1080,7 @@ confidenceComment: confidence.comment,
 },
  
 });
-    if (qualityReviewRequested && notificationResult.estimateId) {
-      try {
-        const { saveQualityReview } = await import('../../../lib/estimateQuality');
-        await saveQualityReview({estimateId:notificationResult.estimateId,
-          sourceType:input.sourceType,usage:input.usage,style:input.style,quantity:input.quantity,
-          notes:input.notes,imageBase64:base64,imageMime:mimeType,hours:customerEstimatedHours,price:customerTotalPrice,
-          snapshot:{imageKind:file && file.size>0?'upload':'sample',model:'gpt-4.1-mini',rawAnalysis,analysis,workType,systemHours:estimate.hours,master:masterEstimate,integrated:integratedEstimate,confidence,estimateMatch},
-        });
-        qualityReviewSaved = true;
-      } catch { console.error('QUALITY_REVIEW_SAVE_FAILED'); }
-    }
     return NextResponse.json({
-      qualityReviewSaved,
-      qualityReviewRequested,
       // ★ フロント互換（これが無いと落ちる）
       estimateId: notificationResult.estimateId,
       requiresConsultation: consultation.required,
@@ -1173,7 +1155,6 @@ estimatedHoursMax: analysis.estimatedHoursMax,
   );
 }
 }
-
 
 
 
