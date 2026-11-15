@@ -8,8 +8,6 @@ import { getSupabaseBrowserClient } from '../lib/supabase/client';
 import HeaderLinks from "./HeaderLinks";
 import EstimateSave from "./estimate/EstimateSave";
 type ApiResponse = {
-  qualityReviewSaved?: boolean;
-  qualityReviewRequested?: boolean;
   estimateId: string;
   requiresConsultation?: boolean;
   consultationCategory?: string | null;
@@ -1352,17 +1350,12 @@ async function handleFormalQuoteRequest() {
 
                     <p className="uploadNotice">
                       <em>
-                        ※画像・図面は概算見積りの算出およびご依頼対応のために使用します。<br />
-                        下記に同意した場合のみ、担当者による見積り精度の確認・算出ルール改善のため、画像・入力内容・結果を7日間一時保存します。<br />
-                        検証用記録は7日後に閲覧できなくなり、15分ごとの処理で削除します。AIモデルの学習データとしては利用しません。<br />
-                        会員が保存した見積り、正式なご依頼資料、通知メールなどの保管とは別の扱いです。
+                        ※アップロードいただいた画像・図面データは、お見積り算出の目的にのみ使用いたします。<br />
+                        AIの学習データとして利用されることはありません。<br />
+                        お問い合わせ対応のため、見積り内容・添付資料が通知メールに保存される場合があります。
                       </em>
                     </p>
 
-                    {!user && <label style={{display:'flex',alignItems:'flex-start',gap:10,fontSize:14,lineHeight:1.8,margin:'14px 0'}}>
-                      <input type="checkbox" name="qualityReviewConsent" value="quality-review-7d-v1" style={{width:18,flex:'0 0 18px',marginTop:4}} />
-                      <span>匿名の概算見積りについて、担当者が精度確認するため、画像・入力内容・結果を7日間一時保存することに同意する（任意・未選択でも見積りできます）</span>
-                    </label>}
                     <label className="sampleToggleLabel">
                       <input
                         type="checkbox"
@@ -1539,7 +1532,6 @@ async function handleFormalQuoteRequest() {
 
           <div className="resultHero card">
             <div className="badgeRow">
-              {result.qualityReviewRequested && <p role="status" style={{fontSize:14,lineHeight:1.8}}>{result.qualityReviewSaved ? '精度確認用の記録を7日間一時保存しました。確認待ちによって見積りの利用が制限されることはありません。' : '精度確認用の一時保存はできませんでした。見積り結果はそのままご利用いただけます。'}</p>}
               <div className="badge">概算見積り結果</div>
               <div className="scorePill">難易度 {difficultyStars}</div>
             </div>
@@ -2235,5 +2227,4 @@ async function handleFormalQuoteRequest() {
        
   );
 }
-
 
