@@ -1,7 +1,7 @@
 'use client';
 
 import {useTrialCouponPromotion} from '../lib/cs-works/trial-coupon-client';
-import {TrialCouponBadge,TrialCouponSignupNote,TrialCouponExplanation,TrialCouponFaq} from './cs-works/TrialCoupon';
+import {TrialCouponBanner,TrialCouponSignupNote,TrialCouponExplanation,TrialCouponFaq} from './cs-works/TrialCoupon';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -816,6 +816,7 @@ async function handleFormalQuoteRequest() {
         </Link>
       </nav>
     )}
+    {isLanding&&promotionActive&&<TrialCouponBanner />}
 <div className="trustBar">
   テクニカルイラスト制作30年以上｜法人対応｜正式見積対応
 </div>
@@ -878,7 +879,6 @@ async function handleFormalQuoteRequest() {
     </section>}
 
 
-    {isLanding&&promotionActive&&<TrialCouponBadge />}
     {isLanding && !user && announcement && <section className="cswAnnouncement" aria-labelledby="csw-announcement-title">
       <div className="cswAnnouncementLabel"><span aria-hidden="true">●</span>{announcement.label || '更新情報'}</div>
       <div className="cswAnnouncementContent"><h2 id="csw-announcement-title">{announcement.title}</h2>{announcement.body && <p>{announcement.body}</p>}</div>

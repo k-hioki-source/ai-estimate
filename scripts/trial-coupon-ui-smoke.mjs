@@ -25,7 +25,7 @@ try{
  await page.goto(base,{waitUntil:'domcontentloaded'});
  await page.getByText('新規会員登録で、初回お試しクーポン（3,000円分）プレゼント',{exact:true}).waitFor({state:'visible',timeout:20000});
  const home=await page.content();
- assert.ok(home.includes('新規会員登録で、初回お試しクーポン'),'hero badge rendered');
+ assert.ok((await page.getByRole('complementary',{name:'初回お試しクーポンのご案内'}).innerText()).includes('初回お試しクーポン'),'header coupon banner rendered');
  assert.ok(home.includes('初回お試しクーポンとは何ですか'),'FAQ rendered');
  assert.ok(home.includes('軽微な修正'),'existing revision benefit retained');
  assert.ok(home.includes('NDA'),'existing NDA copy retained');
