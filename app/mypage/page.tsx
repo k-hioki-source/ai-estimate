@@ -162,7 +162,6 @@ export default function MyPage(){
          <a href="#estimate-history" className="sidebarNavItem">見積り履歴</a>
          <Link href="/mypage/support" className="sidebarNavItem">メッセージ・相談</Link>
          <Link href="/mypage/consultations" className="sidebarNavItem">オンライン相談</Link>
-         <a href="#account-settings" className="sidebarNavItem"><span aria-hidden="true">⚙</span>　アカウント設定</a>
          <a href="https://www.create-support.co.jp/cs-works/cs-works-customer-manual.html" className="sidebarNavItem" target="_blank" rel="noopener noreferrer">ご利用ガイド ↗</a>
        </nav>
        <div className="sidebarDivider"/>
