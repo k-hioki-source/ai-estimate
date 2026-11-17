@@ -6,6 +6,12 @@ GitHub ActionsでNext.jsビルド、型チェック、計算テスト、隔離Po
 実際のSupabaseテスト環境は接続タイムアウトのため検証できず、Illustrator等の既存制作フローを含む実運用全体とResendの実配信は別途確認が必要。
 クーポン用画面・APIは NEXT_PUBLIC_CSWORKS_TRIAL_COUPON=true になるまで無効。公開バッジ・登録案内・説明・FAQは、さらにDBの付与設定が有効かつ付与可能な場合だけ表示し、準備中の誤案内を防ぐ。
 
+## 最終CI結果
+コード検証対象コミット: 28073bc969dc9247094796c0cd90b2ad60013050
+GitHub Actions: https://github.com/k-hioki-source/ai-estimate/actions/runs/43994404976
+- buildジョブ成功：計算12件、型チェック、本番ビルド、Chromium画面スモーク。
+- databaseジョブ成功：付与/適用/消込/0円納品/請求抑止/月次出力/権限/設定の回帰、複数接続での同時実行。
+
 ## 確定ルール
 - 会社名はNFKC、英字小文字化、空白除去、株式会社/有限会社/合同会社と略記の吸収で同一判定。
 - 付与はメール確認による登録完了時。既存会員への遡及付与はしない。管理者は対象外。
