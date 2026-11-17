@@ -162,14 +162,16 @@ export default function MyPage(){
          <a href="#estimate-history" className="sidebarNavItem">見積り履歴</a>
          <Link href="/mypage/support" className="sidebarNavItem">メッセージ・相談</Link>
          <Link href="/mypage/consultations" className="sidebarNavItem">オンライン相談</Link>
+         <a href="#account-settings" className="sidebarNavItem"><span aria-hidden="true">⚙</span>　アカウント設定</a>
          <a href="https://www.create-support.co.jp/cs-works/cs-works-customer-manual.html" className="sidebarNavItem" target="_blank" rel="noopener noreferrer">ご利用ガイド ↗</a>
        </nav>
        <div className="sidebarDivider"/>
        <Link href="/" className="sidebarAction">＋ AI概算見積り</Link>
-       <div className="sidebarAccount">
+       <a href="#account-settings" className="sidebarAccount" aria-label="アカウント設定へ移動">
          <strong>{profile.company_name || 'お客様'}</strong>
          <span>{profile.contact_name ? `${profile.contact_name} 様` : user?.email}</span>
-       </div>
+         <span className="accountShortcut"><span aria-hidden="true">⚙</span> アカウント設定</span>
+       </a>
      </aside>
      <div className="myPageMain" id="mypage-top"><TrialCouponAccount />
    <section className="welcomeCard"><span className="statusDot"/> ログイン中<h2>{profile.contact_name?`${profile.contact_name} 様`:'CS Worksへようこそ'}</h2><p>{user?.email}</p></section>
@@ -221,7 +223,7 @@ export default function MyPage(){
      {visibleEstimates.length>ESTIMATES_PER_PAGE?<div className="estimatePager"><button type="button" disabled={estimatePage<=1} onClick={()=>setEstimatePage(p=>Math.max(1,p-1))}>← 前へ</button><span>{estimatePage} / {estimatePageCount}</span><button type="button" disabled={estimatePage>=estimatePageCount} onClick={()=>setEstimatePage(p=>Math.min(estimatePageCount,p+1))}>次へ →</button></div>:null}
    </section>
 
-   <section className="widePanel"><div className="authBrand">ACCOUNT</div><h2>お客様情報</h2><p className="muted">正式見積りや制作依頼に使用する情報です。</p>
+   <section id="account-settings" aria-label="アカウント設定" className="widePanel"><div className="authBrand">ACCOUNT</div><h2>お客様情報</h2><p className="muted">正式見積りや制作依頼に使用する情報です。</p>
      <form onSubmit={saveProfile} className="authForm accountForm">
        <div><label>会社名</label><input value={profile.company_name} onChange={e=>updateProfile('company_name',e.target.value)}/></div>
        <div><label>部署名</label><input value={profile.department_name} onChange={e=>updateProfile('department_name',e.target.value)}/></div>
@@ -249,8 +251,9 @@ export default function MyPage(){
        .sidebarDivider{height:1px;margin:14px 8px;background:#e2e8f0}
        .sidebarAction{display:flex;align-items:center;justify-content:center;padding:11px 10px;border:1px solid #bfdbfe;border-radius:10px;background:#f8fbff;color:#1d4ed8;text-decoration:none;font-size:12px;font-weight:900}
        .sidebarAction:hover{background:#eff6ff}
-       .sidebarAccount{display:flex;flex-direction:column;gap:4px;margin:16px 8px 2px;padding-top:14px;border-top:1px solid #e2e8f0;min-width:0}
+       .sidebarAccount{text-decoration:none;border-radius:6px;display:flex;flex-direction:column;gap:4px;margin:16px 8px 2px;padding-top:14px;border-top:1px solid #e2e8f0;min-width:0}
        .sidebarAccount strong{font-size:12px;color:#0f172a;overflow-wrap:anywhere}.sidebarAccount span{font-size:11px;color:#64748b;overflow-wrap:anywhere}
+       .sidebarAccount:hover{background:#f8fafc}.sidebarAccount:focus-visible,.sidebarNavItem:focus-visible{outline:2px solid #2563eb;outline-offset:3px}.sidebarAccount .accountShortcut{color:#1d4ed8;margin-top:5px;font-weight:800}#account-settings{scroll-margin-top:24px}
        .myPageMain{min-width:0}
        @media(max-width:900px){.myPageTwoColumn{display:block;margin-top:18px}.myPageSidebar{position:static;display:flex;gap:8px;overflow-x:auto;margin-bottom:18px;padding:10px;border-radius:14px}.sidebarTitle,.sidebarDivider,.sidebarAccount{display:none}.sidebarNav{flex-direction:row;gap:6px;flex:0 0 auto}.sidebarNavItem{min-height:38px;white-space:nowrap;padding:0 10px}.sidebarAction{flex:0 0 auto;white-space:nowrap}}
        .consultationStatus{display:flex;flex-direction:column;gap:5px;padding:12px;margin:0 0 14px;border:1px solid #bfdbfe;border-radius:12px;background:#f8fbff;color:#0f172a}
