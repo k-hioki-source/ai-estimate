@@ -16,6 +16,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
+      OPENAI_API_KEY: ci-placeholder-not-a-real-key
+      RESEND_API_KEY: ci-placeholder-not-a-real-key
+      SUPABASE_SERVICE_ROLE_KEY: ci-placeholder-not-a-real-key
       NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
       NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ci-placeholder
       NEXT_PUBLIC_CSWORKS_TRIAL_COUPON: 'true'
@@ -30,3 +33,31 @@ jobs:
       - run: node --test scripts/trial-coupon.test.mjs
       - run: npx tsc --noEmit
       - run: npm run build
+
+  database:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: coupon_ci_password
+          POSTGRES_DB: coupon_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGHOST: localhost
+      PGUSER: postgres
+      PGPASSWORD: coupon_ci_password
+      PGDATABASE: coupon_ci
+    steps:
+      - uses: actions/checkout@v4
+      - run: psql -v ON_ERROR_STOP=1 -f scripts/trial-coupon-fixture.sql
+      - run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261026140000_formal_quote_items.sql
+      - run: psql -v ON_ERROR_STOP=1 -f docs/sql/first-order-trial-coupon.sql
+      - run: psql -v ON_ERROR_STOP=1 -f scripts/trial-coupon.test.sql
