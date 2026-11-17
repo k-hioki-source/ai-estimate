@@ -1,7 +1,9 @@
+import {chromium} from 'playwright';
 import assert from 'node:assert/strict';
 import {spawn} from 'node:child_process';
 import {setTimeout as delay} from 'node:timers/promises';
 const server=spawn(process.execPath,['node_modules/next/dist/bin/next','start','--port','3210'],{env:process.env,stdio:['ignore','ignore','pipe']});
+let browser;
 let errors='';server.stderr.on('data',x=>errors+=x);
 server.on('error',e=>{errors+=String(e);});
 const base='http://127.0.0.1:3210';
@@ -17,7 +19,12 @@ try{
  assert.ok(signup.includes('会社名・事業者名'),'signup collects company name');
  assert.ok(signup.includes('初回お試しクーポン'),'signup explains coupon');
  assert.ok(signup.includes('正式見積り3,000円以下'),'signup keeps quote amount condition');
- const home=await (await fetch(base)).text();
+ browser=await chromium.launch({headless:true});
+ const page=await browser.newPage();
+ await page.route('https://example.supabase.co/**',r=>r.fulfill({status:200,contentType:'application/json',body:'[]'}));
+ await page.goto(base,{waitUntil:'domcontentloaded'});
+ await page.getByText('新規会員登録で、初回お試しクーポン（3,000円分）プレゼント',{exact:true}).waitFor({state:'visible',timeout:20000});
+ const home=await page.content();
  assert.ok(home.includes('新規会員登録で、初回お試しクーポン'),'hero badge rendered');
  assert.ok(home.includes('初回お試しクーポンとは何ですか'),'FAQ rendered');
  assert.ok(home.includes('軽微な修正'),'existing revision benefit retained');
@@ -26,4 +33,4 @@ try{
  assert.equal((await fetch(base+'/api/cs-works/trial-coupon?from=2026-11&to=2026-11')).status,401,'report requires authentication');
  assert.equal((await fetch(base+'/api/cs-works/trial-coupon',{method:'POST'})).status,401,'mail cannot be triggered anonymously');
  console.log('PASS: built signup/landing markup and anonymous API access controls');
-}finally{server.kill('SIGTERM');}
+}finally{if(browser)await browser.close();server.kill('SIGTERM');}
