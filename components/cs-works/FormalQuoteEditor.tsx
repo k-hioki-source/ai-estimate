@@ -33,7 +33,7 @@ export default function FormalQuoteEditor({ project, children, onPresented }: { 
     setBusy(true); if (requestAction.current !== present) request.current = null; requestAction.current = present; request.current ||= crypto.randomUUID();
     try {
       const r = await formalQuoteRequest<{ quote: FormalQuote; project: any; replayed: boolean }>(project.id, { action: present ? 'present' : 'save', requestId: request.current, expectedQuoteId: context!.current?.id ?? null, draftId: draft?.id ?? null, editVersion: draft?.edit_version ?? 0, deadline, items });
-      setDirty(false); setDraft(present ? null : r.quote); setContext(c => ({ ...c!, current: present ? r.quote : c!.current, draft: present ? null : r.quote, history: present ? [r.quote, ...c!.history.filter(q => q.id !== r.quote.id)] : c!.history })); request.current = null;
+      setDirty(false); setDraft(present ? null : r.quote); setContext(c => ({ ...c!, couponAvailable: (r.quote.coupon_discount_amount??0)>0, current: present ? r.quote : c!.current, draft: present ? null : r.quote, history: present ? [r.quote, ...c!.history.filter(q => q.id !== r.quote.id)] : c!.history })); request.current = null;
       setNotice(present ? '正式見積りを提示しました。' : '下書きを保存しました。お客様にはまだ表示されません。');
       if (present) await onPresented(r.project, r.replayed);
     } catch (e) { setError((e as Error).message); } finally { setBusy(false); }

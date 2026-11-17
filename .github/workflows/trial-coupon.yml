@@ -33,6 +33,7 @@ jobs:
       - run: node --test scripts/trial-coupon.test.mjs
       - run: npx tsc --noEmit
       - run: npm run build
+      - run: node scripts/trial-coupon-ui-smoke.mjs
 
   database:
     runs-on: ubuntu-latest

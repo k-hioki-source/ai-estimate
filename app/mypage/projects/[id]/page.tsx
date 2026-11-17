@@ -580,7 +580,7 @@ async function orderProject(project: Project) {
   }
   const confirmed = window.confirm(
     `案件「${project.project_code}」を正式に発注しますか？\n\n` +
-      `金額：${project.quoted_amount.toLocaleString()}円\n` +
+      `金額：${project.quoted_amount.toLocaleString()}円（税抜）／${(project.quoted_amount+Math.floor(project.quoted_amount/10)).toLocaleString()}円（税込）\n` +
       `工数：${project.quoted_hours}時間\n` +
       `納期：${formatDate(project.confirmed_deadline)}`
   );

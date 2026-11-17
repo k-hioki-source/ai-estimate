@@ -33,6 +33,11 @@ update public.trial_coupon_grants set expires_at=clock_timestamp()-interval '1 s
 select pg_temp.assert_true(csworks_private.available_trial_coupon('10000000-0000-4000-8000-000000000001') is null,'configurable expiry');
 update public.trial_coupon_grants set expires_at=null;
 
+set local role service_role;
+select pg_temp.assert_true((select count(*)=1 from public.csworks_claim_trial_coupon_mail('10000000-0000-4000-8000-000000000001')),'registration mail can be claimed once');
+select pg_temp.assert_true((select count(*)=0 from public.csworks_claim_trial_coupon_mail('10000000-0000-4000-8000-000000000001')),'mail claim suppresses immediate duplicate send');
+reset role;
+
 insert into public.projects(id,user_id,title) values
  ('20000000-0000-4000-8000-000000000001','10000000-0000-4000-8000-000000000001','3000 zero delivery'),
  ('20000000-0000-4000-8000-000000000002','10000000-0000-4000-8000-000000000001','10000 second candidate'),
@@ -99,4 +104,21 @@ select pg_temp.assert_true((public.csworks_trial_coupon_monthly(current_date,cur
 select pg_temp.assert_true((public.csworks_trial_coupon_monthly(current_date,current_date)->0->>'repeat_revenue_ex_tax')::integer=10000,'monthly repeat revenue separate');
 select pg_temp.assert_true((public.csworks_trial_coupon_monthly(current_date,current_date)->0->>'repeat_customers')::integer=1,'repeat order detected');
 select pg_temp.assert_true(jsonb_array_length(public.csworks_trial_coupon_repeat_members(current_date,current_date))=2,'per-member repeat flags');
+
+-- Existing CS Works order history also excludes a newly confirmed account.
+insert into auth.users(id,email,raw_user_meta_data) values
+ ('10000000-0000-4000-8000-000000000007','ordered@example.test','{"company_name":"過去発注会社"}');
+insert into public.projects(id,user_id,title,status) values
+ ('20000000-0000-4000-8000-000000000007','10000000-0000-4000-8000-000000000007','既存発注','ordered');
+insert into public.project_orders(project_id,user_id,customer_company_name,subtotal_amount,tax_amount,total_amount)
+ values('20000000-0000-4000-8000-000000000007','10000000-0000-4000-8000-000000000007','過去発注会社',3000,300,3300);
+update auth.users set email_confirmed_at=clock_timestamp() where id='10000000-0000-4000-8000-000000000007';
+select pg_temp.assert_true(not exists(select 1 from public.trial_coupon_grants where user_id='10000000-0000-4000-8000-000000000007'),'past CS Works orders exclude grant');
+
+set local role authenticated;
+do $$ begin
+ begin update public.trial_coupon_grants set consumed_at=null;raise exception 'FAILED: direct grant update allowed';exception when insufficient_privilege then raise notice 'PASS: direct grant update denied';end;
+end $$;
+reset role;
+
 rollback;
