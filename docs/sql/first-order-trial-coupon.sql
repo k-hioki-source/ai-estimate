@@ -474,4 +474,17 @@ begin
 end $$;
 revoke all on function public.csworks_trial_coupon_repeat_members(date,date) from public,anon,authenticated;
 grant execute on function public.csworks_trial_coupon_repeat_members(date,date) to authenticated;
+
+-- Public campaign visibility contains no member data. Stop advertising atomically
+-- with new grants when the campaign is disabled, exhausted or expired.
+create function public.csworks_trial_coupon_promotion() returns jsonb
+language sql stable security definer set search_path='' as $$
+ select jsonb_build_object('active',enabled
+ and (expires_at is null or expires_at>now())
+ and (grant_limit is null or (select count(*) from public.trial_coupon_grants)<grant_limit))
+ from public.trial_coupon_settings where singleton
+$$;
+revoke all on function public.csworks_trial_coupon_promotion() from public,anon,authenticated;
+grant execute on function public.csworks_trial_coupon_promotion() to anon,authenticated;
+
 commit;

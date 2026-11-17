@@ -4,9 +4,10 @@ import Link from 'next/link';
 import { FormEvent, useEffect, useState } from 'react';
 import { getSupabaseBrowserClient } from '../../lib/supabase/client';
 
-import {trialCouponEnabled} from '../../lib/cs-works/trial-coupon-client';
+import {trialCouponEnabled,useTrialCouponPromotion} from '../../lib/cs-works/trial-coupon-client';
 import {TrialCouponSignupNote} from '../../components/cs-works/TrialCoupon';
 export default function SignupPage() {
+  const promotionActive=useTrialCouponPromotion();
   const [returnTo, setReturnTo] = useState('/mypage');
 
   useEffect(() => {
@@ -29,7 +30,7 @@ export default function SignupPage() {
   }
   if(done) return <main className="authPage"><section className="authCard"><div className="authBrand">CS Works</div><h1>確認メールを送信しました</h1><p className="authLead"><strong>{email}</strong> 宛に確認メールを送りました。メール内のリンクをクリックすると登録が完了します。</p><Link className="primaryButton authButtonLink" href={returnTo === '/invite' ? '/login?returnTo=/invite' : returnTo === '/' ? '/login?returnTo=/' : '/login'}>ログイン画面へ</Link><Link className="backLink" href="/">← AI概算見積りへ戻る</Link></section></main>;
   return <main className="authPage"><section className="authCard"><div className="authBrand">CS Works</div><h1>無料会員登録</h1><p className="muted">{returnTo === '/' ? '作成した概算見積りは一時的に保持されています。登録完了後、見積り画面に戻ってMy Pageへ保存できます。' : '事業者向けの無料アカウントを作成します。'}</p>
-    {trialCouponEnabled&&<TrialCouponSignupNote />}
+    {promotionActive&&<TrialCouponSignupNote />}
     <form onSubmit={handleSubmit} className="authForm">
       {trialCouponEnabled&&<div><label htmlFor="signup-company">会社名・事業者名</label><input id="signup-company" autoComplete="organization" required maxLength={200} value={companyName} onChange={e=>setCompanyName(e.target.value)} /></div>}
       <div><label>メールアドレス</label><input type="email" autoComplete="email" required value={email} onChange={e=>setEmail(e.target.value)} /></div>

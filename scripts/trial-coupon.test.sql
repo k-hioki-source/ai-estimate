@@ -22,7 +22,9 @@ insert into auth.users(id,email,created_at,email_confirmed_at,raw_user_meta_data
  ('10000000-0000-4000-8000-000000000005','old@example.test',clock_timestamp()-interval '2 days',clock_timestamp(),'{"company_name":"既存会員"}');
 select pg_temp.assert_true(not exists(select 1 from public.trial_coupon_grants where user_id='10000000-0000-4000-8000-000000000005'),'no retroactive grant');
 
+select pg_temp.assert_true((public.csworks_trial_coupon_promotion()->>'active')::boolean,'enabled campaign visible');
 update public.trial_coupon_settings set grant_limit=2;
+select pg_temp.assert_true(not (public.csworks_trial_coupon_promotion()->>'active')::boolean,'exhausted campaign hidden');
 insert into auth.users(id,email,email_confirmed_at,raw_user_meta_data) values
  ('10000000-0000-4000-8000-000000000006','limit@example.test',clock_timestamp(),'{"company_name":"上限確認会社"}');
 select pg_temp.assert_true(not exists(select 1 from public.trial_coupon_grants where user_id='10000000-0000-4000-8000-000000000006'),'configurable grant limit');

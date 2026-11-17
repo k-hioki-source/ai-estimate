@@ -1,6 +1,6 @@
 'use client';
 
-import {trialCouponEnabled} from '../lib/cs-works/trial-coupon-client';
+import {useTrialCouponPromotion} from '../lib/cs-works/trial-coupon-client';
 import {TrialCouponBadge,TrialCouponSignupNote,TrialCouponExplanation,TrialCouponFaq} from './cs-works/TrialCoupon';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
@@ -89,6 +89,7 @@ function clearPendingEstimate() {
 }
 
 export default function EstimateForm({ mode = 'estimate' }: { mode?: 'landing' | 'estimate' }) {
+  const promotionActive=useTrialCouponPromotion();
   const router = useRouter();
   const isLanding = mode === 'landing';
   const [user, setUser] = useState<User | null>(null);
@@ -877,7 +878,7 @@ async function handleFormalQuoteRequest() {
     </section>}
 
 
-    {isLanding&&trialCouponEnabled&&<TrialCouponBadge />}
+    {isLanding&&promotionActive&&<TrialCouponBadge />}
     {isLanding && !user && announcement && <section className="cswAnnouncement" aria-labelledby="csw-announcement-title">
       <div className="cswAnnouncementLabel"><span aria-hidden="true">●</span>{announcement.label || '更新情報'}</div>
       <div className="cswAnnouncementContent"><h2 id="csw-announcement-title">{announcement.title}</h2>{announcement.body && <p>{announcement.body}</p>}</div>
@@ -910,7 +911,7 @@ async function handleFormalQuoteRequest() {
             <Link href="/login" className="csWorksSecondaryCta">ログイン</Link>
           </div>
         </div>
-        {trialCouponEnabled&&<TrialCouponSignupNote />}
+        {promotionActive&&<TrialCouponSignupNote />}
         <div className="csWorksBridgeFlow" aria-label="CS Worksの利用の流れ">
           <span>AI概算見積り</span><b>→</b><span>保存</span><b>→</b><span>正式見積り</span><b>→</b><span>発注</span><b>→</b><span>案件管理</span><b>→</b><span>納品</span>
         </div>
@@ -2211,7 +2212,7 @@ async function handleFormalQuoteRequest() {
 `}</style>
 {isLanding && <section className="cswFaq" id="csw-faq" aria-labelledby="csw-faq-title">
   <div className="cswSectionHeading"><p>FAQ</p><h2 id="csw-faq-title">よくある質問</h2><span>お見積りから制作のご相談まで。</span></div>
-  <div className="cswFaqList">{trialCouponEnabled&&<TrialCouponFaq />}
+  <div className="cswFaqList">{promotionActive&&<TrialCouponFaq />}
     <details><summary>会員登録なしで見積りできますか？</summary><p>はい。AI概算見積りは、会員登録なしで無料でご利用いただけます。見積り結果のPDFダウンロードも可能です。</p></details>
     <details><summary>参考画像がなくても利用できますか？</summary><p>はい。ご希望の内容を文章で入力し、用意されたサンプルから近いイメージを選んで概算を確認できます。制作する内容が具体的なほど、条件を整理しやすくなります。</p></details>
     <details><summary>AI概算見積りの金額で、そのまま発注できますか？</summary><p>AIが算出する金額は目安です。正式な金額・制作内容・納期は、担当者が資料とご要望を確認したうえで正式見積りにてご案内します。</p></details>
@@ -2223,7 +2224,7 @@ async function handleFormalQuoteRequest() {
   </div>
   <p className="cswFaqContact">解決しない場合は、<a href="https://www.create-support.co.jp/contact/">お問い合わせ</a>からご相談ください。</p>
 </section>}
-{isLanding&&trialCouponEnabled&&<TrialCouponExplanation />}
+{isLanding&&promotionActive&&<TrialCouponExplanation />}
 <footer className="footer">
         <div className="footerInner">
           <div className="footerBrand">

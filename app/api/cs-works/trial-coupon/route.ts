@@ -16,6 +16,13 @@ async function actor(req:NextRequest) {
 export async function GET(req:NextRequest) {
  if(process.env.NEXT_PUBLIC_CSWORKS_TRIAL_COUPON!=='true')return reply({error:'Not found'},404);
  try {
+  if(req.nextUrl.searchParams.get('promotion')==='1'){
+   const url=process.env.NEXT_PUBLIC_SUPABASE_URL,key=process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+   if(!url||!key)return reply({active:false});
+   const db=createClient(url,key,{auth:{persistSession:false,autoRefreshToken:false}});
+   const r=await db.rpc('csworks_trial_coupon_promotion');
+   return r.error?reply({active:false}):reply(r.data);
+  }
   const a=await actor(req);if(!a)return reply({error:'ログインが必要です。'},401);
   const from=req.nextUrl.searchParams.get('from'),to=req.nextUrl.searchParams.get('to');
   const uid=req.nextUrl.searchParams.get('userId');
