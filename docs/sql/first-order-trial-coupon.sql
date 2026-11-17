@@ -243,8 +243,7 @@ begin
  perform public.csworks_materialize_illustrations(p_project_id);
  select * into p from public.projects where id=p_project_id;
  return jsonb_build_object('project',to_jsonb(p),'replayed',false);
-end $function$
-
+end $function$;
 revoke all on function csworks_private.order_quote_base(uuid,uuid,uuid) from public,anon,authenticated;
 
 create or replace function public.csworks_order_quote(p_project_id uuid,p_quote_id uuid,p_request_id uuid) returns jsonb
@@ -329,7 +328,7 @@ create trigger zz_trial_coupon_complete after update of status on public.project
 for each row execute function csworks_private.complete_zero_delivery();
 revoke all on function csworks_private.complete_zero_delivery() from public,anon,authenticated;
 CREATE OR REPLACE FUNCTION csworks_private.deliver_project_base(p_project_id uuid)
- RETURNS projects
+ RETURNS public.projects
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO 'public'
@@ -409,8 +408,7 @@ begin
 
   return v_project;
 end;
-$function$
-
+$function$;
 revoke all on function csworks_private.deliver_project_base(uuid) from public,anon,authenticated;
 create or replace function public.deliver_project(p_project_id uuid) returns public.projects
 language plpgsql security definer set search_path='' as $$
@@ -429,7 +427,7 @@ begin
  if p_from is null or p_to is null or p_from>p_to or p_to>p_from+interval '10 years' then raise exception 'Invalid months' using errcode='22023'; end if;
  select coalesce(jsonb_agg(row_to_json(x) order by x.month),'[]'::jsonb) into result from (
  select to_char(m,'YYYY-MM') as month,
- (select count(*) from public.profiles pr where pr.role='customer' and date_trunc('month',pr.created_at at time zone 'Asia/Tokyo')=m) as registrations,
+ (select count(*) from public.profiles pr join auth.users u on u.id=pr.id where pr.role='customer' and date_trunc('month',u.email_confirmed_at at time zone 'Asia/Tokyo')=m) as registrations,
  (select count(*) from public.trial_coupon_grants g where date_trunc('month',g.granted_at at time zone 'Asia/Tokyo')=m) as grants,
  (select count(*) from public.trial_coupon_grants g where date_trunc('month',g.consumed_at at time zone 'Asia/Tokyo')=m) as redemptions,
  (select count(*) from public.trial_coupon_grants g where g.application='full' and date_trunc('month',g.consumed_at at time zone 'Asia/Tokyo')=m) as full_redemptions,
@@ -463,4 +461,17 @@ language sql security definer set search_path='' as $$
 $$;
 revoke all on function public.csworks_claim_trial_coupon_mail(uuid) from public,anon,authenticated;
 grant execute on function public.csworks_claim_trial_coupon_mail(uuid) to service_role;
+
+create function public.csworks_trial_coupon_repeat_members(p_from date,p_to date) returns jsonb
+language plpgsql stable security definer set search_path='' as $
+begin
+ if auth.uid() is null or not public.is_admin() then raise exception 'Admin required' using errcode='42501'; end if;
+ if p_from is null or p_to is null or p_from>p_to or p_to>p_from+interval '10 years' then raise exception 'Invalid months' using errcode='22023'; end if;
+ return coalesce((select jsonb_agg(jsonb_build_object('user_id',g.user_id,'company_name',g.company_name,'consumed_at',g.consumed_at,
+ 'has_second_order',exists(select 1 from public.project_orders o where o.user_id=g.user_id and o.project_id<>g.consumed_project_id and o.ordered_at>=g.consumed_at)) order by g.consumed_at)
+ from public.trial_coupon_grants g where (g.consumed_at at time zone 'Asia/Tokyo')>=date_trunc('month',p_from::timestamp)
+ and (g.consumed_at at time zone 'Asia/Tokyo')<date_trunc('month',p_to::timestamp)+interval '1 month'),'[]'::jsonb);
+end $;
+revoke all on function public.csworks_trial_coupon_repeat_members(date,date) from public,anon,authenticated;
+grant execute on function public.csworks_trial_coupon_repeat_members(date,date) to authenticated;
 commit;

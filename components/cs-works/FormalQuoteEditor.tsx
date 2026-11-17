@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { formalQuotesEnabled, quoteTotals, type FormalQuote, type QuoteContext, type QuoteItem } from '../../lib/cs-works/formal-quotes';
 import { formalQuoteRequest } from '../../lib/cs-works/formal-quotes-client';
+import {calculateTrialCoupon} from '../../lib/cs-works/trial-coupon.mjs';
 import QuoteItemsEditor from './QuoteItemsEditor';
 import { QuoteItemsTable } from './FormalQuoteDetails';
 type Project = { id: string; status: string; formal_quote_id?: string | null };
@@ -13,7 +14,7 @@ export default function FormalQuoteEditor({ project, children, onPresented }: { 
   const request = useRef<string | null>(null);
   const requestAction = useRef<boolean | null>(null);
   useEffect(() => { if (!formalQuotesEnabled) return; let active = true; setContext(null); setMode(!!project.formal_quote_id); setItems([]); setDeadline(''); setDraft(null); setDirty(false); request.current = null;
-    formalQuoteRequest<QuoteContext>(project.id).then(c => { if (!active) return; setContext(c); const q = c.draft || c.current; setDraft(c.draft); if (q) { setMode(true); setItems(q.items); setDeadline(q.deadline); } }).catch(e => { if (active) setError(e.message); });
+    formalQuoteRequest<QuoteContext>(project.id).then(c => { if (!active) return; setContext(c); const q = c.draft || c.current; setDraft(c.draft); if(c.couponManaged&&!q){setMode(true);setItems([blank(1)]);} if (q) { setMode(true); setItems(q.items); setDeadline(q.deadline); } }).catch(e => { if (active) setError(e.message); });
     return () => { active = false; };
   }, [project.id]);
   useEffect(() => { const guard = (e: BeforeUnloadEvent) => { if (dirty) { e.preventDefault(); e.returnValue = ''; } }; window.addEventListener('beforeunload', guard); return () => window.removeEventListener('beforeunload', guard); }, [dirty]);
@@ -24,6 +25,7 @@ export default function FormalQuoteEditor({ project, children, onPresented }: { 
   if (!editable) return context.current ? <><QuoteItemsTable quote={context.current} /><details><summary>提示済み見積りの履歴</summary>{context.history.map(q => <p key={q.id}><a href={`/mypage/projects/${project.id}/quote?quoteId=${q.id}`} target="_blank" rel="noreferrer">第{q.revision}版の見積書</a></p>)}</details></> : <p>正式見積りは確定済みです。</p>;
   const change = (i: number, field: keyof QuoteItem, value: string | number) => { setItems(xs => xs.map((x, n) => n === i ? { ...x, [field]: value } : x)); setDirty(true); request.current = null; setNotice(''); };
   let totals: ReturnType<typeof quoteTotals> | null = null; try { totals = quoteTotals(items); } catch {}
+  const couponTotals=totals?calculateTrialCoupon(totals.subtotal,{applyCoupon:!!context.couponAvailable}):null;
   async function save(present: boolean) {
     if (busy) return; setError(''); setNotice('');
     try { quoteTotals(items); if (!deadline) throw Error('納期を入力してください。'); } catch (e) { setError((e as Error).message); return; }
@@ -42,7 +44,10 @@ export default function FormalQuoteEditor({ project, children, onPresented }: { 
     {context.current && <p>現在の提示：第{context.current.revision}版 ／ {context.current.subtotal.toLocaleString()}円（税抜）</p>}
     <fieldset disabled={busy} style={{ border: 0, padding: 0, minWidth: 0 }}>
       <QuoteItemsEditor items={items} onChange={xs => { setItems(xs); setDirty(true); request.current = null; setNotice(''); }} />
-      <p>税抜小計：{totals?.subtotal.toLocaleString() ?? '—'}円 ／ 消費税10％：{totals?.tax.toLocaleString() ?? '—'}円 ／ 税込合計：{totals?.total.toLocaleString() ?? '—'}円 ／ 合計工数：{totals?.hours ?? '—'}時間</p>
+      <p>値引前小計：{totals?.subtotal.toLocaleString() ?? '—'}円（税抜） ／ 合計工数：{totals?.hours ?? '—'}時間</p>
+      {context.couponAvailable&&<p><strong>初回お試しクーポン −3,000円（自動適用予定）</strong><br/>先に発注が確定した案件に適用されます。</p>}
+      <p>値引後小計：{couponTotals?.taxableAmount.toLocaleString()??'—'}円 ／ 消費税10％：{couponTotals?.taxAmount.toLocaleString()??'—'}円 ／ 税込合計：{couponTotals?.totalAmount.toLocaleString()??'—'}円</p>
+      {couponTotals?.couponZeroDelivery&&<p>クーポン適用・0円納品（請求書は発行しません）</p>}
       <label>案件全体の納期 <input type="date" value={deadline} onChange={e => { setDeadline(e.target.value); setDirty(true); request.current = null; }} /></label>
       <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 16 }}><button type="button" onClick={() => save(false)}>下書き保存</button><button type="button" onClick={() => save(true)} style={{ background: '#1d4ed8', color: '#fff', border: 0, borderRadius: 8, padding: '12px 18px' }}>{busy ? '処理中…' : 'この明細で正式見積りを提示'}</button></div>
     </fieldset>

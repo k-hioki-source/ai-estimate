@@ -23,7 +23,16 @@ export async function GET(req: NextRequest) {
   try {
     const db = await actor(req); if (!db) return reply({ error: 'ログインが必要です。' }, 401);
     const id = req.nextUrl.searchParams.get('projectId'); if (!uuid(id)) return reply({ error: '案件を指定してください。' }, 400);
-    const { data, error } = await db.rpc('csworks_get_quotes', { p_project_id: id }); return error ? failure(error) : reply(data);
+    const { data, error } = await db.rpc('csworks_get_quotes', { p_project_id: id });
+    if(error)return failure(error);
+    if(process.env.NEXT_PUBLIC_CSWORKS_TRIAL_COUPON==='true') {
+      const pr=await db.from('projects').select('user_id').eq('id',id).single();
+      if(pr.error)return failure(pr.error);
+      const status=await db.rpc('csworks_trial_coupon_status',{p_user_id:pr.data.user_id});
+      if(status.error)return failure(status.error);
+      return reply({...data,couponAvailable:status.data.available,couponManaged:status.data.granted});
+    }
+    return reply(data);
   } catch { return failure({}); }
 }
 export async function POST(req: NextRequest) {
@@ -39,11 +48,17 @@ export async function POST(req: NextRequest) {
     if (b.action === 'order') {
       if (!uuid(b.quoteId)) return reply({ error: '見積りを指定してください。' }, 400);
       name = 'csworks_order_quote'; args = { p_project_id: b.projectId, p_quote_id: b.quoteId, p_request_id: b.requestId };
+      if(process.env.NEXT_PUBLIC_CSWORKS_TRIAL_COUPON==='true') {
+        if(!Number.isSafeInteger(b.expectedTotal)||b.expectedTotal<0||!Number.isSafeInteger(b.expectedVersion)||b.expectedVersion<1)return reply({error:'最新の見積り金額をご確認ください。'},400);
+        name='csworks_order_quote_checked';Object.assign(args,{p_expected_total:b.expectedTotal,p_expected_version:b.expectedVersion});
+      }
     } else if (b.action === 'save' || b.action === 'present') {
       if ((b.expectedQuoteId !== null && !uuid(b.expectedQuoteId)) || (b.draftId !== null && !uuid(b.draftId)) || !Number.isSafeInteger(b.editVersion) || b.editVersion < 0 || typeof b.deadline !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(b.deadline)) return reply({ error: '納期と見積りの版を確認してください。' }, 400);
       try { quoteTotals(b.items); } catch (e) { return reply({ error: (e as Error).message }, 400); }
       name = 'csworks_save_quote'; args = { p_project_id: b.projectId, p_expected_quote_id: b.expectedQuoteId, p_draft_id: b.draftId, p_edit_version: b.editVersion, p_deadline: b.deadline, p_items: b.items, p_present: b.action === 'present', p_request_id: b.requestId };
     } else return reply({ error: '操作が不正です。' }, 400);
-    const { data, error } = await db.rpc(name, args); return error ? failure(error) : reply(data);
+    const { data, error } = await db.rpc(name, args);
+    if(data?.quoteChanged)return reply({error:'クーポン利用状況が変わり、見積り金額が更新されました。更新後の金額をご確認のうえ、改めて発注してください。'},409);
+    return error ? failure(error) : reply(data);
   } catch { return failure({}); }
 }

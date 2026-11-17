@@ -1,0 +1,32 @@
+name: Trial coupon validation
+on:
+  pull_request:
+    paths:
+      - '**.ts'
+      - '**.tsx'
+      - '**.mjs'
+      - '**.mts'
+      - 'docs/sql/**'
+      - 'scripts/**'
+      - '.github/workflows/trial-coupon.yml'
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ci-placeholder
+      NEXT_PUBLIC_CSWORKS_TRIAL_COUPON: 'true'
+      NEXT_PUBLIC_CSWORKS_FORMAL_QUOTES: 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: node --test scripts/trial-coupon.test.mjs
+      - run: npx tsc --noEmit
+      - run: npm run build
