@@ -61,3 +61,7 @@ jobs:
       - run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261026140000_formal_quote_items.sql
       - run: psql -v ON_ERROR_STOP=1 -f docs/sql/first-order-trial-coupon.sql
       - run: psql -v ON_ERROR_STOP=1 -f scripts/trial-coupon.test.sql
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node scripts/trial-coupon-concurrency.mjs

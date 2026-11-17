@@ -22,6 +22,17 @@ insert into auth.users(id,email,created_at,email_confirmed_at,raw_user_meta_data
  ('10000000-0000-4000-8000-000000000005','old@example.test',clock_timestamp()-interval '2 days',clock_timestamp(),'{"company_name":"既存会員"}');
 select pg_temp.assert_true(not exists(select 1 from public.trial_coupon_grants where user_id='10000000-0000-4000-8000-000000000005'),'no retroactive grant');
 
+update public.trial_coupon_settings set grant_limit=2;
+insert into auth.users(id,email,email_confirmed_at,raw_user_meta_data) values
+ ('10000000-0000-4000-8000-000000000006','limit@example.test',clock_timestamp(),'{"company_name":"上限確認会社"}');
+select pg_temp.assert_true(not exists(select 1 from public.trial_coupon_grants where user_id='10000000-0000-4000-8000-000000000006'),'configurable grant limit');
+update public.trial_coupon_settings set grant_limit=null,redemption_limit=0;
+select pg_temp.assert_true(csworks_private.available_trial_coupon('10000000-0000-4000-8000-000000000001') is null,'configurable redemption limit');
+update public.trial_coupon_settings set redemption_limit=null;
+update public.trial_coupon_grants set expires_at=clock_timestamp()-interval '1 second' where user_id='10000000-0000-4000-8000-000000000001';
+select pg_temp.assert_true(csworks_private.available_trial_coupon('10000000-0000-4000-8000-000000000001') is null,'configurable expiry');
+update public.trial_coupon_grants set expires_at=null;
+
 insert into public.projects(id,user_id,title) values
  ('20000000-0000-4000-8000-000000000001','10000000-0000-4000-8000-000000000001','3000 zero delivery'),
  ('20000000-0000-4000-8000-000000000002','10000000-0000-4000-8000-000000000001','10000 second candidate'),
@@ -77,8 +88,8 @@ select public.deliver_project(id) from public.projects order by id;
 select pg_temp.assert_true((select status='completed' and coupon_zero_delivery from public.projects where id='20000000-0000-4000-8000-000000000001'),'zero delivery completes automatically');
 select pg_temp.assert_true((select count(*)=0 from public.project_invoices),'no zero invoice created');
 do $$ begin
- begin insert into public.project_invoices(project_id,user_id,subtotal_amount,tax_amount,total_amount)
- values('20000000-0000-4000-8000-000000000001','10000000-0000-4000-8000-000000000001',0,0,0);
+ begin insert into public.project_invoices(project_id,user_id,project_code,project_title,project_description,subtotal_amount,tax_rate,tax_amount,total_amount,quoted_hours,confirmed_deadline,formal_quote_id)
+ select project_id,user_id,project_code,project_title,project_description,subtotal_amount,tax_rate,tax_amount,total_amount,quoted_hours,confirmed_deadline,formal_quote_id from public.project_orders where project_id='20000000-0000-4000-8000-000000000001';
  raise exception 'FAILED: zero invoice accepted';exception when invalid_parameter_value then raise notice 'PASS: zero invoice rejected';end;
 end $$;
 select pg_temp.assert_true((public.csworks_trial_coupon_monthly(current_date,current_date)->0->>'redemptions')::integer=2,'monthly redemption total');

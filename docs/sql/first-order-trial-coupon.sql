@@ -433,11 +433,11 @@ begin
  (select count(*) from public.trial_coupon_grants g where g.application='full' and date_trunc('month',g.consumed_at at time zone 'Asia/Tokyo')=m) as full_redemptions,
  (select count(*) from public.trial_coupon_grants g where g.application='partial' and date_trunc('month',g.consumed_at at time zone 'Asia/Tokyo')=m) as partial_redemptions,
  (select count(*) from public.trial_coupon_grants g where date_trunc('month',g.consumed_at at time zone 'Asia/Tokyo')=m
- and exists(select 1 from public.project_orders o where o.user_id=g.user_id and o.project_id<>g.consumed_project_id and o.ordered_at>=g.consumed_at)) as repeat_customers,
+ and exists(select 1 from public.project_orders o where o.user_id=g.user_id and o.project_id<>g.consumed_project_id)) as repeat_customers,
  (select coalesce(sum(d.subtotal_amount),0) from public.project_deliveries d join public.trial_coupon_grants g on g.consumed_project_id=d.project_id
  where date_trunc('month',d.delivered_at at time zone 'Asia/Tokyo')=m) as first_revenue_ex_tax,
  (select coalesce(sum(d.subtotal_amount),0) from public.project_deliveries d join public.trial_coupon_grants g on g.user_id=d.user_id
- join public.project_orders o on o.project_id=d.project_id where d.project_id<>g.consumed_project_id and o.ordered_at>=g.consumed_at
+ join public.project_orders o on o.project_id=d.project_id where d.project_id<>g.consumed_project_id
  and date_trunc('month',d.delivered_at at time zone 'Asia/Tokyo')=m) as repeat_revenue_ex_tax
  from generate_series(date_trunc('month',p_from::timestamp),date_trunc('month',p_to::timestamp),interval '1 month') m
  ) x;
@@ -468,7 +468,7 @@ begin
  if auth.uid() is null or not public.is_admin() then raise exception 'Admin required' using errcode='42501'; end if;
  if p_from is null or p_to is null or p_from>p_to or p_to>p_from+interval '10 years' then raise exception 'Invalid months' using errcode='22023'; end if;
  return coalesce((select jsonb_agg(jsonb_build_object('user_id',g.user_id,'company_name',g.company_name,'consumed_at',g.consumed_at,
- 'has_second_order',exists(select 1 from public.project_orders o where o.user_id=g.user_id and o.project_id<>g.consumed_project_id and o.ordered_at>=g.consumed_at)) order by g.consumed_at)
+ 'has_second_order',exists(select 1 from public.project_orders o where o.user_id=g.user_id and o.project_id<>g.consumed_project_id)) order by g.consumed_at)
  from public.trial_coupon_grants g where (g.consumed_at at time zone 'Asia/Tokyo')>=date_trunc('month',p_from::timestamp)
  and (g.consumed_at at time zone 'Asia/Tokyo')<date_trunc('month',p_to::timestamp)+interval '1 month'),'[]'::jsonb);
 end $$;
