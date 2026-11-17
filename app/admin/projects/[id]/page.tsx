@@ -16,7 +16,7 @@ import type { User } from '@supabase/supabase-js';
 import { getSupabaseBrowserClient } from '../../../../lib/supabase/client';
 import type { Database } from '../../../../lib/supabase/database.types';
 
-type Project = Omit<Database['public']['Tables']['projects']['Row'], 'status'> & {
+type Project = { coupon_zero_delivery?: boolean } & Omit<Database['public']['Tables']['projects']['Row'], 'status'> & {
   status:
     | Database['public']['Tables']['projects']['Row']['status']
     | 'approved'
@@ -1310,7 +1310,7 @@ export default function AdminPage() {
 
                 {project.status === 'completed' ? (
                   <div className="stateCard success">
-                    <strong>✓ この案件は完了しています</strong>
+                    <strong>{project.coupon_zero_delivery?'クーポン適用・0円納品':'✓ この案件は完了しています'}</strong>{project.coupon_zero_delivery&&<p>請求額0円・請求書発行不要</p>}
                     <p>
                       {project.completed_at
                         ? `完了日：${formatDate(project.completed_at)}`

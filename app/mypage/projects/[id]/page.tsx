@@ -20,7 +20,7 @@ import { getSupabaseBrowserClient } from '../../../../lib/supabase/client';
 import type { Database } from '../../../../lib/supabase/database.types';
 
 type Estimate = Database['public']['Tables']['estimates']['Row'];
-type Project = Omit<Database['public']['Tables']['projects']['Row'], 'status'> & {
+type Project = { coupon_zero_delivery?: boolean } & Omit<Database['public']['Tables']['projects']['Row'], 'status'> & {
   status:
     | Database['public']['Tables']['projects']['Row']['status']
     | 'approved'
@@ -580,7 +580,7 @@ async function orderProject(project: Project) {
   }
   const confirmed = window.confirm(
     `案件「${project.project_code}」を正式に発注しますか？\n\n` +
-      `金額：${project.quoted_amount.toLocaleString()}円\n` +
+      `金額：${project.quoted_amount.toLocaleString()}円（税抜）／${(project.quoted_amount+Math.floor(project.quoted_amount/10)).toLocaleString()}円（税込）\n` +
       `工数：${project.quoted_hours}時間\n` +
       `納期：${formatDate(project.confirmed_deadline)}`
   );
@@ -597,9 +597,16 @@ async function orderProject(project: Project) {
   if (project.formal_quote_id) {
     formalOrderRequest.current ||= crypto.randomUUID();
     try {
-      const result = await formalQuoteRequest<{ project: Project; replayed: boolean }>(project.id, { action: 'order', quoteId: project.formal_quote_id, requestId: formalOrderRequest.current });
+      const result = await formalQuoteRequest<{ project: Project; replayed: boolean }>(project.id, { action: 'order', quoteId: project.formal_quote_id, requestId: formalOrderRequest.current, expectedTotal: formalQuoteContext!.current!.subtotal + Math.floor(formalQuoteContext!.current!.subtotal/10), expectedVersion: formalQuoteContext!.current!.edit_version });
       data = result.project; replayed = result.replayed; formalOrderRequest.current = null;
-    } catch (e) { updateError = e; }
+    } catch (e) {
+      updateError = e; formalOrderRequest.current=null;
+      try {
+        const fresh=await formalQuoteRequest<QuoteContext>(project.id);
+        setFormalQuoteContext(fresh);
+        if(fresh.current)setProjects(xs=>xs.map(p=>p.id===project.id?{...p,quoted_amount:fresh.current!.subtotal}:p));
+      } catch {setFormalQuoteError('最新の正式見積りを取得できません。再読み込みしてください。');}
+    }
   } else {
     const result = await (supabase as any).rpc('order_project', { p_project_id: project.id }).single();
     data = result.data; updateError = result.error;
@@ -1694,7 +1701,8 @@ async function submitProjectReview(project: Project, action: 'approval' | 'revis
                   </button>
                 ) : null}
 
-                {project.status === 'delivered' ? (
+                {project.coupon_zero_delivery && project.status === 'completed' ? <div className="stateCard success"><strong>クーポン適用・0円納品</strong><p>請求額は0円です。請求書の発行・お支払いは不要です。</p></div> : null}
+                {project.status === 'delivered' && !project.coupon_zero_delivery ? (
                   <div className="invoiceRequestCard">
                     <strong>納品が完了しました</strong>
                     <p>内容をご確認のうえ、請求書の発行をご依頼ください。お支払期限は請求日の翌月末です。</p>

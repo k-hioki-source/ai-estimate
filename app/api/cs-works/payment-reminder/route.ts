@@ -1,3 +1,4 @@
+import {sendTrialCouponMail} from '../../../../lib/cs-works/trial-coupon-mail';
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { Resend } from 'resend';
@@ -45,6 +46,9 @@ export async function GET(request: NextRequest) {
   });
   const resend = new Resend(resendKey);
 
+  // Durable registration mail retry, using the existing daily job.
+  let couponMail: {sent:number;failed:number}|{error:string};
+  try {couponMail=await sendTrialCouponMail();}catch{couponMail={error:'クーポン登録完了メールの再送処理に失敗'};}
   // 日本時間の「7日後」を対象にする
   const now = new Date();
   const target = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
@@ -62,7 +66,7 @@ export async function GET(request: NextRequest) {
   }
 
   if (!invoices?.length) {
-    return NextResponse.json({ ok: true, targetDate, sent: 0 });
+    return NextResponse.json({ ok: true, targetDate, sent: 0, couponMail });
   }
 
   const adminRows: string[] = [];
@@ -206,6 +210,7 @@ https://estimate.create-support.co.jp/
     targetDate,
     customerSent,
     failed,
+    couponMail,
   });
 }
 

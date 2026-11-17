@@ -118,6 +118,7 @@ export async function POST(request: NextRequest) {
         title,
         status,
         quoted_amount,
+        coupon_zero_delivery,
         confirmed_deadline
       `)
       .eq('id', body.projectId)
@@ -174,7 +175,7 @@ export async function POST(request: NextRequest) {
       (body.type === 'ordered' && project.status === 'ordered') ||
       (body.type === 'revision_requested' && project.status === 'revision') ||
       (body.type === 'approved' && project.status === 'approved') ||
-      (body.type === 'delivered' && project.status === 'delivered') ||
+      (body.type === 'delivered' && (project.status === 'delivered' || (project.status === 'completed' && project.coupon_zero_delivery))) ||
       (body.type === 'invoice_requested' && project.status === 'invoice_requested') ||
       (body.type === 'invoice_issued' && project.status === 'invoiced') ||
       (body.type === 'payment_completed' && project.status === 'completed') ||
@@ -218,6 +219,7 @@ export async function POST(request: NextRequest) {
       customerName: customerProfile.contact_name ?? undefined,
       customerEmail: customerProfile.email ?? undefined,
       quotedAmount: project.quoted_amount,
+      couponZeroDelivery: project.coupon_zero_delivery,
       confirmedDeadline: project.confirmed_deadline,
       message: notificationMessage,
     });

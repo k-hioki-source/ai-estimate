@@ -1,7 +1,7 @@
 export const formalQuotesEnabled = process.env.NEXT_PUBLIC_CSWORKS_FORMAL_QUOTES === 'true';
 export type QuoteItem = { item_key: string; number: string; name: string; description: string; amount: number; hours: number };
-export type FormalQuote = { id: string; project_id: string; revision: number; edit_version: number; state: 'draft' | 'presented' | 'superseded' | 'accepted'; title: string; description: string | null; deadline: string; subtotal: number; hours: number; created_at: string; presented_at?: string; customer?: Record<string, string | null>; items: QuoteItem[] };
-export type QuoteContext = { current: FormalQuote | null; draft: FormalQuote | null; history: FormalQuote[] };
+export type FormalQuote = { id: string; project_id: string; revision: number; edit_version: number; state: 'draft' | 'presented' | 'superseded' | 'accepted'; title: string; description: string | null; deadline: string; gross_subtotal?: number | null; coupon_discount_amount?: number; coupon_application?: 'full' | 'partial' | 'ineligible'; coupon_managed?: boolean; subtotal: number; hours: number; created_at: string; presented_at?: string; customer?: Record<string, string | null>; items: QuoteItem[] };
+export type QuoteContext = { couponAvailable?: boolean; couponManaged?: boolean; current: FormalQuote | null; draft: FormalQuote | null; history: FormalQuote[] };
 // Integer yen, hundredth-hour precision. Keep tax-inclusive total within existing int4 documents.
 export function quoteTotals(items: QuoteItem[]) {
   if (!Array.isArray(items) || items.length < 1 || items.length > 200) throw Error('明細を1〜200点登録してください。');

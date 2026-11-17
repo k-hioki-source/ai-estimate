@@ -5,6 +5,7 @@ import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { User } from '@supabase/supabase-js';
 import { getSupabaseBrowserClient } from '../../lib/supabase/client';
+import TrialCouponAccount from '../../components/cs-works/TrialCouponAccount';
 import type { Database } from '../../lib/supabase/database.types';
 
 type Estimate = Database['public']['Tables']['estimates']['Row'] & { archived_at?: string | null };
@@ -170,7 +171,7 @@ export default function MyPage(){
          <span>{profile.contact_name ? `${profile.contact_name} 様` : user?.email}</span>
        </div>
      </aside>
-     <div className="myPageMain" id="mypage-top">
+     <div className="myPageMain" id="mypage-top"><TrialCouponAccount />
    <section className="welcomeCard"><span className="statusDot"/> ログイン中<h2>{profile.contact_name?`${profile.contact_name} 様`:'CS Worksへようこそ'}</h2><p>{user?.email}</p></section>
    {actionItems.length>0?<section className="actionCenter"><div className="actionCenterHead"><div><div className="authBrand">ACTION</div><h2>お知らせ・要対応</h2><p>現在ご確認いただきたい内容をまとめています。</p></div><span className="actionCountBadge">{actionItems.length}件</span></div><div className="actionItems">{actionItems.map(item=><button type="button" key={item.key} className="actionItem" onClick={()=>router.push(item.href)}><span className={`actionIcon ${item.kind}`}>{item.kind==='message'||item.kind==='support'?'💬':item.kind==='quote'?'見積':item.kind==='review'?'確認':'納品'}</span><span className="actionText"><strong>{item.title}</strong><span>{item.projectCode}　{item.detail}</span></span><strong className="actionArrow">確認する →</strong></button>)}</div></section>:null}
 
