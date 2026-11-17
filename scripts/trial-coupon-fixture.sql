@@ -21,7 +21,7 @@ alter table public.project_invoices add primary key(id), add unique(project_id);
 create table public.project_files(id uuid primary key default gen_random_uuid(),project_id uuid references public.projects,file_type text);
 -- Materialization of illustration tasks belongs to the existing workflow and is
 -- stubbed in this isolated fixture. Hosted workflow integration is a separate check.
-create function public.csworks_materialize_illustrations(uuid) returns void language plpgsql as $ begin return;end $;
+create function public.csworks_materialize_illustrations(uuid) returns void language plpgsql as $$ begin return;end $$;
 create function public.order_project(p_project_id uuid) returns public.projects language plpgsql security definer set search_path='' as $$
 declare p public.projects%rowtype; pr public.profiles%rowtype;
 begin

@@ -392,6 +392,7 @@ export type CsWorksMailPayload = {
   customerName?: string;
   customerEmail?: string;
   quotedAmount?: number | null;
+  couponZeroDelivery?: boolean;
   confirmedDeadline?: string | null;
   message?: string;
 };
@@ -485,6 +486,7 @@ ${projectPageUrl}`;
 ${projectName}
 
 下記のCS Works案件ページから納品ファイルをご確認いただけます。
+${payload.couponZeroDelivery ? '\n初回お試しクーポン適用・0円納品のため、請求書の発行・お支払いは不要です。' : ''}
 
 ${projectPageUrl}`;
     } else if (payload.type === 'admin_message') {

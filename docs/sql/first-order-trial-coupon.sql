@@ -295,13 +295,13 @@ create function csworks_private.guard_trial_project() returns trigger
 language plpgsql set search_path='' as $$
 begin
  if current_user in ('authenticated','anon') and
- new.coupon_zero_delivery is distinct from old.coupon_zero_delivery then raise exception 'Frozen coupon treatment' using errcode='42501'; end if;
+ ((tg_op='INSERT' and new.coupon_zero_delivery) or (tg_op='UPDATE' and new.coupon_zero_delivery is distinct from old.coupon_zero_delivery)) then raise exception 'Frozen coupon treatment' using errcode='42501'; end if;
  if new.status in ('quote_presented','ordered') and new.formal_quote_id is null and
  exists(select 1 from public.trial_coupon_grants where user_id=new.user_id) then
  raise exception 'Coupon members require itemized formal quotes' using errcode='22023'; end if;
  return new;
 end $$;
-create trigger trial_coupon_project before update on public.projects for each row execute function csworks_private.guard_trial_project();
+create trigger trial_coupon_project before insert or update on public.projects for each row execute function csworks_private.guard_trial_project();
 revoke all on function csworks_private.guard_trial_project() from public,anon,authenticated;
 
 create function csworks_private.guard_zero_invoice() returns trigger
@@ -331,7 +331,7 @@ CREATE OR REPLACE FUNCTION csworks_private.deliver_project_base(p_project_id uui
  RETURNS public.projects
  LANGUAGE plpgsql
  SECURITY DEFINER
- SET search_path TO 'public'
+ SET search_path TO ''
 AS $function$
 declare
   v_project public.projects;
@@ -463,7 +463,7 @@ revoke all on function public.csworks_claim_trial_coupon_mail(uuid) from public,
 grant execute on function public.csworks_claim_trial_coupon_mail(uuid) to service_role;
 
 create function public.csworks_trial_coupon_repeat_members(p_from date,p_to date) returns jsonb
-language plpgsql stable security definer set search_path='' as $
+language plpgsql stable security definer set search_path='' as $$
 begin
  if auth.uid() is null or not public.is_admin() then raise exception 'Admin required' using errcode='42501'; end if;
  if p_from is null or p_to is null or p_from>p_to or p_to>p_from+interval '10 years' then raise exception 'Invalid months' using errcode='22023'; end if;
@@ -471,7 +471,7 @@ begin
  'has_second_order',exists(select 1 from public.project_orders o where o.user_id=g.user_id and o.project_id<>g.consumed_project_id and o.ordered_at>=g.consumed_at)) order by g.consumed_at)
  from public.trial_coupon_grants g where (g.consumed_at at time zone 'Asia/Tokyo')>=date_trunc('month',p_from::timestamp)
  and (g.consumed_at at time zone 'Asia/Tokyo')<date_trunc('month',p_to::timestamp)+interval '1 month'),'[]'::jsonb);
-end $;
+end $$;
 revoke all on function public.csworks_trial_coupon_repeat_members(date,date) from public,anon,authenticated;
 grant execute on function public.csworks_trial_coupon_repeat_members(date,date) to authenticated;
 commit;

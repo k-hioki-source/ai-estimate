@@ -219,6 +219,7 @@ export async function POST(request: NextRequest) {
       customerName: customerProfile.contact_name ?? undefined,
       customerEmail: customerProfile.email ?? undefined,
       quotedAmount: project.quoted_amount,
+      couponZeroDelivery: project.coupon_zero_delivery,
       confirmedDeadline: project.confirmed_deadline,
       message: notificationMessage,
     });
