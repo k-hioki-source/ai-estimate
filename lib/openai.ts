@@ -493,6 +493,9 @@ lineDifficulty も65以上を目安にしてください。
 coloringComplexity（0〜100）も、形状の複雑さとは別に返す。
 線画のスコア（partDensity/lineDifficulty/structureComplexity）は外形・可視部品の構造を評価し、
 赤い光沢や金属の反射だけで形状スコアを上げない。外観1点を内部機構の再設計と混同しない。
+simplePhotoProduct は、写真と同じ角度で製品単体を描き、外形・色面・見える部品が少なく、基本色と軽い陰影で仕上げられる場合に true とする。
+例：角丸の平たいパッド、巻いたコード、先端の小さなコネクター。巻き線は反復形状として評価し、線画1.5h＋塗り1.0h＝2.5hを目安とする。
+「リアル」「販促用」や製品名だけで複雑と判定しない。精密な反射・透明感・質感の再現が必要な場合、形状が複雑な場合、画像から判断できない場合は true にしない。
 基準例（商品名による固定値ではなく同程度の作業量を比較する）：
 ・開いたヘアアイロン：大きな面と細長い輪郭、少数のボタン・ヒンジ・コード。
   形状スコア45〜60、coloringComplexity45〜60、線画3h＋彩色5h＝8h前後。
@@ -650,6 +653,7 @@ JSONのみで出力してください。
   "hasLeaderLines": boolean,
   "hasPartNumbers": boolean,
   "isIndustrialProduct": boolean,
+  "simplePhotoProduct": boolean,
   "realLineHours": number | null,
   "realColorHours": number | null,
   "coloringComplexity": number | null,
@@ -719,6 +723,7 @@ summaryは日本語で簡潔に書いてください。
     repeatedDetailCount: validCount(parsed.repeatedDetailCount) ? Math.round(parsed.repeatedDetailCount) : undefined,
     lineDifficulty: clampNumber(parsed.lineDifficulty, 50, 0, 100),
     structureComplexity: clampNumber(parsed.structureComplexity, 50, 0, 100),
+    simplePhotoProduct: parsed.simplePhotoProduct === true,
     realLineHours: typeof parsed.realLineHours === 'number' && Number.isFinite(parsed.realLineHours) && parsed.realLineHours > 0 ? parsed.realLineHours : undefined,
     realColorHours: typeof parsed.realColorHours === 'number' && Number.isFinite(parsed.realColorHours) && parsed.realColorHours > 0 ? parsed.realColorHours : undefined,
     coloringComplexity: typeof parsed.coloringComplexity === 'number' && Number.isFinite(parsed.coloringComplexity) && parsed.coloringComplexity >= 0 && parsed.coloringComplexity <= 100 ? parsed.coloringComplexity : undefined,

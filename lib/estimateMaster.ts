@@ -10,6 +10,7 @@ export type MasterEstimateInput = {
   workType?: string;
   difficultyScore?: number;
   coloringComplexity?: number;
+  simplePhotoProduct?: boolean;
   partDensity?: number;
   visibleComponentCount?: number;
   repeatedDetailCount?: number;

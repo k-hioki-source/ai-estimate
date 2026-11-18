@@ -868,7 +868,9 @@ if (photoAlignedRealProduct) {
   analysis.estimatedHours = steps.aiHours;
   analysis.estimatedHoursMin = Math.min(steps.aiHours, Math.max(0.5, Math.round(steps.aiHours * 0.8 * 2) / 2));
   analysis.estimatedHoursMax = Math.max(steps.aiHours, Math.round(steps.aiHours * 1.2 * 2) / 2);
-  analysis.summary = '支給写真に沿う製品単体のリアルイラストです。' +
+  analysis.summary = rawAnalysis.simplePhotoProduct
+    ? '支給写真に沿う製品単体を基本色と軽い陰影で仕上げます。線画1.5時間＋塗り1時間＝2.5時間が1点あたりの目安です。'
+    : '支給写真に沿う製品単体のリアルイラストです。' +
     `線画${steps.aiLineHours}時間＋彩色・質感・陰影${steps.aiColorHours}時間＝${steps.aiHours}時間を工程別の目安に算出しました。` +
     (steps.corrected ? `AI初期推定（線画${steps.rawAiLineHours}時間＋彩色${steps.rawAiColorHours}時間）は、形状・部品量の基準を超えていたため工程別に補正しました。` : steps.hasAiSteps ? '画像から各工程を個別評価しています。' : 'AIの工程内訳がないため、形状・彩色の難易度別基準から補完しています。');
 }
@@ -892,6 +894,7 @@ const masterEstimate = calculateMasterEstimate({
   notes: input.notes,
   workType,
   coloringComplexity: rawAnalysis.coloringComplexity,
+  simplePhotoProduct: photoAlignedRealProduct && rawAnalysis.simplePhotoProduct,
   difficultyScore: analysis.difficultyScore,
   partDensity: analysis.partDensity,
   lineDifficulty: analysis.lineDifficulty,
