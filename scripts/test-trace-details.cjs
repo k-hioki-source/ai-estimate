@@ -21,6 +21,15 @@ async function run(parts,details,quantity=1,sample=false, lineArtScope, style='l
  const sample=await run(6,120,1,true);assert.ok(sample.estimate.estimatedHours<2,'Reference sample details cannot prove actual customer scope');
  const scope={material:'photo',workflow:'trace',precision:false,retainedDetails:[],unclearRequiredDetails:false};
  const detailed={...scope,precision:true,retainedDetails:['overlaps','repeated_shapes','surface_patterns','small_features']};
+ const loaded={...scope,material:'3d_capture',retainedDetails:['equipment_and_load']};
+ const loadedEquipment=await run(2,20,1,false,loaded);
+ assert.equal(loadedEquipment.estimate.estimatedHours,2.5);
+ assert.equal(loadedEquipment.estimate.total,7500);
+ assert.equal(loadedEquipment.sent.workType,'standard_trace');
+ const loadedPhoto=await run(2,20,1,false,{...loaded,material:'photo'});
+ assert.equal(loadedPhoto.estimate.estimatedHours,2.5);
+ const noLoad=await run(1,4,1,false,{...scope,material:'3d_capture'});
+ assert.equal(noLoad.estimate.estimatedHours,2);
  const scooter=await run(1,48,1,false,detailed);
  assert.equal(scooter.estimate.estimatedHours,3);
  assert.equal(scooter.estimate.total,9000);
