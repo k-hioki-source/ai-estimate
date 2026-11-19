@@ -1,6 +1,6 @@
 const materials = ['logo', 'line_underlay', '3d_capture', 'photo', 'drawing', 'unknown'] as const;
 const workflows = ['trace', 'draw_from_plan', 'reconstruct', 'arrange_exploded', 'unknown'] as const;
-const detailTypes = ['overlaps', 'repeated_shapes', 'surface_patterns', 'small_features'] as const;
+const detailTypes = ['overlaps', 'equipment_and_load', 'repeated_shapes', 'surface_patterns', 'small_features'] as const;
 
 type Material = typeof materials[number];
 type Workflow = typeof workflows[number];
@@ -41,8 +41,11 @@ export function estimateSingleProductLineArt(input: {
   structureComplexity?: number;
 }) {
   // Keep dense legacy anchors and multi-product estimates outside this rubric.
-  if (!input.lineArtScope || input.visibleComponentCount !== 1 ||
-      input.repeatedDetailCount === undefined || input.repeatedDetailCount >= 100) return;
+  if (!input.lineArtScope || input.repeatedDetailCount === undefined || input.repeatedDetailCount >= 100) return;
+  const equipmentAndLoad = input.lineArtScope.workflow === 'trace' &&
+    input.lineArtScope.retainedDetails.includes('equipment_and_load');
+  if (input.visibleComponentCount !== 1 &&
+      !(equipmentAndLoad && input.visibleComponentCount === 2)) return;
   const highVisualScores = [input.partDensity, input.lineDifficulty, input.structureComplexity]
     .filter(score => (score ?? 0) >= 70).length;
   if (input.lineArtScope.retainedDetails.length > 0 && highVisualScores >= 2) return;
@@ -52,6 +55,7 @@ export function estimateSingleProductLineArt(input: {
 export function estimateLineArt(scope: LineArtScope) {
   const detailCount = scope.retainedDetails.length;
   const detailed = detailCount >= 2;
+  const equipmentAndLoad = scope.retainedDetails.includes('equipment_and_load');
   const detailHours = detailed ? 0.5 : 0;
   const unclearHours = scope.unclearRequiredDetails ? 0.5 : 0;
 
@@ -68,7 +72,10 @@ export function estimateLineArt(scope: LineArtScope) {
   // the established 1–1.5 h prices regardless of the product's category.
   const easyPhoto = scope.material === 'photo' && detailCount === 0;
   const base = easyPhoto ? (scope.precision ? 1.5 : 1) : traceBase[scope.material];
-  const hours = base + detailHours + unclearHours;
+  const traceHours = equipmentAndLoad && (scope.material === 'photo' || scope.material === '3d_capture')
+    ? Math.max(2.5, base + (detailCount >= 3 ? detailHours : 0))
+    : base + detailHours;
+  const hours = traceHours + unclearHours;
   const label = traceLabels[scope.material] + 'トレース';
-  return { hours, label: detailed ? label + '・細部あり' : label };
+  return { hours, label: equipmentAndLoad ? label + '・機械と積荷' : detailed ? label + '・細部あり' : label };
 }
