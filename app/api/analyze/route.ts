@@ -1,3 +1,4 @@
+import { estimateSingleProductLineArt } from '../../../lib/lineArtEstimate';
 import { issueEstimateReviewTicket } from '../../../lib/estimate-review-token';
 import { traceDetailHours } from '../../../lib/traceDetailEstimate';
 import { isPhotoAlignedRealProduct, estimateRealProductSteps } from '../../../lib/realProductEstimate';
@@ -560,7 +561,9 @@ const hasExplicitDenseLineRequest =
   requestNotesText.includes('配線') ||
   requestNotesText.includes('ハーネス');
 
-const componentTraceHours = !combinedScope && !!(file && file.size > 0) ? traceDetailHours({ ...input,
+const lineArtScope = !combinedScope && file?.size ? rawAnalysis.lineArtScope : undefined;
+const calibratedLine = estimateSingleProductLineArt({ ...rawAnalysis, lineArtScope });
+const componentTraceHours = !calibratedLine && !combinedScope && !!(file && file.size > 0) ? traceDetailHours({ ...input,
   visibleComponentCount: rawAnalysis.visibleComponentCount,
   repeatedDetailCount: rawAnalysis.repeatedDetailCount,
 }) : 0;
@@ -856,7 +859,7 @@ const photoAlignedRealProduct = !combinedScope && isPhotoAlignedRealProduct({ ..
   hasPartNumbers: analysis.hasPartNumbers,
 });
 if (photoAlignedRealProduct) {
-  const steps = estimateRealProductSteps(rawAnalysis);
+  const steps = estimateRealProductSteps({ ...rawAnalysis, calibratedLineHours: calibratedLine?.hours });
   workType = 'realistic_illustration';
   // Restore raw shape evidence before older real/concept rules raised scores.
   analysis.partDensity = rawAnalysis.partDensity;
@@ -893,6 +896,7 @@ const masterEstimate = calculateMasterEstimate({
   notes: input.notes,
   workType,
   coloringComplexity: rawAnalysis.coloringComplexity,
+  lineArtScope,
   difficultyScore: analysis.difficultyScore,
   partDensity: analysis.partDensity,
   lineDifficulty: analysis.lineDifficulty,
@@ -906,6 +910,15 @@ const masterEstimate = calculateMasterEstimate({
   repeatedDetailCount: file && file.size > 0 ? rawAnalysis.repeatedDetailCount : undefined,
 });
 
+const scopedLineArt = masterEstimate.categoryKey === 'line_art_calibrated' ||
+  masterEstimate.categoryKey === 'line_art_exploded';
+if (scopedLineArt) {
+  analysis.summary = masterEstimate.reason + 'を基準に算出しました。';
+  if (input.style === 'line' && lineArtScope?.workflow === 'trace') {
+    workType = (calibratedLine?.hours ?? 0) >= 2 ? 'standard_trace' : 'simple_trace';
+  }
+}
+
 const integratedEstimate = calculateIntegratedEstimate({
   // The master already includes the detail drawing. The fixed engine estimates
   // the base drawing only; add the detail allowance once, then integrate totals.
@@ -913,8 +926,8 @@ const integratedEstimate = calculateIntegratedEstimate({
   aiHours: analysis.estimatedHours,
   masterHours: masterEstimate.hours,
   masterMatchScore: masterEstimate.matchScore,
-  verifiedComplexFloorHours: !combinedScope && (masterEstimate.categoryKey === 'manual_shape_complex' || masterEstimate.categoryKey === 'photo_component_detail') ? (componentTraceHours || 4) : undefined,
-  verifiedSimpleCeilingHours: !combinedScope && masterEstimate.categoryKey === 'manual_simple' ? 2.5 : undefined,
+  verifiedComplexFloorHours: scopedLineArt ? masterEstimate.hours : !combinedScope && (masterEstimate.categoryKey === 'manual_shape_complex' || masterEstimate.categoryKey === 'photo_component_detail') ? (componentTraceHours || 4) : undefined,
+  verifiedSimpleCeilingHours: scopedLineArt && masterEstimate.adjustmentHours === 0 ? masterEstimate.hours : !combinedScope && masterEstimate.categoryKey === 'manual_simple' ? 2.5 : undefined,
 });
 
 // -----------------------------
@@ -975,11 +988,12 @@ const confidence = calculateConfidence({
 // 3エンジンの算出工数が大きく食い違う場合は、
 // AI単独の認識評価が高くても見積り精度を「高」と表示しない。
 // 金額・工数の計算ロジックには影響させない。
-if (integratedEstimate.level === '低') {
+if (integratedEstimate.level === '低' || (scopedLineArt && lineArtScope?.unclearRequiredDetails)) {
   confidence.score = Math.min(confidence.score, 74);
   confidence.level = '中';
-  confidence.comment =
-    '3方式の算出工数に差があるため、概算金額には幅が生じる可能性があります。正式見積りでの確認をおすすめします。';
+  confidence.comment = scopedLineArt && lineArtScope?.unclearRequiredDetails
+    ? '資料から判別しづらい細部があるため、正式見積りで仕上がりを確認します。'
+    : '3方式の算出工数に差があるため、概算金額には幅が生じる可能性があります。正式見積りでの確認をおすすめします。';
 }
 
 

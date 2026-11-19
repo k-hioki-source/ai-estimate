@@ -1,3 +1,4 @@
+import { estimateLineArt, estimateSingleProductLineArt, type LineArtScope } from './lineArtEstimate';
 import { traceDetailHours } from './traceDetailEstimate';
 import { isPhotoAlignedRealProduct, estimateRealProductSteps } from './realProductEstimate';
 import { hasRequestedAngleChange } from './estimateScope';
@@ -20,6 +21,7 @@ export type MasterEstimateInput = {
   hasPartNumbers?: boolean;
   isIndustrialProduct?: boolean;
   aiSummary?: string;
+  lineArtScope?: LineArtScope;
 };
 
 type Adjustment = { key: string; label: string; hours: number };
@@ -90,8 +92,10 @@ function chooseCategory(input: MasterEstimateInput, userText: string, aiText: st
   const difficulty = input.difficultyScore || 0;
   const dense = (input.partDensity || 0) >= 70 || (input.lineDifficulty || 0) >= 70;
 
+  const lineArt = input.lineArtScope && estimateLineArt(input.lineArtScope);
   const detailHours = traceDetailHours(input);
-  if (detailHours && !input.isExplodedView && !includesAny(userText, ['分解図', '分解状態', '爆発図'])) {
+  const calibratedSingle = estimateSingleProductLineArt(input);
+  if (detailHours && !calibratedSingle && !input.isExplodedView && !includesAny(userText, ['分解図', '分解状態', '爆発図'])) {
     return { key: 'photo_component_detail', label: '写真トレース・複数部品と反復細部', baseHours: detailHours,
       reason: `画像内の${input.visibleComponentCount}ユニット・穴や端子など約${input.repeatedDetailCount}細部を考慮` };
   }
@@ -107,6 +111,11 @@ function chooseCategory(input: MasterEstimateInput, userText: string, aiText: st
       input.hasPartNumbers === true ||
       includesAny(userText, ['30部品', '40部品', '50部品', '部品多数', '部品点数', '複雑']);
 
+    if (lineArt && input.lineArtScope?.workflow === 'arrange_exploded') {
+      const arrangement = complexExploded ? 3 : 1.5;
+      return { key: 'line_art_exploded', label: '分解図・工程別', baseHours: lineArt.hours + arrangement,
+        reason: `線画${lineArt.hours}時間＋部品の分離・配置${arrangement}時間` };
+    }
     if (complexExploded) {
       return { key: 'exploded_complex', label: '分解図・高密度', baseHours: 6, reason: '線量・部品・番号・引出線などが多い分解図トレースの基準' };
     }
@@ -144,7 +153,7 @@ function chooseCategory(input: MasterEstimateInput, userText: string, aiText: st
   }
 
   if (isPhotoAlignedRealProduct(input)) {
-    const steps = estimateRealProductSteps(input);
+    const steps = estimateRealProductSteps({ ...input, calibratedLineHours: calibratedSingle?.hours });
     return { key: 'real_product_photo', label: 'リアルイラスト・写真支給・工程別', baseHours: steps.hours, reason: `形状・可視部品による線画${steps.lineHours}時間＋材質・陰影による彩色${steps.colorHours}時間` };
   }
 
@@ -170,6 +179,16 @@ function chooseCategory(input: MasterEstimateInput, userText: string, aiText: st
   }
   if (includesAny(userText, ['写真にない', 'カバーを外', '別状態', '見えない部分']) || hasRequestedAngleChange(userText)) {
     return { key: 'new_state', label: '写真にない状態を作図', baseHours: 8, reason: 'ユーザー指示に写真にない状態・別アングル等が明示されたため' };
+  }
+
+  if (calibratedSingle && (style === 'line' || style === 'color' || style === 'real') &&
+      (workType !== 'technical_drawing' || input.lineArtScope?.workflow !== 'trace') && !hasExplicitCutaway(userText) &&
+      input.lineArtScope?.workflow !== 'arrange_exploded') {
+    const finish = style === 'line' ? 0 : style === 'color' ? ((input.coloringComplexity ?? 0) >= 65 ? 2 : 1)
+      : estimateRealProductSteps(input).colorHours;
+    return { key: 'line_art_calibrated', label: calibratedSingle.label + (style === 'line' ? '' : '・彩色あり'),
+      baseHours: calibratedSingle.hours + finish,
+      reason: finish ? `線画${calibratedSingle.hours}時間＋彩色${finish}時間` : `支給資料と完成図に残す線から線画${calibratedSingle.hours}時間` };
   }
 
   // v4: 写真ベースのリアル表現を難易度で3段階化（6 / 10 / 20h）。
@@ -293,7 +312,7 @@ export function calculateMasterEstimate(input: MasterEstimateInput) {
   const categoryIncludesStructure = ['structure', 'vehicle_structure', '3dcg_structure', 'new_state'].includes(category.key);
   const categoryIncludesComplexity = [
     'photo_complex', 'exploded_complex', 'manual_dense', 'manual_shape_complex', '3dcg_modeling',
-    'photo_component_detail', 'color_complex', 'real_photo_complex', 'real_photo_standard', 'real_product_photo'
+    'photo_component_detail', 'line_art_calibrated', 'line_art_exploded', 'color_complex', 'real_photo_complex', 'real_photo_standard', 'real_product_photo'
   ].includes(category.key);
 
   add('person', '人物追加（1名）', 1,
@@ -301,7 +320,7 @@ export function calculateMasterEstimate(input: MasterEstimateInput) {
 
   add('new_drawing', '構造整理・新規作図', 0.5,
     !categoryIncludesStructure &&
-    !['real_product_photo', 'color', 'color_complex', 'real', 'real_photo_simple', 'real_photo_standard', 'real_photo_complex'].includes(category.key) &&
+    !['line_art_calibrated', 'line_art_exploded', 'real_product_photo', 'color', 'color_complex', 'real', 'real_photo_simple', 'real_photo_standard', 'real_photo_complex'].includes(category.key) &&
     includesAny(userText, ['構造整理', '新規作図', '簡略化']));
 
   add('two_panels', '2コマ化', 1, includesAny(text, ['2コマ', '2 コマ', '二コマ']));

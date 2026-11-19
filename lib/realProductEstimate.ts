@@ -22,6 +22,7 @@ export function isPhotoAlignedRealProduct(input: {
 export type RealProductComplexity = {
   partDensity?: number; lineDifficulty?: number; structureComplexity?: number;
   difficultyScore?: number; coloringComplexity?: number;
+  calibratedLineHours?: number;
   realLineHours?: number; realColorHours?: number;
 };
 const score = (v: number | undefined, fallback = 50) =>
@@ -38,7 +39,7 @@ export function estimateRealProductSteps(input: RealProductComplexity) {
   // Generic gloss/shadow language cannot independently create a high-density
   // finishing scope for a simple photo-aligned exterior.
   const finish = Math.min(score(input.coloringComplexity, score(input.difficultyScore)), shape + 5);
-  const lineHours = shape <= 25 ? 1.5 : shape <= 40 ? 2 : shape <= 60 ? 3 : shape <= 75 ? 5 : shape <= 90 ? 7 : 10;
+  const lineHours = input.calibratedLineHours ?? (shape <= 25 ? 1.5 : shape <= 40 ? 2 : shape <= 60 ? 3 : shape <= 75 ? 5 : shape <= 90 ? 7 : 10);
   const colorHours = finish <= 25 ? 2 : finish <= 40 ? 3 : finish <= 60 ? 5 : finish <= 75 ? 8 : finish <= 90 ? 12 : 18;
   const valid = (v: number | undefined) => typeof v === 'number' && Number.isFinite(v) && v > 0;
   const hasAiSteps = valid(input.realLineHours) && valid(input.realColorHours);
