@@ -1,3 +1,4 @@
+import { issueEstimateReviewTicket } from '../../../lib/estimate-review-token';
 import { traceDetailHours } from '../../../lib/traceDetailEstimate';
 import { isPhotoAlignedRealProduct, estimateRealProductSteps } from '../../../lib/realProductEstimate';
 import { isSideAndDetailPair, priceEstimateHours } from '../../../lib/estimateScope';
@@ -1083,6 +1084,13 @@ confidenceComment: confidence.comment,
     return NextResponse.json({
       // ★ フロント互換（これが無いと落ちる）
       estimateId: notificationResult.estimateId,
+      reviewTicket: file?.size ? issueEstimateReviewTicket(base64, {
+        style: input.style,
+        quantity: input.quantity,
+        unit_hours: consultation.required ? null : customerEstimatedHours,
+        amount: consultation.required && !showIllustrationReferencePrice ? null : customerTotalPrice,
+        price_type: showIllustrationReferencePrice ? 'reference' : consultation.required ? 'consultation' : 'estimate',
+      }) : undefined,
       requiresConsultation: consultation.required,
       consultationCategory: consultation.category,
       consultationMessage: consultation.message,

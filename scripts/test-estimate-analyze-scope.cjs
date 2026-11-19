@@ -4,6 +4,7 @@ function compile(file,req){const exports={};vm.runInNewContext(ts.transpileModul
 const cache={};function local(file){file=path.resolve(file);return cache[file]??=compile(file,n=>local(path.resolve(path.dirname(file),n+'.ts')))}
 async function run(notes,quantity,complex=false){let sent,analyzed;const route=compile('app/api/analyze/route.ts',n=>{
  if(n==='next/server')return{NextResponse:{json:(body,opts)=>({body,status:opts?.status||200})}};
+ if(n.endsWith('/estimate-review-token'))return{issueEstimateReviewTicket:()=>undefined};
  if(n.endsWith('/email'))return{sendNotificationEmail:async p=>{sent=p;return{estimateId:'SYNTHETIC'}}};
  if(n.endsWith('/openai'))return{analyzeImage:async p=>{analyzed=p;return{workType:'standard_trace',difficultyScore:complex?80:40,partDensity:complex?80:30,lineDifficulty:complex?80:35,structureComplexity:complex?80:30,isExplodedView:false,hasLeaderLines:false,hasPartNumbers:false,isIndustrialProduct:true,summary:'写真未確認、依頼文に基づく線画の概算です。',estimatedHoursMin:complex?7:2.5,estimatedHours:p.combinedScope?(complex?9:3):1,estimatedHoursMax:complex?11:3.5}}};
  if(n==='fs/promises')return{default:{readFile:async()=>Buffer.from('synthetic reference sample')}};

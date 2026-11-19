@@ -8,9 +8,11 @@ import { useRouter } from 'next/navigation';
 import type { User } from '@supabase/supabase-js';
 import { getSupabaseBrowserClient } from '../lib/supabase/client';
 import HeaderLinks from "./HeaderLinks";
+import EstimateReviewForm from "./estimate/EstimateReviewForm";
 import EstimateSave from "./estimate/EstimateSave";
 type ApiResponse = {
   estimateId: string;
+  reviewTicket?: string;
   requiresConsultation?: boolean;
   consultationCategory?: string | null;
   consultationMessage?: string;
@@ -88,7 +90,7 @@ function clearPendingEstimate() {
   } catch {}
 }
 
-export default function EstimateForm({ mode = 'estimate' }: { mode?: 'landing' | 'estimate' }) {
+export default function EstimateForm({ mode = 'estimate', showEstimateExamples = false }: { mode?: 'landing' | 'estimate'; showEstimateExamples?: boolean }) {
   const promotionActive=useTrialCouponPromotion();
   const router = useRouter();
   const isLanding = mode === 'landing';
@@ -806,7 +808,7 @@ async function handleFormalQuoteRequest() {
       <a href="https://www.create-support.co.jp/" className="logoLink">
         <img src="https://www.create-support.co.jp/public/titlelogo.png" alt="クリエイトサポート" />
       </a>
-  <HeaderLinks />
+  <HeaderLinks showEstimateExamples={showEstimateExamples} />
 
     </div>
     {!isLanding && authChecked && !user && (
@@ -1377,9 +1379,10 @@ async function handleFormalQuoteRequest() {
 
                     <p className="uploadNotice">
                       <em>
-                        ※アップロードいただいた画像・図面データは、お見積り算出の目的にのみ使用いたします。<br />
+                        ※アップロードいただいた画像・図面データは、お見積り算出のために使用いたします。<br />
                         AIの学習データとして利用されることはありません。<br />
                         お問い合わせ対応のため、見積り内容・添付資料が通知メールに保存される場合があります。
+                        {showEstimateExamples && <><br />星評価の投稿時に公開へ同意した場合は、管理者の確認後に画像と概算見積り結果を事例として掲載します。</>}
                       </em>
                     </p>
 
@@ -1731,6 +1734,11 @@ async function handleFormalQuoteRequest() {
               画面に表示された概算見積り結果をPDFファイルとして保存できます。
             </p>
           </div>
+
+          {result.reviewTicket && lastFormData?.get('image') instanceof File && (
+            <EstimateReviewForm key={result.reviewTicket} ticket={result.reviewTicket}
+              image={lastFormData.get('image') as File} />
+          )}
 
           <style>{`
             .pdfCaptureArea {
