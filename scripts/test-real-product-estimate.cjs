@@ -8,6 +8,7 @@ async function run(overrides={}) {
  const analysis={workType:'concept_diagram',difficultyScore:85,partDensity:55,lineDifficulty:55,structureComplexity:55,coloringComplexity:55,realLineHours:3,realColorHours:5,isExplodedView:false,hasLeaderLines:false,hasPartNumbers:false,isIndustrialProduct:true,summary:'写真をもとにした製品の販促用リアルイラスト。複雑な曲面と金属質感、陰影を含む。',estimatedHoursMin:24,estimatedHours:26,estimatedHoursMax:30,...overrides.analysis};
  const route=compile('app/api/analyze/route.ts',n=>{
   if(n==='next/server')return{NextResponse:{json:(body,opts)=>({body,status:opts?.status||200})}};
+  if(n.endsWith('/estimate-review-token'))return{issueEstimateReviewTicket:()=>undefined};
   if(n.endsWith('/email'))return{sendNotificationEmail:async p=>{sent=p;return{estimateId:'SYNTHETIC'}}};
   if(n.endsWith('/openai'))return{analyzeImage:async()=>analysis};
   if(n==='fs/promises')return{default:{readFile:async()=>Buffer.from('synthetic image')}};

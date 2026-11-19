@@ -1,3 +1,4 @@
+import { readLineArtScope } from './lineArtEstimate';
 import OpenAI from 'openai';
 
 const client = new OpenAI({
@@ -63,6 +64,18 @@ export async function analyzeImage({
 - 表現: ${style}
 - 備考: ${notes || 'なし'}
 ${isReferenceSample ? '添付画像は参考サンプルです。お客様の実際の制作写真ではありません。サンプルの形状や線量を実物の確定情報として扱わず、依頼文から仮定した概算であることと、実写真確認後に変わり得ることを説明してください。' : ''}
+
+【すべての静止画：線画の工程を仕上げと分ける】
+lineArtScope は色や陰影を加える前の線画だけを判定する。制作方法欄が photo_trace でも実際の添付資料を識別する。
+material: logo（ロゴ見本）、line_underlay（整った線画下絵・同アングルの既存線画）、3d_capture（CAD/3Dの画面画像）、photo（実写）、drawing（寸法図・投影図）、unknown。
+workflow: trace（同一アングルである線や見える形状を拾う）、draw_from_plan（投影図・寸法図から指定の見え方に描き起こす）、reconstruct（資料にない形状や見え方を推定する）、arrange_exploded（部品を新たに分離・配置する）、unknown。既に展開済みの参考図を写すなら trace。
+precision: 複数の機械形状の円弧・同心円などを正確に整える必要がある場合のみ true。
+retainedDetails は完成図に残す必要がある次の作業を重複なしで列挙する。
+overlaps = 配線や部品の交差・重なり、repeated_shapes = タイヤ溝・スポークや穴等の反復形状、surface_patterns = 滑り止め等の機能上必要な表面模様、small_features = レバー・ばねなど複数の小形状。
+輪郭や少数の主要線だけで完成する場合は []。写真の反射、影、背景、描かない模様は数えない。外形のみ等の明示指定を優先する。
+例：単体のキックボードでも、ハンドルの配線、前後輪の溝・スポーク、デッキの滑り止め、サスペンションまで仕上げるなら複数の作業を計上し、写真トレースの線画は3時間前後。外形のみなら1〜1.5時間。
+unclearRequiredDetails は、必要な線が暗部・反射・低解像度等で判読しづらく、読取り作業が増える場合のみ true。単に資料に存在しない形状を推定するなら reconstruct。
+サンプルや資料種別・制作範囲が判定できない場合は lineArtScope: null。
 
 【白黒トレース：画像全体の作業量を先に数える】
 visibleComponentCount：1枚の図に描く独立した製品/部品/ユニットの概数。
@@ -644,6 +657,13 @@ JSONのみで出力してください。
   "partDensity": number,
   "visibleComponentCount": number,
   "repeatedDetailCount": number,
+  "lineArtScope": {
+    "material": "logo" | "line_underlay" | "3d_capture" | "photo" | "drawing" | "unknown",
+    "workflow": "trace" | "draw_from_plan" | "reconstruct" | "arrange_exploded" | "unknown",
+    "precision": boolean,
+    "retainedDetails": array,
+    "unclearRequiredDetails": boolean
+  } | null,
   "lineDifficulty": number,
   "structureComplexity": number,
   "isExplodedView": boolean,
@@ -717,6 +737,7 @@ summaryは日本語で簡潔に書いてください。
     partDensity: clampNumber(parsed.partDensity, 50, 0, 100),
     visibleComponentCount: validCount(parsed.visibleComponentCount) ? Math.round(parsed.visibleComponentCount) : undefined,
     repeatedDetailCount: validCount(parsed.repeatedDetailCount) ? Math.round(parsed.repeatedDetailCount) : undefined,
+    lineArtScope: readLineArtScope(parsed.lineArtScope),
     lineDifficulty: clampNumber(parsed.lineDifficulty, 50, 0, 100),
     structureComplexity: clampNumber(parsed.structureComplexity, 50, 0, 100),
     realLineHours: typeof parsed.realLineHours === 'number' && Number.isFinite(parsed.realLineHours) && parsed.realLineHours > 0 ? parsed.realLineHours : undefined,
