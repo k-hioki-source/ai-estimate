@@ -156,7 +156,7 @@ export default function MyPage(){
    <div className="myPageTwoColumn">
      <aside className="myPageSidebar">
        <div className="sidebarTitle">メニュー</div>
-       <nav className="sidebarNav">
+       <nav className="sidebarNav" aria-label="マイページメニュー">
          <a href="#mypage-top" className="sidebarNavItem active">マイページTOP</a>
          <a href="#project-list" className="sidebarNavItem">プロジェクト</a>
          <a href="#estimate-history" className="sidebarNavItem">見積り履歴</a>
@@ -246,16 +246,28 @@ export default function MyPage(){
        .myPageSidebar{position:sticky;top:18px;box-sizing:border-box;padding:18px 12px;border:1px solid #e2e8f0;border-radius:18px;background:#fff;box-shadow:0 10px 28px rgba(15,23,42,.04)}
        .sidebarTitle{padding:0 10px 10px;color:#94a3b8;font-size:11px;font-weight:900;letter-spacing:.08em}
        .sidebarNav{display:flex;flex-direction:column;gap:4px}
-       .sidebarNavItem{display:flex;align-items:center;min-height:42px;padding:0 11px;border-radius:10px;color:#334155;text-decoration:none;font-size:13px;font-weight:800}
-       .sidebarNavItem:hover{background:#f8fafc;color:#1d4ed8}.sidebarNavItem.active{background:#eff6ff;color:#1d4ed8}
+       .sidebarNav :global(.sidebarNavItem){display:flex;align-items:center;min-height:42px;padding:0 11px;border-radius:10px;color:#334155;text-decoration:none;font-size:13px;font-weight:800}
+       .sidebarNav :global(.sidebarNavItem):hover{background:#f8fafc;color:#1d4ed8}.sidebarNav :global(.sidebarNavItem).active{background:#eff6ff;color:#1d4ed8}
        .sidebarDivider{height:1px;margin:14px 8px;background:#e2e8f0}
-       .sidebarAction{display:flex;align-items:center;justify-content:center;padding:11px 10px;border:1px solid #bfdbfe;border-radius:10px;background:#f8fbff;color:#1d4ed8;text-decoration:none;font-size:12px;font-weight:900}
-       .sidebarAction:hover{background:#eff6ff}
+       .myPageSidebar :global(.sidebarAction){display:flex;align-items:center;justify-content:center;padding:11px 10px;border:1px solid #bfdbfe;border-radius:10px;background:#f8fbff;color:#1d4ed8;text-decoration:none;font-size:12px;font-weight:900}
+       .myPageSidebar :global(.sidebarAction):hover{background:#eff6ff}
        .sidebarAccount{text-decoration:none;border-radius:6px;display:flex;flex-direction:column;gap:4px;margin:16px 8px 2px;padding-top:14px;border-top:1px solid #e2e8f0;min-width:0}
        .sidebarAccount strong{font-size:12px;color:#0f172a;overflow-wrap:anywhere}.sidebarAccount span{font-size:11px;color:#64748b;overflow-wrap:anywhere}
-       .sidebarAccount:hover{background:#f8fafc}.sidebarAccount:focus-visible,.sidebarNavItem:focus-visible{outline:2px solid #2563eb;outline-offset:3px}.sidebarAccount .accountShortcut{color:#1d4ed8;margin-top:5px;font-weight:800}#account-settings{scroll-margin-top:24px}
+       .sidebarAccount:hover{background:#f8fafc}.sidebarAccount:focus-visible,.sidebarNav :global(.sidebarNavItem):focus-visible{outline:2px solid #2563eb;outline-offset:3px}.sidebarAccount .accountShortcut{color:#1d4ed8;margin-top:5px;font-weight:800}#account-settings{scroll-margin-top:24px}
        .myPageMain{min-width:0}
-       @media(max-width:900px){.myPageTwoColumn{display:block;margin-top:18px}.myPageSidebar{position:static;display:flex;gap:8px;overflow-x:auto;margin-bottom:18px;padding:10px;border-radius:14px}.sidebarTitle,.sidebarDivider,.sidebarAccount{display:none}.sidebarNav{flex-direction:row;gap:6px;flex:0 0 auto}.sidebarNavItem{min-height:38px;white-space:nowrap;padding:0 10px}.sidebarAction{flex:0 0 auto;white-space:nowrap}}
+       @media(max-width:900px){
+         .myPageTwoColumn{display:block;margin-top:18px}
+         .myPageSidebar{position:static;margin-bottom:18px;padding:12px;border-radius:14px}
+         .sidebarTitle{padding:0 4px 8px;color:#475569;font-size:12px}
+         .sidebarDivider{margin:8px 0}
+         .sidebarNav{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+         .sidebarNav :global(.sidebarNavItem){box-sizing:border-box;min-height:44px;min-width:0;padding:6px 8px;background:#f8fafc;overflow-wrap:anywhere}
+         .sidebarNav :global(.sidebarNavItem.active){background:#eff6ff}
+         .myPageSidebar :global(.sidebarAction){box-sizing:border-box;min-height:44px;padding:6px 8px}
+         .sidebarAccount{margin:6px 0 0;padding:10px 8px;border:0;min-height:24px;justify-content:center}
+         .sidebarAccount > strong,.sidebarAccount > span:not(.accountShortcut){display:none}
+         .sidebarAccount .accountShortcut{margin-top:0;font-size:13px}
+       }
        .consultationStatus{display:flex;flex-direction:column;gap:5px;padding:12px;margin:0 0 14px;border:1px solid #bfdbfe;border-radius:12px;background:#f8fbff;color:#0f172a}
        .consultationCount{align-self:flex-start;padding:4px 9px;border-radius:999px;background:#dcfce7;color:#166534;font-size:12px}
        .consultationNextLabel{margin-top:5px;color:#64748b;font-size:12px}
