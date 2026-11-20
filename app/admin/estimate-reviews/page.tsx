@@ -123,6 +123,8 @@ function ReviewEditor({ initial, token }: { initial: Review; token: string }) {
     }
   }
 
+  const publishing = status === 'published' && review.status !== 'published';
+
   return (
     <article className="card">
       <h2>{estimateReviewStyles[review.style]}・{review.quantity}点</h2>
@@ -139,7 +141,11 @@ function ReviewEditor({ initial, token }: { initial: Review; token: string }) {
           <textarea value={comment} onChange={(event) => setComment(event.target.value)} maxLength={1000}
             rows={3} disabled={saving} style={{ display: 'block', width: '100%' }} />
         </label>
-        <p><button type="submit" disabled={saving}>{saving ? '保存中…' : '保存する'}</button></p>
+        <p>
+          <button type="submit" className="primaryButton" disabled={saving}>
+            {saving ? '保存中…' : publishing ? '公開する' : '保存する'}
+          </button>
+        </p>
       </form>
       {message && <p role="status">{message}</p>}
     </article>
