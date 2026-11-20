@@ -1,0 +1,65 @@
+.mobileMenu {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .mobileMenu {
+    display: block;
+    position: relative;
+  }
+
+  .mobileMenu summary {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 44px;
+    padding: 6px 12px;
+    border: 1px solid #b9d4f8;
+    border-radius: 10px;
+    background: #eff6ff;
+    color: #174691;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    list-style: none;
+  }
+
+  .mobileMenu summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .mobileMenu[open] summary {
+    background: #174691;
+    color: #fff;
+  }
+
+  .mobileMenu nav {
+    position: absolute;
+    z-index: 30;
+    inset-inline-end: 0;
+    inset-block-start: calc(100% + 6px);
+    width: min(245px, calc(100vw - 36px));
+    padding: 6px;
+    border: 1px solid #b9d4f8;
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.18);
+  }
+
+  .mobileMenu nav a {
+    display: flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 8px 12px;
+    border-radius: 7px;
+    color: #173451;
+    font-size: 14px;
+    text-decoration: none;
+  }
+
+  .mobileMenu nav a:hover,
+  .mobileMenu nav a:focus-visible {
+    background: #eff6ff;
+  }
+}
