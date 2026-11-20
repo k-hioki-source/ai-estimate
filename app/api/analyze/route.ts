@@ -919,6 +919,15 @@ if (scopedLineArt) {
   }
 }
 
+const explanatoryCutaway = masterEstimate.categoryKey === 'color_explanatory_cutaway';
+if (explanatoryCutaway) {
+  workType = 'technical_drawing';
+  analysis.summary = masterEstimate.reason;
+  if (masterEstimate.adjustmentHours > 2) {
+    analysis.summary += `追加の制作範囲を含め、1点あたり${masterEstimate.hours}時間です。`;
+  }
+}
+
 const integratedEstimate = calculateIntegratedEstimate({
   // The master already includes the detail drawing. The fixed engine estimates
   // the base drawing only; add the detail allowance once, then integrate totals.
@@ -926,8 +935,8 @@ const integratedEstimate = calculateIntegratedEstimate({
   aiHours: analysis.estimatedHours,
   masterHours: masterEstimate.hours,
   masterMatchScore: masterEstimate.matchScore,
-  verifiedComplexFloorHours: scopedLineArt ? masterEstimate.hours : !combinedScope && (masterEstimate.categoryKey === 'manual_shape_complex' || masterEstimate.categoryKey === 'photo_component_detail') ? (componentTraceHours || 4) : undefined,
-  verifiedSimpleCeilingHours: scopedLineArt && masterEstimate.adjustmentHours === 0 ? masterEstimate.hours : !combinedScope && masterEstimate.categoryKey === 'manual_simple' ? 2.5 : undefined,
+  verifiedComplexFloorHours: explanatoryCutaway || scopedLineArt ? masterEstimate.hours : !combinedScope && (masterEstimate.categoryKey === 'manual_shape_complex' || masterEstimate.categoryKey === 'photo_component_detail') ? (componentTraceHours || 4) : undefined,
+  verifiedSimpleCeilingHours: explanatoryCutaway || (scopedLineArt && masterEstimate.adjustmentHours === 0) ? masterEstimate.hours : !combinedScope && masterEstimate.categoryKey === 'manual_simple' ? 2.5 : undefined,
 });
 
 // -----------------------------
