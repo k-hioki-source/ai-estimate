@@ -92,6 +92,21 @@ function chooseCategory(input: MasterEstimateInput, userText: string, aiText: st
   const difficulty = input.difficultyScore || 0;
   const dense = (input.partDensity || 0) >= 70 || (input.lineDifficulty || 0) >= 70;
 
+  // Customer scope takes precedence over AI-inferred finish for explanatory cutaways.
+  const explanatoryCutaway =
+    sourceType === 'reference_drawing' && style === 'color' &&
+    /カット図|カットモデル|立体断面図|3d断面図/.test(userText) &&
+    /仕組み|しくみ|構造説明|構造を説明|構造を示|構造が分か|構造がわか/.test(userText) &&
+    !/リアル|写実|質感|金属光沢|フォトリアル|分解図|断面(?:図|表現)?(?:は|が)?不要|カット図(?:は|が)?不要|複数(?:の)?(?:製品|機器|装置)/.test(userText);
+  if (explanatoryCutaway) {
+    return {
+      key: 'color_explanatory_cutaway',
+      label: '構造説明用カラー立体カット図',
+      baseHours: 6,
+      reason: '構造説明用の立体カット図として、作図6時間と部品の色分け・簡潔な陰影2時間を基準に算出しました。',
+    };
+  }
+
   const lineArt = input.lineArtScope && estimateLineArt(input.lineArtScope);
   const detailHours = traceDetailHours(input);
   const calibratedSingle = estimateSingleProductLineArt(input);
@@ -303,31 +318,32 @@ export function calculateMasterEstimate(input: MasterEstimateInput) {
     ''
   );
   const category = chooseCategory(input, userText, aiText, text);
+  const scopeText = category.key === 'color_explanatory_cutaway' ? userText : text;
   const adjustments: Adjustment[] = [];
   const add = (key: string, label: string, hours: number, condition: boolean) => {
     if (condition) adjustments.push({ key, label, hours });
   };
 
   const categoryIncludesPerson = ['manual', 'rough_drawing'].includes(category.key);
-  const categoryIncludesStructure = ['structure', 'vehicle_structure', '3dcg_structure', 'new_state'].includes(category.key);
+  const categoryIncludesStructure = ['structure', 'vehicle_structure', '3dcg_structure', 'new_state', 'color_explanatory_cutaway'].includes(category.key);
   const categoryIncludesComplexity = [
     'photo_complex', 'exploded_complex', 'manual_dense', 'manual_shape_complex', '3dcg_modeling',
-    'photo_component_detail', 'line_art_calibrated', 'line_art_exploded', 'color_complex', 'real_photo_complex', 'real_photo_standard', 'real_product_photo'
+    'photo_component_detail', 'line_art_calibrated', 'line_art_exploded', 'color_complex', 'real_photo_complex', 'real_photo_standard', 'real_product_photo', 'color_explanatory_cutaway'
   ].includes(category.key);
 
   add('person', '人物追加（1名）', 1,
-    !categoryIncludesPerson && includesAny(text, ['人物', '作業者', '男性', '女性', '手を入', '手で操作']));
+    !categoryIncludesPerson && includesAny(scopeText, ['人物', '作業者', '男性', '女性', '手を入', '手で操作']));
 
   add('new_drawing', '構造整理・新規作図', 0.5,
     !categoryIncludesStructure &&
     !['line_art_calibrated', 'line_art_exploded', 'real_product_photo', 'color', 'color_complex', 'real', 'real_photo_simple', 'real_photo_standard', 'real_photo_complex'].includes(category.key) &&
     includesAny(userText, ['構造整理', '新規作図', '簡略化']));
 
-  add('two_panels', '2コマ化', 1, includesAny(text, ['2コマ', '2 コマ', '二コマ']));
-  add('three_panels', '3コマ化', 4, includesAny(text, ['3コマ', '3 コマ', '三コマ']));
+  add('two_panels', '2コマ化', 1, includesAny(scopeText, ['2コマ', '2 コマ', '二コマ']));
+  add('three_panels', '3コマ化', 4, includesAny(scopeText, ['3コマ', '3 コマ', '三コマ']));
   add('angle', '別アングル作図', 2,
     category.key !== 'new_state' && hasRequestedAngleChange(userText));
-  add('detail', '部分拡大図追加', 2, includesAny(text, ['拡大図', '詳細図', '部分図']));
+  add('detail', '部分拡大図追加', 2, includesAny(scopeText, ['拡大図', '詳細図', '部分図']));
 
   const isCharacterIllustration =
     includesAny(userText, ['立ち絵', 'キャラクター', 'アニメ塗り', '人物イラスト']) ||
@@ -387,6 +403,9 @@ export function calculateMasterEstimate(input: MasterEstimateInput) {
   const aiExplicitCutaway = false;
   add('cutaway', '断面・透過表現', 3,
     !categoryIncludesStructure && (userExplicitCutaway || aiExplicitCutaway));
+
+  add('cutaway_coloring', '部品の色分け・簡潔な陰影', 2,
+    category.key === 'color_explanatory_cutaway');
 
   const adjustmentHours = adjustments.reduce((sum, item) => sum + item.hours, 0);
   const hours = round1(category.baseHours + adjustmentHours);

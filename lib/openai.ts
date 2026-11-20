@@ -599,6 +599,9 @@ standard_trace は使用しない。
 style が color の場合：
 単純な色分けであれば standard_trace または technical_drawing。
 面が複雑な場合はtechnical_drawingを検討する。
+写真・図面から新規作図する構造説明用のカラー立体カット図（部品の色分けと簡潔な陰影）は technical_drawing とする。
+単体製品の基準は作図6時間、着色2時間。追加の制作範囲があれば工程別に見積もる。
+販促用途、立体形状の複雑さ、簡潔な陰影だけを理由に realistic_illustration に分類しない。
 質感やグラデーションが必要な場合は realistic_illustration を検討する。
 
 style が line の場合：
