@@ -1,0 +1,125 @@
+.card {
+  padding: clamp(16px, 3vw, 24px);
+  border: 1px solid #ead28a;
+  border-inline-start: 5px solid #e9b833;
+  border-radius: 14px;
+  background: #fff9e9;
+  color: #292313;
+}
+
+.card h3 {
+  margin: 0 0 8px;
+  font-size: clamp(18px, 3vw, 22px);
+}
+
+.rating {
+  padding: 0;
+  margin: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.rating legend {
+  padding: 0;
+  font-size: 14px;
+  color: #624c21;
+}
+
+.stars {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.stars label {
+  position: relative;
+  cursor: pointer;
+}
+
+.stars input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.stars span {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid #d5ae50;
+  border-radius: 9px;
+  background: #fff;
+  color: #805600;
+  font-size: 25px;
+  line-height: 1;
+}
+
+.stars span:hover,
+.stars input:checked + span {
+  background: #ffe38d;
+}
+
+.stars input:focus-visible + span {
+  outline: 2px solid #1d4ed8;
+  outline-offset: 2px;
+}
+
+.details {
+  display: grid;
+  justify-items: start;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.details p,
+.confirmation p {
+  margin: 0;
+}
+
+.preview {
+  max-width: 100%;
+  max-height: 220px;
+  border-radius: 6px;
+}
+
+.consent {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.consent input {
+  flex: none;
+  margin: 4px 0 0;
+}
+
+.submit {
+  min-height: 44px;
+  padding: 8px 16px;
+  border: 1px solid #b18723;
+  border-radius: 8px;
+  background: #ffd76a;
+  color: #342300;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.submit:disabled {
+  background: #eee6d0;
+  cursor: default;
+}
+
+.examples {
+  display: inline-block;
+  margin-top: 12px;
+  font-size: 14px;
+  color: #1e4d87;
+}
+
+.confirmation p {
+  margin-top: 4px;
+}

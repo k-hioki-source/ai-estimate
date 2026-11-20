@@ -1721,6 +1721,11 @@ async function handleFormalQuoteRequest() {
           </div>
           </div>
 
+          {result.reviewTicket && lastFormData?.get('image') instanceof File && (
+            <EstimateReviewForm key={result.reviewTicket} ticket={result.reviewTicket}
+              image={lastFormData.get('image') as File} />
+          )}
+
           <div className="pdfDownloadArea">
             <button
               type="button"
@@ -1734,11 +1739,6 @@ async function handleFormalQuoteRequest() {
               画面に表示された概算見積り結果をPDFファイルとして保存できます。
             </p>
           </div>
-
-          {result.reviewTicket && lastFormData?.get('image') instanceof File && (
-            <EstimateReviewForm key={result.reviewTicket} ticket={result.reviewTicket}
-              image={lastFormData.get('image') as File} />
-          )}
 
           <style>{`
             .pdfCaptureArea {
