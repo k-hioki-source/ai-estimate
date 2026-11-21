@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import styles from './LatestEstimateExamples.module.css';
 
-type Example = { id: string; title: string; price: string; rating: number };
+type Example = { id: string; title: string; price: string; rating: number; comment: string };
 
 export default function LatestEstimateExamples() {
   const [examples, setExamples] = useState<Example[] | null>(null);
@@ -34,10 +34,16 @@ export default function LatestEstimateExamples() {
                 width={320} height={200} loading="lazy" />
               <div className={styles.info}>
                 <h3>{example.title}</h3>
-                <strong>{example.price}</strong>
+                <strong>AI概算　{example.price}</strong>
                 <span className={styles.stars} role="img" aria-label={`投稿者評価 5段階中${example.rating}`}>
                   {'★'.repeat(example.rating)}{'☆'.repeat(5 - example.rating)}
                 </span>
+                {example.comment && (
+                  <div className={styles.comment}>
+                    <strong>クリエイトサポートからの補足</strong>
+                    <p>{example.comment}</p>
+                  </div>
+                )}
               </div>
             </article>
           ))}
