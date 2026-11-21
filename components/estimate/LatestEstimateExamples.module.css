@@ -74,3 +74,18 @@
     grid-template-columns: 1fr;
   }
 }
+
+.comment {
+  margin-top: 4px;
+  padding: 10px 12px;
+  border-inline-start: 3px solid #dbad3c;
+  background: #fff8e4;
+  color: #473514;
+  font-size: 14px;
+}
+
+.comment p {
+  margin: 4px 0 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

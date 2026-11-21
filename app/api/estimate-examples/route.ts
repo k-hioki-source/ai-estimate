@@ -12,17 +12,18 @@ export async function GET() {
 
   try {
     const { data, error } = await adminClient().from('estimate_reviews')
-      .select('id,rating,style,quantity,amount,price_type')
+      .select('id,rating,style,quantity,amount,price_type,admin_comment')
       .eq('status', 'published').order('created_at', { ascending: false })
       .order('id', { ascending: false }).limit(3);
     if (error) throw error;
-    const reviews = data as Pick<EstimateReview, 'id' | 'rating' | 'style' | 'quantity' | 'amount' | 'price_type'>[];
+    const reviews = data as Pick<EstimateReview, 'id' | 'rating' | 'style' | 'quantity' | 'amount' | 'price_type' | 'admin_comment'>[];
     return NextResponse.json({
       examples: reviews.map(review => ({
         id: review.id,
         title: `${estimateReviewStyles[review.style]}・${review.quantity}点`,
         price: estimateReviewPrice(review),
         rating: review.rating,
+        comment: review.admin_comment?.trim() || '',
       })),
     }, { headers });
   } catch (error) {
